@@ -21,6 +21,7 @@ const defaultState = () => ({
     height: null       // cm
   },
   composition: [],     // { date, weight, bodyFat, skeletalMuscle, boneMass, bodyWater, bmr, metabolicAge }
+  migrations: [],      // id delle migrazioni già applicate
   version: 2
 });
 
@@ -44,9 +45,9 @@ function seedState() {
     bodyweight: [{ date: "2026-06-25", v: 60.1 }],
     schedule: {
       "2026-06-25": { workoutId: "fullbody", done: true },
-      "2026-06-30": { workoutId: "fullbody", done: false },
-      "2026-07-02": { workoutId: "fullbody", done: false, note: "Con Denis (PT)" },
-      "2026-07-03": { workoutId: "fullbody", done: false }
+      "2026-06-29": { workoutId: "fullbody", done: false },
+      "2026-07-01": { workoutId: "fullbody", done: false, note: "Con Denis (PT)" },
+      "2026-07-02": { workoutId: "fullbody", done: false }
     },
     goals: {
       startWeight: 60.1,
@@ -59,8 +60,27 @@ function seedState() {
     composition: [{
       date: "2026-06-25", weight: 60.1, bodyFat: 13.1, skeletalMuscle: 49.64,
       boneMass: 2.59, bodyWater: 62.7, bmr: 1489, metabolicAge: 38
-    }]
+    }],
+    migrations: ["fix-initial-schedule"]   // il seed nasce già corretto
   });
+}
+
+// Migrazioni su dati già salvati (idempotenti, ognuna gira una sola volta)
+function applyMigrations(s) {
+  s.migrations = s.migrations || [];
+
+  // Corregge le date dei primi allenamenti programmati (giorni della settimana giusti)
+  if (!s.migrations.includes("fix-initial-schedule")) {
+    const remap = { "2026-06-30": "2026-06-29", "2026-07-02": "2026-07-01", "2026-07-03": "2026-07-02" };
+    const next = {};
+    Object.entries(s.schedule || {}).forEach(([d, v]) => { next[remap[d] || d] = v; });
+    if (next["2026-07-01"]) next["2026-07-01"].note = "Con Denis (PT)";
+    if (next["2026-07-02"]) delete next["2026-07-02"].note;
+    s.schedule = next;
+    s.migrations.push("fix-initial-schedule");
+  }
+
+  return s;
 }
 
 function isEmptyState(s) {
@@ -76,7 +96,7 @@ function loadState() {
     const parsed = JSON.parse(raw);
     const merged = Object.assign(defaultState(), parsed);
     if (isEmptyState(merged)) return seedState(); // aperta ma mai usata
-    return merged;
+    return applyMigrations(merged);
   } catch (e) {
     console.warn("Stato corrotto, reset:", e);
     return seedState();
