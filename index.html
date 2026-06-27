@@ -33,6 +33,10 @@
   <div class="section-label">Esercizi</div>
   <div id="ex-cards"></div>
 
+  <div class="meta-row">
+    <div class="meta-field"><div class="meta-lbl">Durata (min)</div><input id="log-duration" type="number" inputmode="numeric" placeholder="—" min="0" max="300"></div>
+    <div class="meta-field"><div class="meta-lbl">Calorie (kcal)</div><input id="log-calories" type="number" inputmode="numeric" placeholder="—" min="0" max="3000"></div>
+  </div>
   <div class="notes-card">
     <textarea id="log-notes" placeholder="📝 Note sessione: come ti sei sentito, energia, dolori..."></textarea>
   </div>
@@ -77,10 +81,15 @@
     <div class="chart-sub">Registralo dalla sezione Obiettivi</div>
     <canvas id="bw-chart" height="130"></canvas>
   </div>
+
+  <div class="section-label">Storico sessioni</div>
+  <div id="history-list"></div>
 </div>
 
 <!-- ============ OBIETTIVI ============ -->
 <div class="section" id="section-obiettivi">
+  <div id="profile-card"></div>
+
   <div class="goal-card">
     <div class="goal-current" id="g-current">—</div>
     <div class="goal-current-lbl">Peso corporeo attuale</div>
@@ -99,6 +108,25 @@
     <textarea class="goal-note" id="g-note" placeholder="La tua motivazione, scadenza, note..."></textarea>
     <button class="btn-secondary" onclick="saveGoals()">Aggiorna obiettivo</button>
     <div class="progress-wrap" id="goal-progress" style="display:none;margin-top:14px"></div>
+  </div>
+
+  <div class="section-label">📊 Composizione corporea</div>
+  <div class="goal-card">
+    <div class="comp-date" id="comp-date"></div>
+    <div class="comp-grid" id="comp-cards"></div>
+    <button class="comp-toggle" onclick="toggleCompForm()">＋ Aggiungi misurazione</button>
+    <div class="comp-form" id="comp-form" style="display:none">
+      <div class="comp-fields">
+        <div class="goal-field"><div class="goal-field-lbl">Peso (kg)</div><input type="number" id="c-weight" step="0.01" inputmode="decimal"></div>
+        <div class="goal-field"><div class="goal-field-lbl">Grasso (%)</div><input type="number" id="c-fat" step="0.1" inputmode="decimal"></div>
+        <div class="goal-field"><div class="goal-field-lbl">Massa musc. (kg)</div><input type="number" id="c-muscle" step="0.01" inputmode="decimal"></div>
+        <div class="goal-field"><div class="goal-field-lbl">Massa ossea (kg)</div><input type="number" id="c-bone" step="0.01" inputmode="decimal"></div>
+        <div class="goal-field"><div class="goal-field-lbl">Acqua (%)</div><input type="number" id="c-water" step="0.1" inputmode="decimal"></div>
+        <div class="goal-field"><div class="goal-field-lbl">BMR (kcal)</div><input type="number" id="c-bmr" inputmode="numeric"></div>
+        <div class="goal-field"><div class="goal-field-lbl">Età metabolica</div><input type="number" id="c-metage" inputmode="numeric"></div>
+      </div>
+      <button class="btn-secondary" onclick="saveComposition()">Salva misurazione</button>
+    </div>
   </div>
 
   <div class="section-label">🏆 Record personali</div>

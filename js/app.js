@@ -3,6 +3,7 @@
    ============================================================ */
 
 let state = loadState();
+saveState(state);   // persiste il seed al primo avvio
 let currentWorkoutId = WORKOUTS[0].id;
 let timers = {};
 let calRef = new Date();          // mese mostrato nel calendario
@@ -14,6 +15,10 @@ const todayStr = () => new Date().toISOString().split("T")[0];
 const fmtShort = (str) => {
   const d = new Date(str + "T00:00:00");
   return d.toLocaleDateString("it-IT", { day: "numeric", month: "short" });
+};
+const fmtLong = (str) => {
+  const d = new Date(str + "T00:00:00");
+  return d.toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" });
 };
 const getWorkout = (id) => WORKOUTS.find(w => w.id === id);
 
@@ -148,6 +153,10 @@ function renderWorkout() {
     cont.appendChild(card);
   });
 
+  $("log-notes").value = sess && sess.notes ? sess.notes : "";
+  $("log-duration").value = sess && sess.duration != null ? sess.duration : "";
+  $("log-calories").value = sess && sess.calories != null ? sess.calories : "";
+
   updateProgress();
 }
 
@@ -238,12 +247,16 @@ function saveSession() {
 
   const existing = todaySession(w.id);
   const notes = $("log-notes").value.trim();
+  const duration = parseInt($("log-duration").value) || null;
+  const calories = parseInt($("log-calories").value) || null;
   if (existing) {
     existing.weights = weights;
     existing.notes = notes;
+    existing.duration = duration;
+    existing.calories = calories;
   } else {
     state.sessions.push({
-      id: Date.now(), date: todayStr(), workoutId: w.id, weights, notes
+      id: Date.now(), date: todayStr(), workoutId: w.id, weights, duration, calories, notes
     });
   }
   // segna il giorno come fatto nel calendario
@@ -296,7 +309,7 @@ function renderCalendar() {
         return `<div class="up-row">
           <span class="up-dot" style="background:${w.color}"></span>
           <span class="up-date">${fmtShort(d)}</span>
-          <span class="up-name">${w.emoji} ${w.name}</span>
+          <span class="up-name">${w.emoji} ${w.name}${s.note ? ` <span class="up-note">· ${s.note}</span>` : ''}</span>
           <span class="up-status">${s.done ? '✓ fatto' : 'programmato'}</span>
         </div>`;
       }).join("")
@@ -326,6 +339,7 @@ function openDay(ds) {
 function assignDay(ds, workoutId) {
   const prev = state.schedule[ds];
   state.schedule[ds] = { workoutId, done: prev ? prev.done : false };
+  if (prev && prev.note) state.schedule[ds].note = prev.note;
   saveState(state);
   closeModal();
   renderCalendar();
@@ -366,6 +380,7 @@ function renderProgress() {
   renderVolumeChart();
   renderExChart();
   renderBWChart();
+  renderHistory();
 }
 
 function renderVolumeChart() {
@@ -424,10 +439,39 @@ function renderBWChart() {
 /* ============================================================
    VISTA OBIETTIVI
    ============================================================ */
+function computeAge(birthday) {
+  if (!birthday) return null;
+  const b = new Date(birthday + "T00:00:00");
+  const now = new Date();
+  let age = now.getFullYear() - b.getFullYear();
+  const m = now.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+  return age;
+}
+
+function renderProfile() {
+  const p = state.profile || {};
+  const card = $("profile-card");
+  if (!p.name && !p.height && !p.birthday) { card.innerHTML = ""; return; }
+  const age = computeAge(p.birthday);
+  card.className = "goal-card profile-box";
+  card.innerHTML = `
+    <div class="profile-top">
+      <div class="profile-avatar">${(p.name || "?").charAt(0).toUpperCase()}</div>
+      <div>
+        <div class="profile-name">${p.name || "—"}</div>
+        <div class="profile-meta">${age != null ? age + " anni" : ""}${p.height ? " · " + p.height + " cm" : ""}</div>
+      </div>
+    </div>`;
+}
+
 function renderGoals() {
   const bw = state.bodyweight;
   const cur = bw.length ? bw[bw.length - 1].v : null;
   const g = state.goals;
+
+  renderProfile();
+  renderComposition();
 
   $("g-current").textContent = cur != null ? cur + " kg" : "—";
   $("g-start-input").value = g.startWeight != null ? g.startWeight : "";
@@ -446,7 +490,7 @@ function renderGoals() {
         <span class="progress-count">${pct}%</span>
       </div>
       <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:#8B5CF6"></div></div>
-      <div class="goal-delta">${done >= 0 ? '+' : ''}${done.toFixed(1)} kg dall'inizio · mancano ${(g.targetWeight - cur).toFixed(1)} kg</div>`;
+      <div class="goal-delta">${done >= 0 ? '+' : ''}${done.toFixed(1)} kg dall'inizio · mancano ${(g.targetWeight - cur).toFixed(1)} kg${g.targetDate ? ` · entro ${fmtLong(g.targetDate)}` : ''}</div>`;
     wrap.style.display = "block";
   } else {
     wrap.style.display = "none";
@@ -486,6 +530,107 @@ function saveGoals() {
   saveState(state);
   toast("🎯 Obiettivo aggiornato!");
   renderGoals();
+}
+
+/* ---------- COMPOSIZIONE CORPOREA ---------- */
+const COMP_METRICS = [
+  { key: "bodyFat",        lbl: "Grasso corp.",   unit: "%",   color: "#FF6B6B" },
+  { key: "skeletalMuscle", lbl: "Massa musc.",    unit: "kg",  color: "#10B981" },
+  { key: "boneMass",       lbl: "Massa ossea",    unit: "kg",  color: "#6b7280" },
+  { key: "bodyWater",      lbl: "Acqua corp.",    unit: "%",   color: "#0EA5E9" },
+  { key: "bmr",            lbl: "BMR",            unit: "kcal",color: "#F59E0B" },
+  { key: "metabolicAge",   lbl: "Età metabolica", unit: "anni",color: "#8B5CF6" }
+];
+
+function renderComposition() {
+  const comp = state.composition || [];
+  const grid = $("comp-cards");
+  if (!comp.length) {
+    $("comp-date").textContent = "";
+    grid.innerHTML = `<div class="empty-mini" style="grid-column:1/-1">Nessuna misurazione. Aggiungine una qui sotto.</div>`;
+    return;
+  }
+  const latest = comp[comp.length - 1];
+  const prev = comp.length > 1 ? comp[comp.length - 2] : null;
+  $("comp-date").textContent = "Ultima misurazione: " + fmtLong(latest.date);
+  grid.innerHTML = COMP_METRICS.map(m => {
+    const v = latest[m.key];
+    if (v == null) return "";
+    let delta = "";
+    if (prev && prev[m.key] != null) {
+      const d = +(v - prev[m.key]).toFixed(2);
+      if (d !== 0) delta = `<span class="comp-delta">${d > 0 ? '▲' : '▼'} ${Math.abs(d)}</span>`;
+    }
+    return `<div class="comp-card">
+      <div class="comp-val" style="color:${m.color}">${v}<span class="comp-unit">${m.unit}</span></div>
+      <div class="comp-lbl">${m.lbl}</div>${delta}
+    </div>`;
+  }).join("");
+}
+
+function toggleCompForm() {
+  const f = $("comp-form");
+  f.style.display = f.style.display === "none" ? "block" : "none";
+}
+
+function saveComposition() {
+  const num = (id) => { const v = parseFloat($(id).value); return isNaN(v) ? null : v; };
+  const entry = {
+    date: todayStr(),
+    weight: num("c-weight"),
+    bodyFat: num("c-fat"),
+    skeletalMuscle: num("c-muscle"),
+    boneMass: num("c-bone"),
+    bodyWater: num("c-water"),
+    bmr: num("c-bmr"),
+    metabolicAge: num("c-metage")
+  };
+  const hasData = Object.keys(entry).some(k => k !== "date" && entry[k] != null);
+  if (!hasData) { toast("Inserisci almeno un valore"); return; }
+
+  const existing = state.composition.find(c => c.date === entry.date);
+  if (existing) Object.assign(existing, entry);
+  else state.composition.push(entry);
+  state.composition.sort((a, b) => a.date.localeCompare(b.date));
+
+  // se è stato inserito il peso, aggiornalo anche nel tracciamento peso corporeo
+  if (entry.weight != null) {
+    const bw = state.bodyweight.find(b => b.date === entry.date);
+    if (bw) bw.v = entry.weight;
+    else state.bodyweight.push({ date: entry.date, v: entry.weight });
+    state.bodyweight.sort((a, b) => a.date.localeCompare(b.date));
+  }
+  saveState(state);
+  ["c-weight", "c-fat", "c-muscle", "c-bone", "c-water", "c-bmr", "c-metage"].forEach(id => $(id).value = "");
+  toggleCompForm();
+  toast("📊 Misurazione salvata!");
+  renderGoals();
+}
+
+/* ---------- STORICO SESSIONI ---------- */
+function renderHistory() {
+  const list = $("history-list");
+  const s = [...state.sessions].sort((a, b) => b.date.localeCompare(a.date));
+  if (!s.length) { list.innerHTML = `<div class="empty-mini">Nessuna sessione registrata.</div>`; return; }
+  list.innerHTML = s.map(sess => {
+    const w = getWorkout(sess.workoutId);
+    const nEx = Object.values(sess.weights).filter(sets => sets.some(v => v > 0)).length;
+    const meta = [
+      `${nEx} esercizi`,
+      `${Math.round(sessionVolume(sess))} kg vol.`,
+      sess.duration ? `${sess.duration} min` : null,
+      sess.calories ? `${sess.calories} kcal` : null
+    ].filter(Boolean).join(" · ");
+    return `<div class="hist-card">
+      <div class="hist-top">
+        <span class="hist-dot" style="background:${w ? w.color : '#999'}"></span>
+        <span class="hist-name">${w ? w.emoji + ' ' + w.name : 'Sessione'}</span>
+        <span class="hist-date">${fmtShort(sess.date)}</span>
+      </div>
+      <div class="hist-meta">${meta}</div>
+      ${sess.notes ? `<div class="hist-notes">📝 ${sess.notes}</div>` : ''}
+    </div>`;
+  }).join("");
 }
 
 /* ============================================================
