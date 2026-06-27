@@ -2,124 +2,11 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#ffffff">
 <title>Allenamento</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; background: #f8f7f5; color: #1a1a1a; min-height: 100vh; }
-  :root { --coral: #FF6B6B; --coral-light: #FFF0F0; --coral-dark: #CC4444; --amber: #F59E0B; --amber-light: #FFFBEB; --text: #1a1a1a; --muted: #6b7280; --border: #e5e7eb; --card: #ffffff; --bg: #f8f7f5; }
-
-  /* HEADER */
-  .header { background: var(--card); border-bottom: 0.5px solid var(--border); padding: 16px 20px 12px; position: sticky; top: 0; z-index: 100; }
-  .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  .app-title { font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
-  .date-badge { font-size: 12px; color: var(--coral); background: var(--coral-light); padding: 4px 10px; border-radius: 20px; font-weight: 600; }
-  .tab-bar { display: flex; gap: 4px; background: #f1f0ee; border-radius: 10px; padding: 3px; }
-  .tab { flex: 1; padding: 8px; text-align: center; font-size: 13px; font-weight: 500; border-radius: 8px; cursor: pointer; color: var(--muted); transition: all 0.2s; border: none; background: transparent; }
-  .tab.active { background: var(--card); color: var(--coral); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-
-  /* SECTIONS */
-  .section { display: none; padding: 16px 16px 32px; }
-  .section.active { display: block; }
-
-  /* WORKOUT HERO */
-  .workout-hero { background: var(--coral); border-radius: 16px; padding: 20px; margin-bottom: 16px; color: white; }
-  .hero-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.8; margin-bottom: 4px; }
-  .hero-title { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
-  .hero-sub { font-size: 13px; opacity: 0.85; }
-  .hero-stats { display: flex; gap: 16px; margin-top: 16px; }
-  .hero-stat { text-align: center; }
-  .hero-stat-num { font-size: 22px; font-weight: 700; }
-  .hero-stat-lbl { font-size: 10px; opacity: 0.75; text-transform: uppercase; letter-spacing: 0.05em; }
-
-  /* EXERCISE CARD */
-  .ex-card { background: var(--card); border-radius: 16px; border: 0.5px solid var(--border); margin-bottom: 12px; overflow: hidden; }
-  .ex-header { display: flex; align-items: center; gap: 12px; padding: 14px 16px 12px; cursor: pointer; }
-  .ex-num { width: 28px; height: 28px; border-radius: 50%; background: var(--coral); color: white; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .ex-title-group { flex: 1; }
-  .ex-name { font-size: 16px; font-weight: 700; color: var(--text); }
-  .ex-muscle { font-size: 12px; color: var(--coral); font-weight: 600; margin-top: 2px; }
-  .ex-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 600; }
-  .badge-machine { background: #EFF6FF; color: #1D4ED8; }
-  .badge-dumbbell { background: #F0FDF4; color: #15803D; }
-  .badge-cable { background: #FFF7ED; color: #C2410C; }
-  .badge-body { background: #F5F3FF; color: #6D28D9; }
-  .ex-chevron { font-size: 18px; color: var(--muted); transition: transform 0.2s; }
-  .ex-card.open .ex-chevron { transform: rotate(180deg); }
-
-  .ex-body { display: none; padding: 0 16px 16px; border-top: 0.5px solid var(--border); }
-  .ex-card.open .ex-body { display: block; }
-
-  /* SILHOUETTE */
-  .muscle-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
-  .silhouette { width: 50px; flex-shrink: 0; }
-  .muscle-info { flex: 1; }
-  .muscle-primary { font-size: 13px; font-weight: 600; color: var(--text); }
-  .muscle-secondary { font-size: 12px; color: var(--muted); margin-top: 2px; }
-
-  /* SETS ROW */
-  .sets-row { display: flex; gap: 8px; margin: 10px 0; }
-  .set-pill { flex: 1; background: var(--bg); border-radius: 10px; padding: 10px 8px; text-align: center; }
-  .set-pill-num { font-size: 18px; font-weight: 700; color: var(--coral); }
-  .set-pill-lbl { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 1px; }
-
-  /* TIP */
-  .tip-box { background: var(--amber-light); border-left: 3px solid var(--amber); border-radius: 0 8px 8px 0; padding: 10px 12px; margin: 10px 0; }
-  .tip-label { font-size: 10px; font-weight: 700; color: var(--amber); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
-  .tip-text { font-size: 13px; color: #92400E; line-height: 1.4; }
-
-  /* WEIGHT LOG */
-  .weight-section { margin-top: 12px; }
-  .weight-label { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
-  .weight-sets { display: flex; gap: 6px; }
-  .weight-input-group { flex: 1; text-align: center; }
-  .weight-input-lbl { font-size: 10px; color: var(--muted); margin-bottom: 3px; }
-  .weight-input { width: 100%; border: 1.5px solid var(--border); border-radius: 8px; padding: 8px 4px; text-align: center; font-size: 14px; font-weight: 600; color: var(--text); background: var(--card); outline: none; transition: border-color 0.2s; }
-  .weight-input:focus { border-color: var(--coral); }
-  .weight-unit { font-size: 10px; color: var(--muted); text-align: center; margin-top: 2px; }
-
-  /* TIMER */
-  .rest-row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding: 10px 12px; background: var(--bg); border-radius: 10px; }
-  .rest-info { font-size: 13px; font-weight: 600; color: var(--muted); }
-  .rest-timer-btn { background: var(--coral); color: white; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
-  .rest-timer-btn:active { transform: scale(0.96); }
-  .timer-display { font-size: 13px; font-weight: 700; color: var(--coral); min-width: 40px; text-align: right; }
-
-  /* SECTION TITLE */
-  .section-label { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin: 4px 0 12px; }
-
-  /* GUIDE CARDS */
-  .guide-card { background: var(--card); border-radius: 16px; border: 0.5px solid var(--border); margin-bottom: 12px; overflow: hidden; }
-  .guide-card-header { display: flex; align-items: center; gap: 12px; padding: 16px; cursor: pointer; }
-  .guide-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
-  .guide-title { font-size: 15px; font-weight: 700; }
-  .guide-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-  .guide-body { display: none; padding: 0 16px 16px; border-top: 0.5px solid var(--border); }
-  .guide-card.open .guide-body { display: block; }
-  .guide-card.open .guide-chevron { transform: rotate(180deg); }
-  .guide-chevron { font-size: 18px; color: var(--muted); transition: transform 0.2s; margin-left: auto; flex-shrink: 0; }
-
-  .guide-step { display: flex; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
-  .guide-step:last-child { border-bottom: none; }
-  .step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--coral); color: white; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
-  .step-text { font-size: 13px; color: var(--text); line-height: 1.5; }
-  .step-text strong { color: var(--coral-dark); }
-
-  .error-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
-  .error-item:last-child { border-bottom: none; }
-  .error-icon { font-size: 20px; flex-shrink: 0; }
-  .error-content { flex: 1; }
-  .error-title { font-size: 13px; font-weight: 700; color: #CC4444; }
-  .error-desc { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
-
-  /* PROGRESS BAR */
-  .progress-wrap { background: var(--bg); border-radius: 16px; padding: 14px 16px; margin-bottom: 16px; }
-  .progress-top { display: flex; justify-content: space-between; margin-bottom: 8px; }
-  .progress-label { font-size: 13px; font-weight: 600; }
-  .progress-count { font-size: 13px; font-weight: 700; color: var(--coral); }
-  .progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
-  .progress-fill { height: 100%; background: var(--coral); border-radius: 3px; transition: width 0.4s; }
-</style>
+<link rel="stylesheet" href="css/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -128,25 +15,12 @@
     <span class="app-title">Allenamento</span>
     <span class="date-badge" id="today-date"></span>
   </div>
-  <div class="tab-bar">
-    <button class="tab active" onclick="switchTab('workout', this)">Workout A</button>
-    <button class="tab" onclick="switchTab('guide', this)">Guida Palestra</button>
-  </div>
 </div>
 
-<!-- WORKOUT SECTION -->
+<!-- ============ WORKOUT ============ -->
 <div class="section active" id="section-workout">
-  <div class="workout-hero">
-    <div class="hero-label">Allenamento del giorno</div>
-    <div class="hero-title">Full Body A 💪</div>
-    <div class="hero-sub">7 esercizi · Obiettivo: ipertrofia</div>
-    <div class="hero-stats">
-      <div class="hero-stat"><div class="hero-stat-num">3</div><div class="hero-stat-lbl">Serie</div></div>
-      <div class="hero-stat"><div class="hero-stat-num">12</div><div class="hero-stat-lbl">Rip. medi</div></div>
-      <div class="hero-stat"><div class="hero-stat-num">60–90"</div><div class="hero-stat-lbl">Riposo</div></div>
-      <div class="hero-stat"><div class="hero-stat-num">~50'</div><div class="hero-stat-lbl">Durata</div></div>
-    </div>
-  </div>
+  <div class="workout-chips" id="workout-chips"></div>
+  <div class="workout-hero" id="workout-hero"></div>
 
   <div class="progress-wrap">
     <div class="progress-top">
@@ -157,379 +31,125 @@
   </div>
 
   <div class="section-label">Esercizi</div>
-
-  <!-- EXERCISE CARDS -->
   <div id="ex-cards"></div>
+
+  <div class="notes-card">
+    <textarea id="log-notes" placeholder="📝 Note sessione: come ti sei sentito, energia, dolori..."></textarea>
+  </div>
+  <button class="btn-save" onclick="saveSession()">💾 Salva sessione di oggi</button>
 </div>
 
-<!-- GUIDE SECTION -->
-<div class="section" id="section-guide">
-  <div class="workout-hero" style="background: #1a1a1a;">
-    <div class="hero-label" style="color: rgba(255,255,255,0.6)">Guida per principianti</div>
-    <div class="hero-title">La tua palestra 🏋️</div>
-    <div class="hero-sub" style="color: rgba(255,255,255,0.75)">Tutto quello che devi sapere per iniziare con sicurezza</div>
+<!-- ============ CALENDARIO ============ -->
+<div class="section" id="section-calendario">
+  <div class="cal-head">
+    <button class="cal-nav" onclick="calNav(-1)">‹</button>
+    <span class="cal-month" id="cal-month"></span>
+    <button class="cal-nav" onclick="calNav(1)">›</button>
+  </div>
+  <div class="cal-grid" id="cal-grid"></div>
+  <div class="section-label">Prossimi allenamenti</div>
+  <div id="cal-upcoming"></div>
+</div>
+
+<!-- ============ PROGRESSI ============ -->
+<div class="section" id="section-progressi">
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-num" id="stat-sessions">0</div><div class="stat-lbl">Sessioni totali</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-week">0</div><div class="stat-lbl">Questa settimana</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-pr">0</div><div class="stat-lbl">Record (PR)</div></div>
   </div>
 
-  <div class="section-label">5 Argomenti</div>
+  <div class="chart-card">
+    <div class="chart-title">Volume per sessione</div>
+    <div class="chart-sub">Kg totali sollevati ogni allenamento</div>
+    <canvas id="vol-chart" height="150"></canvas>
+  </div>
 
+  <div class="chart-card">
+    <div class="chart-title">Andamento per esercizio</div>
+    <div class="chart-sub">Peso medio nel tempo</div>
+    <select class="chart-select" id="ex-select" onchange="renderExChart()"></select>
+    <canvas id="ex-chart" height="150"></canvas>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title">Peso corporeo</div>
+    <div class="chart-sub">Registralo dalla sezione Obiettivi</div>
+    <canvas id="bw-chart" height="130"></canvas>
+  </div>
+</div>
+
+<!-- ============ OBIETTIVI ============ -->
+<div class="section" id="section-obiettivi">
+  <div class="goal-card">
+    <div class="goal-current" id="g-current">—</div>
+    <div class="goal-current-lbl">Peso corporeo attuale</div>
+    <div class="bw-row">
+      <input class="bw-input" type="number" id="bw-input" placeholder="es. 62.5" step="0.1" inputmode="decimal">
+      <button class="bw-btn" onclick="saveBW()">Salva</button>
+    </div>
+  </div>
+
+  <div class="section-label">🎯 Obiettivo massa</div>
+  <div class="goal-card">
+    <div class="goal-fields">
+      <div class="goal-field"><div class="goal-field-lbl">Peso iniziale (kg)</div><input type="number" id="g-start-input" step="0.1" inputmode="decimal"></div>
+      <div class="goal-field"><div class="goal-field-lbl">Obiettivo (kg)</div><input type="number" id="g-target-input" step="0.1" inputmode="decimal"></div>
+    </div>
+    <textarea class="goal-note" id="g-note" placeholder="La tua motivazione, scadenza, note..."></textarea>
+    <button class="btn-secondary" onclick="saveGoals()">Aggiorna obiettivo</button>
+    <div class="progress-wrap" id="goal-progress" style="display:none;margin-top:14px"></div>
+  </div>
+
+  <div class="section-label">🏆 Record personali</div>
+  <div id="pr-list"></div>
+
+  <div class="section-label">💾 Backup dati</div>
+  <div class="goal-card">
+    <div class="backup-row">
+      <button class="backup-btn" onclick="doExport()">⬇️ Esporta JSON</button>
+      <label class="backup-btn">⬆️ Importa JSON
+        <input type="file" accept="application/json" onchange="doImport(this)" style="display:none">
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- ============ GUIDA ============ -->
+<div class="section" id="section-guida">
+  <div class="workout-hero" style="background:#1a1a1a;">
+    <div class="hero-label" style="color:rgba(255,255,255,0.6)">Guida per principianti</div>
+    <div class="hero-title">La tua palestra 🏋️</div>
+    <div class="hero-sub" style="color:rgba(255,255,255,0.75)">Tutto quello che devi sapere per iniziare con sicurezza</div>
+  </div>
+  <div class="section-label">5 Argomenti</div>
   <div id="guide-cards"></div>
 </div>
 
-<script>
-const exercises = [
-  {
-    name: "Leg Press",
-    muscle: "Quadricipiti",
-    secondary: "Glutei, Femorali",
-    type: "machine",
-    sets: 3, reps: 12, rest: "90\"",
-    tip: "Non portare le ginocchia oltre le punte dei piedi e non bloccare completamente le gambe in estensione: mantieni una leggera flessione.",
-    bodyPart: "legs",
-    color: "#FF6B6B"
-  },
-  {
-    name: "Chest Press",
-    muscle: "Pettorali",
-    secondary: "Tricipiti, Deltoidi ant.",
-    type: "machine",
-    sets: 3, reps: 12, rest: "90\"",
-    tip: "Tieni le scapole aderenti allo schienale per tutto il movimento. Non spingere le spalle in avanti nella fase di spinta.",
-    bodyPart: "chest",
-    color: "#FF6B6B"
-  },
-  {
-    name: "Lat Machine",
-    muscle: "Gran Dorsale",
-    secondary: "Bicipiti, Romboidi",
-    type: "cable",
-    sets: 3, reps: 12, rest: "90\"",
-    tip: "Non tirare il bilanciere fino al petto. Arriva al mento. Inizia il movimento aprendo le scapole, non piegando i gomiti.",
-    bodyPart: "back",
-    color: "#F59E0B"
-  },
-  {
-    name: "Shoulder Press",
-    muscle: "Deltoide",
-    secondary: "Trapezi, Tricipiti",
-    type: "machine",
-    sets: 3, reps: 12, rest: "60\"",
-    tip: "Evita di iperestendere la schiena. Contrai il core e spingi verticalmente. Non bloccare i gomiti in cima.",
-    bodyPart: "shoulders",
-    color: "#FF6B6B"
-  },
-  {
-    name: "Curl Bicipiti",
-    muscle: "Bicipiti",
-    secondary: "Brachiale, Brachioradiale",
-    type: "dumbbell",
-    sets: 3, reps: 12, rest: "60\"",
-    tip: "Non oscillare il busto per portare su il peso. Il movimento parte dal gomito, non dalla spalla. Usa un peso che ti permetta la forma corretta.",
-    bodyPart: "arms",
-    color: "#10B981"
-  },
-  {
-    name: "Tricipiti ai Cavi",
-    muscle: "Tricipiti",
-    secondary: "Deltoide post., Core",
-    type: "cable",
-    sets: 3, reps: 12, rest: "60\"",
-    tip: "Tieni i gomiti vicini al busto e fissi. Solo l'avambraccio si muove. Non staccare i gomiti dai fianchi durante l'esercizio.",
-    bodyPart: "arms",
-    color: "#F59E0B"
-  },
-  {
-    name: "Plank",
-    muscle: "Core, Addominali",
-    secondary: "Glutei, Stabilizzatori",
-    type: "body",
-    sets: 3, reps: null, rest: "60\"", time: "30\"",
-    tip: "Non alzare il sedere né lasciarlo cadere. Il corpo deve essere una linea retta dalla testa ai talloni. Respira normalmente.",
-    bodyPart: "core",
-    color: "#8B5CF6"
-  }
-];
+<!-- ============ BOTTOM NAV ============ -->
+<nav class="bottom-nav">
+  <button class="nav-item active" onclick="switchView('workout', this)"><span class="nav-ico">🏋️</span><span class="nav-lbl">Allena</span></button>
+  <button class="nav-item" onclick="switchView('calendario', this)"><span class="nav-ico">📅</span><span class="nav-lbl">Calendario</span></button>
+  <button class="nav-item" onclick="switchView('progressi', this)"><span class="nav-ico">📈</span><span class="nav-lbl">Progressi</span></button>
+  <button class="nav-item" onclick="switchView('obiettivi', this)"><span class="nav-ico">🎯</span><span class="nav-lbl">Obiettivi</span></button>
+  <button class="nav-item" onclick="switchView('guida', this)"><span class="nav-ico">📖</span><span class="nav-lbl">Guida</span></button>
+</nav>
 
-const badgeMap = { machine: ['badge-machine','Macchina'], dumbbell: ['badge-dumbbell','Manubri'], cable: ['badge-cable','Cavi'], body: ['badge-body','Corpo libero'] };
+<!-- ============ MODAL ============ -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title" id="modal-title"></span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
 
-const svgSilhouettes = {
-  legs: `<svg viewBox="0 0 50 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <ellipse cx="25" cy="8" rx="6" ry="6" fill="#e5e7eb"/>
-    <rect x="18" y="15" width="14" height="16" rx="4" fill="#e5e7eb"/>
-    <rect x="14" y="31" width="10" height="22" rx="4" fill="#FF6B6B"/>
-    <rect x="26" y="31" width="10" height="22" rx="4" fill="#FF6B6B"/>
-    <rect x="15" y="52" width="9" height="18" rx="3" fill="#e5e7eb"/>
-    <rect x="26" y="52" width="9" height="18" rx="3" fill="#e5e7eb"/>
-  </svg>`,
-  chest: `<svg viewBox="0 0 50 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <ellipse cx="25" cy="8" rx="6" ry="6" fill="#e5e7eb"/>
-    <rect x="16" y="15" width="18" height="18" rx="4" fill="#FF6B6B"/>
-    <rect x="16" y="33" width="7" height="12" rx="3" fill="#e5e7eb"/>
-    <rect x="27" y="33" width="7" height="12" rx="3" fill="#e5e7eb"/>
-    <rect x="15" y="45" width="9" height="22" rx="3" fill="#e5e7eb"/>
-    <rect x="26" y="45" width="9" height="22" rx="3" fill="#e5e7eb"/>
-  </svg>`,
-  back: `<svg viewBox="0 0 50 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <ellipse cx="25" cy="8" rx="6" ry="6" fill="#e5e7eb"/>
-    <path d="M16 15 Q10 22 13 32 L25 34 L37 32 Q40 22 34 15 Z" fill="#F59E0B"/>
-    <rect x="20" y="34" width="10" height="10" rx="3" fill="#e5e7eb"/>
-    <rect x="15" y="44" width="9" height="22" rx="3" fill="#e5e7eb"/>
-    <rect x="26" y="44" width="9" height="22" rx="3" fill="#e5e7eb"/>
-  </svg>`,
-  shoulders: `<svg viewBox="0 0 50 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <ellipse cx="25" cy="8" rx="6" ry="6" fill="#e5e7eb"/>
-    <ellipse cx="12" cy="21" rx="7" ry="6" fill="#FF6B6B"/>
-    <ellipse cx="38" cy="21" rx="7" ry="6" fill="#FF6B6B"/>
-    <rect x="18" y="15" width="14" height="14" rx="3" fill="#e5e7eb"/>
-    <rect x="11" y="27" width="7" height="18" rx="3" fill="#e5e7eb"/>
-    <rect x="32" y="27" width="7" height="18" rx="3" fill="#e5e7eb"/>
-    <rect x="19" y="29" width="12" height="12" rx="3" fill="#e5e7eb"/>
-    <rect x="15" y="44" width="9" height="22" rx="3" fill="#e5e7eb"/>
-    <rect x="26" y="44" width="9" height="22" rx="3" fill="#e5e7eb"/>
-  </svg>`,
-  arms: `<svg viewBox="0 0 50 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <ellipse cx="25" cy="8" rx="6" ry="6" fill="#e5e7eb"/>
-    <rect x="18" y="15" width="14" height="16" rx="3" fill="#e5e7eb"/>
-    <rect x="9" y="17" width="9" height="18" rx="4" fill="#10B981"/>
-    <rect x="32" y="17" width="9" height="18" rx="4" fill="#10B981"/>
-    <rect x="10" y="35" width="8" height="14" rx="3" fill="#e5e7eb"/>
-    <rect x="32" y="35" width="8" height="14" rx="3" fill="#e5e7eb"/>
-    <rect x="15" y="31" width="9" height="22" rx="3" fill="#e5e7eb"/>
-    <rect x="26" y="31" width="9" height="22" rx="3" fill="#e5e7eb"/>
-  </svg>`,
-  core: `<svg viewBox="0 0 50 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <ellipse cx="25" cy="8" rx="6" ry="6" fill="#e5e7eb"/>
-    <rect x="18" y="15" width="14" height="14" rx="3" fill="#e5e7eb"/>
-    <rect x="17" y="29" width="16" height="16" rx="4" fill="#8B5CF6"/>
-    <rect x="14" y="45" width="10" height="22" rx="3" fill="#e5e7eb"/>
-    <rect x="26" y="45" width="10" height="22" rx="3" fill="#e5e7eb"/>
-  </svg>`
-};
+<div class="toast" id="toast"></div>
 
-let timers = {};
-let completedExercises = {};
-
-function buildExercises() {
-  const container = document.getElementById('ex-cards');
-  exercises.forEach((ex, i) => {
-    const [badgeClass, badgeLabel] = badgeMap[ex.type];
-    const repsLabel = ex.time ? ex.time : `${ex.reps} rip.`;
-    const card = document.createElement('div');
-    card.className = 'ex-card';
-    card.id = `ex-${i}`;
-    card.innerHTML = `
-      <div class="ex-header" onclick="toggleCard(${i})">
-        <div class="ex-num" id="exnum-${i}">${i+1}</div>
-        <div class="ex-title-group">
-          <div class="ex-name">${ex.name}</div>
-          <div class="ex-muscle">${ex.muscle}</div>
-        </div>
-        <span class="ex-badge ${badgeClass}">${badgeLabel}</span>
-        <span class="ex-chevron">▾</span>
-      </div>
-      <div class="ex-body">
-        <div class="muscle-row">
-          <div class="silhouette">${svgSilhouettes[ex.bodyPart]}</div>
-          <div class="muscle-info">
-            <div class="muscle-primary">Muscolo target: ${ex.muscle}</div>
-            <div class="muscle-secondary">Secondari: ${ex.secondary}</div>
-          </div>
-        </div>
-        <div class="sets-row">
-          <div class="set-pill"><div class="set-pill-num">${ex.sets}</div><div class="set-pill-lbl">Serie</div></div>
-          <div class="set-pill"><div class="set-pill-num">${repsLabel}</div><div class="set-pill-lbl">${ex.time ? 'Durata' : 'Rip.'}</div></div>
-          <div class="set-pill"><div class="set-pill-num">${ex.rest}</div><div class="set-pill-lbl">Riposo</div></div>
-        </div>
-        <div class="tip-box">
-          <div class="tip-label">⚠️ Errore comune</div>
-          <div class="tip-text">${ex.tip}</div>
-        </div>
-        ${ex.time ? '' : `
-        <div class="weight-section">
-          <div class="weight-label">Peso usato oggi (kg)</div>
-          <div class="weight-sets">
-            <div class="weight-input-group"><div class="weight-input-lbl">Serie 1</div><input class="weight-input" type="number" placeholder="—" min="0" max="500" step="2.5" oninput="checkDone(${i})"></div>
-            <div class="weight-input-group"><div class="weight-input-lbl">Serie 2</div><input class="weight-input" type="number" placeholder="—" min="0" max="500" step="2.5" oninput="checkDone(${i})"></div>
-            <div class="weight-input-group"><div class="weight-input-lbl">Serie 3</div><input class="weight-input" type="number" placeholder="—" min="0" max="500" step="2.5" oninput="checkDone(${i})"></div>
-          </div>
-        </div>`}
-        ${ex.time ? `
-        <div class="rest-row">
-          <span class="rest-info">⏱ Timer plank</span>
-          <button class="rest-timer-btn" onclick="startTimer(${i}, 30, this)">Inizia 30"</button>
-          <span class="timer-display" id="timer-${i}"></span>
-        </div>` : `
-        <div class="rest-row">
-          <span class="rest-info">🔄 Timer riposo</span>
-          <button class="rest-timer-btn" onclick="startTimer(${i}, 90, this)">Inizia 90"</button>
-          <span class="timer-display" id="timer-${i}"></span>
-        </div>`}
-      </div>`;
-    container.appendChild(card);
-  });
-}
-
-function toggleCard(i) {
-  const card = document.getElementById(`ex-${i}`);
-  card.classList.toggle('open');
-}
-
-function startTimer(i, seconds, btn) {
-  if (timers[i]) { clearInterval(timers[i]); timers[i] = null; btn.textContent = `Inizia ${seconds}"`; document.getElementById(`timer-${i}`).textContent = ''; return; }
-  let rem = seconds;
-  document.getElementById(`timer-${i}`).textContent = rem + '"';
-  btn.textContent = 'Stop';
-  timers[i] = setInterval(() => {
-    rem--;
-    const el = document.getElementById(`timer-${i}`);
-    if (rem <= 0) {
-      clearInterval(timers[i]); timers[i] = null;
-      el.textContent = '✓ Via!';
-      btn.textContent = `Inizia ${seconds}"`;
-      setTimeout(() => { el.textContent = ''; }, 2000);
-    } else {
-      el.textContent = rem + '"';
-    }
-  }, 1000);
-}
-
-function checkDone(i) {
-  const card = document.getElementById(`ex-${i}`);
-  const inputs = card.querySelectorAll('.weight-input');
-  const filled = [...inputs].filter(inp => inp.value.trim() !== '').length;
-  if (filled === 3 && !completedExercises[i]) {
-    completedExercises[i] = true;
-    const num = document.getElementById(`exnum-${i}`);
-    num.style.background = '#10B981';
-    num.textContent = '✓';
-    updateProgress();
-  } else if (filled < 3 && completedExercises[i]) {
-    completedExercises[i] = false;
-    const num = document.getElementById(`exnum-${i}`);
-    num.style.background = '#FF6B6B';
-    num.textContent = i + 1;
-    updateProgress();
-  }
-}
-
-function updateProgress() {
-  const done = Object.values(completedExercises).filter(Boolean).length;
-  document.getElementById('prog-count').textContent = `${done} / ${exercises.length}`;
-  document.getElementById('prog-bar').style.width = Math.round((done / exercises.length) * 100) + '%';
-}
-
-// GUIDE DATA
-const guides = [
-  {
-    icon: '⚖️',
-    iconBg: '#FFF0F0',
-    title: 'Come leggere lo stack pesi',
-    sub: 'Sistema a pioli — macchine',
-    steps: [
-      { text: '<strong>Trova la piolo metallico</strong> inserita nello stack. Il numero sul disco dove è inserita indica il peso attivo.' },
-      { text: '<strong>Aumenta in piccoli incrementi:</strong> la maggior parte degli stack ha dischi da 5–10 kg. Inizia sempre dal basso (peso leggero) e sali gradualmente.' },
-      { text: '<strong>Testa prima di iniziare:</strong> fai una ripetizione lenta per sentire se il peso è gestibile. Se non riesci a controllare il ritorno, è troppo pesante.' },
-      { text: '<strong>Non tutti gli stack sono uguali:</strong> alcune macchine hanno moltiplicatori di forza. Guarda il cartello della macchina per il rapporto reale.' }
-    ]
-  },
-  {
-    icon: '🔧',
-    iconBg: '#FFFBEB',
-    title: 'Regolare le macchine',
-    sub: 'Seduta, petti, supporti',
-    steps: [
-      { text: '<strong>Seduta:</strong> regola l\'altezza in modo che le maniglie o il pad siano allineati con il muscolo target (petto per il chest press, spalle per lo shoulder press).' },
-      { text: '<strong>Schiena:</strong> lo schienale deve sostenere tutta la colonna. Non ci deve essere spazio tra schiena e pad durante l\'esercizio.' },
-      { text: '<strong>Lat Machine:</strong> blocca le cosce sotto il pad in modo che non si alzino durante la trazione. Regola l\'altezza del sedile di conseguenza.' },
-      { text: '<strong>Fai sempre una prova a vuoto</strong> (senza peso o con peso minimo) dopo ogni regolazione, per controllare il ROM.' }
-    ]
-  },
-  {
-    icon: '🏋️',
-    iconBg: '#F0FDF4',
-    title: 'Scegliere il manubrio giusto',
-    sub: 'Per i curl bicipiti',
-    steps: [
-      { text: '<strong>Test delle 12 ripetizioni:</strong> prendi un manubrio e fai 12 curl. Le ultime 2–3 devono essere difficili ma tecnicamente corrette. Se le prime sono già difficili, scendi di peso.' },
-      { text: '<strong>Per un principiante 60 kg:</strong> inizia con manubri da 4–6 kg per i curl. Può sembrare poco, ma la forma corretta viene prima del peso.' },
-      { text: '<strong>I manubri sono in ordine crescente</strong> su rack a piramide o lineari. Quelli più pesanti sono in basso, i più leggeri in alto.' },
-      { text: '<strong>Rimetti sempre i manubri al posto giusto</strong> dopo l\'uso. È la regola non scritta numero uno della palestra.' }
-    ]
-  },
-  {
-    icon: '🚪',
-    iconBg: '#EFF6FF',
-    title: 'Il primo giorno in palestra',
-    sub: 'Orientamento rapido',
-    steps: [
-      { text: '<strong>Fai un giro esplorativo</strong> prima di allenarti: zona macchine, zona pesi liberi, spogliatoi, fontanella. 5 minuti che eliminano il 90% dell\'ansia.' },
-      { text: '<strong>Porta sempre un asciugamano</strong> da posizionare sulla macchina o sul banco che usi. È igiene base e buona educazione.' },
-      { text: '<strong>Le macchine hanno sempre un cartello</strong> con nome, muscoli target e istruzioni d\'uso. Leggilo sempre la prima volta.' },
-      { text: '<strong>Se una macchina è libera ma con un asciugamano sopra,</strong> è occupata. Chiedi sempre "È libera?" se non sei sicuro.' },
-      { text: '<strong>Non sentirti in imbarazzo a chiedere aiuto.</strong> Il personale è lì per questo. Vale anche per altri frequentatori — la maggioranza è disponibile.' }
-    ]
-  },
-  {
-    icon: '🚫',
-    iconBg: '#FEF2F2',
-    title: '5 errori da non fare',
-    sub: 'I più comuni nei principianti',
-    errors: [
-      { icon: '💨', title: 'Trattenere il respiro', desc: 'Espira durante la fase di sforzo, inspira durante il ritorno. Non bloccare mai il respiro.' },
-      { icon: '🏃', title: 'Correre sui pesi', desc: 'Aumentare troppo presto il carico compromette la tecnica e aumenta il rischio di infortuni. Progredisci ogni 2 settimane.' },
-      { icon: '🪞', title: 'Ignorare lo specchio', desc: 'Lo specchio non è per la vanità — è per controllare la postura. Usalo attivamente.' },
-      { icon: '😴', title: 'Saltare il riscaldamento', desc: '5–10 minuti di cardio leggero attivano il sistema cardiovascolare e preparano le articolazioni.' },
-      { icon: '📅', title: 'Allenarsi ogni giorno', desc: 'I muscoli crescono durante il riposo, non durante l\'allenamento. Rispetta i giorni di recupero.' }
-    ]
-  }
-];
-
-function buildGuides() {
-  const container = document.getElementById('guide-cards');
-  guides.forEach((g, i) => {
-    const card = document.createElement('div');
-    card.className = 'guide-card';
-    let bodyHTML = '';
-    if (g.steps) {
-      bodyHTML = g.steps.map((s, idx) => `<div class="guide-step"><div class="step-num">${idx+1}</div><div class="step-text">${s.text}</div></div>`).join('');
-    } else if (g.errors) {
-      bodyHTML = g.errors.map(e => `<div class="error-item"><div class="error-icon">${e.icon}</div><div class="error-content"><div class="error-title">${e.title}</div><div class="error-desc">${e.desc}</div></div></div>`).join('');
-    }
-    card.innerHTML = `
-      <div class="guide-card-header" onclick="toggleGuide(${i})">
-        <div class="guide-icon" style="background:${g.iconBg}">${g.icon}</div>
-        <div>
-          <div class="guide-title">${g.title}</div>
-          <div class="guide-sub">${g.sub}</div>
-        </div>
-        <span class="guide-chevron">▾</span>
-      </div>
-      <div class="guide-body">${bodyHTML}</div>`;
-    container.appendChild(card);
-  });
-}
-
-function toggleGuide(i) {
-  const cards = document.querySelectorAll('.guide-card');
-  cards[i].classList.toggle('open');
-}
-
-function switchTab(tab, btn) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById(`section-${tab}`).classList.add('active');
-}
-
-function setDate() {
-  const d = new Date();
-  const opts = { weekday: 'short', day: 'numeric', month: 'short' };
-  document.getElementById('today-date').textContent = d.toLocaleDateString('it-IT', opts);
-}
-
-// INIT
-setDate();
-buildExercises();
-buildGuides();
-</script>
+<script src="js/data.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
