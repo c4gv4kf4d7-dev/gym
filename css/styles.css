@@ -40,11 +40,11 @@ body {
   min-height: 100vh;
   padding-bottom: calc(80px + env(safe-area-inset-bottom));
   background:
-    radial-gradient(115% 75% at 50% -8%, rgba(124,58,237,.55), transparent 58%),
-    radial-gradient(120% 85% at 102% 108%, rgba(255,138,91,.40), transparent 55%),
-    radial-gradient(110% 85% at -5% 100%, rgba(255,45,149,.42), transparent 55%),
-    radial-gradient(90% 60% at 50% 50%, rgba(91,141,239,.12), transparent 70%),
-    #07040F;
+    radial-gradient(120% 70% at 50% -12%, rgba(124,58,237,.42), transparent 60%),
+    radial-gradient(90% 70% at 112% 118%, rgba(255,138,91,.20), transparent 52%),
+    radial-gradient(95% 75% at -12% 116%, rgba(255,45,149,.22), transparent 52%),
+    radial-gradient(90% 60% at 50% 45%, rgba(91,141,239,.08), transparent 72%),
+    #060410;
   background-attachment: fixed;
 }
 
@@ -407,10 +407,10 @@ input::placeholder { color: var(--faint); }
 /* GUIDED MODE */
 .guided-overlay { position: fixed; inset: 0; z-index: 400; display: none; flex-direction: column; padding: calc(16px + env(safe-area-inset-top)) 18px calc(24px + env(safe-area-inset-bottom));
   background:
-    radial-gradient(120% 70% at 50% -5%, rgba(124,58,237,.6), transparent 55%),
-    radial-gradient(120% 80% at 100% 105%, rgba(255,138,91,.45), transparent 52%),
-    radial-gradient(110% 80% at 0% 100%, rgba(255,45,149,.45), transparent 52%),
-    #07040F;
+    radial-gradient(120% 65% at 50% -8%, rgba(124,58,237,.42), transparent 58%),
+    radial-gradient(95% 65% at 112% 114%, rgba(255,138,91,.20), transparent 50%),
+    radial-gradient(95% 65% at -12% 112%, rgba(255,45,149,.22), transparent 50%),
+    #060410;
 }
 .guided-overlay.show { display: flex; }
 .g-top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
