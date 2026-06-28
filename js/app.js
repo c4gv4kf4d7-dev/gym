@@ -244,11 +244,19 @@ function renderWorkout() {
   $("log-notes").value = sess && sess.notes ? sess.notes : "";
   $("log-duration").value = sess && sess.duration != null ? sess.duration : "";
   $("log-calories").value = sess && sess.calories != null ? sess.calories : "";
+  $("toggle-all").textContent = "Espandi tutto";
 
   updateProgress();
 }
 
 function toggleCard(i) { $(`ex-${i}`).classList.toggle("open"); }
+
+function toggleAll() {
+  const cards = document.querySelectorAll("#ex-cards .ex-card");
+  const anyClosed = [...cards].some(c => !c.classList.contains("open"));
+  cards.forEach(c => c.classList.toggle("open", anyClosed));
+  $("toggle-all").textContent = anyClosed ? "Contrai tutto" : "Espandi tutto";
+}
 
 function setQuality(exKey, q, btn) {
   selectedQuality[exKey] = (selectedQuality[exKey] === q) ? null : q;  // ritocco = deseleziona

@@ -130,6 +130,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-se
 .rest-timer-btn:active { transform: scale(0.96); }
 .timer-display { font-size: 13px; font-weight: 700; color: var(--coral); min-width: 40px; text-align: right; }
 
+/* EX HEAD (etichetta + espandi tutto) */
+.ex-head { display: flex; align-items: center; justify-content: space-between; margin: 16px 0 12px; }
+.ex-head .section-label { margin: 0; }
+.toggle-all { background: var(--card); border: 1.5px solid var(--border); color: var(--coral); border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .15s; }
+.toggle-all:active { transform: scale(0.97); }
+
 /* SECTION LABEL */
 .section-label { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin: 16px 0 12px; }
 .section-label:first-child { margin-top: 4px; }
