@@ -85,23 +85,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-se
 .lt-day { opacity: .8; }
 
 .sugg-box { border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; border-left: 4px solid; }
-.sugg-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
-.sugg-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
-.sugg-text { font-size: 14px; line-height: 1.45; color: var(--text); }
-.sugg-text strong { font-weight: 800; }
-.sugg-delta { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+.sugg-text { font-size: 14px; line-height: 1.4; color: var(--text); }
+.sugg-label { font-weight: 800; margin-right: 3px; }
 .sugg-green { background: #ECFDF5; border-color: #10B981; }
 .sugg-green .sugg-label { color: #047857; }
-.delta-green { background: #10B981; color: #fff; }
 .sugg-yellow { background: var(--amber-light); border-color: var(--amber); }
 .sugg-yellow .sugg-label { color: #B45309; }
-.delta-yellow { background: var(--amber); color: #fff; }
 .sugg-red { background: #FEF2F2; border-color: #EF4444; }
 .sugg-red .sugg-label { color: #B91C1C; }
-.delta-red { background: #EF4444; color: #fff; }
 .sugg-gray { background: var(--bg); border-color: #cbd5e1; }
 .sugg-gray .sugg-label { color: var(--muted); }
-.delta-gray { background: #cbd5e1; color: #fff; }
 
 /* SET LOG (peso × reps) */
 .set-log { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }

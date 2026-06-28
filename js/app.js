@@ -58,8 +58,8 @@ function suggestion(exKey) {
   const inc = meta.type === "dumbbell" ? 2 : 2.5;   // +2 manubri, +2.5 macchine/cavi
 
   if (!last) {
-    return { last: null, todayHtml: `Scegli un peso per fare <strong>${meta.sets}×${meta.reps}</strong> con buona forma`,
-             delta: "Prima volta", color: "gray", targetW: null, targetReps: meta.reps };
+    return { last: null, todayHtml: `Scegli un peso che ti dia serie pulite`,
+             color: "gray", targetW: null, targetReps: meta.reps };
   }
 
   const w = Math.max(...last.sets.map(s => s.w));
@@ -73,30 +73,30 @@ function suggestion(exKey) {
   if (q === "fail") {
     if (minR < 10) {
       const nw = Math.max(0, +(w - inc).toFixed(1));
-      return { ...base, todayHtml: `Scendi a <strong>${nw}kg</strong> e ritrova la tecnica`, delta: `−${inc}kg rispetto a ${day}`, color: "red", targetW: nw, targetReps: meta.reps };
+      return { ...base, todayHtml: `Scendi di peso e ritrova la tecnica`, color: "red", targetW: nw, targetReps: meta.reps };
     }
-    return { ...base, todayHtml: `Conferma <strong>${meta.sets}×${minR}</strong> a ${w}kg — focus sulla forma`, delta: `= peso rispetto a ${day}`, color: "yellow", targetW: w, targetReps: minR };
+    return { ...base, todayHtml: `Resta su questo peso e cura la forma`, color: "yellow", targetW: w, targetReps: minR };
   }
   // ⚠️ completato ma faticoso
   if (q === "hard") {
-    return { ...base, todayHtml: `Conferma <strong>${meta.sets}×${minR}</strong> a ${w}kg — consolida`, delta: `= rispetto a ${day}`, color: "yellow", targetW: w, targetReps: minR };
+    return { ...base, todayHtml: `Conferma il carico e consolida`, color: "yellow", targetW: w, targetReps: minR };
   }
   // ✅ pulito (o non indicato) → progressione
   if (nSets < meta.sets) {
-    return { ...base, todayHtml: `Prova <strong>${meta.sets}×${minR}</strong> a ${w}kg — aggiungi la ${meta.sets}ª serie 🎯`, delta: `+1 serie rispetto a ${day}`, color: "green", targetW: w, targetReps: minR };
+    return { ...base, todayHtml: `Aggiungi una serie in più 🎯`, color: "green", targetW: w, targetReps: minR };
   }
   if (minR >= 15) {
     const nw = +(w + inc).toFixed(1);
-    return { ...base, todayHtml: `Sali a <strong>${nw}kg</strong> — torna a ${meta.sets}×12 🎯`, delta: `+${inc}kg rispetto a ${day}`, color: "green", targetW: nw, targetReps: 12 };
+    return { ...base, todayHtml: `Aumenta il peso oggi 🎯`, color: "green", targetW: nw, targetReps: 12 };
   }
   if (minR >= 12) {
-    return { ...base, todayHtml: `Prova <strong>${meta.sets}×${minR + 1}-${minR + 2}</strong> — stesso peso (${w}kg), 1-2 reps in più 🎯`, delta: `+1-2 reps rispetto a ${day}`, color: "green", targetW: w, targetReps: minR + 1 };
+    return { ...base, todayHtml: `Prova ad aggiungere qualche ripetizione 🎯`, color: "green", targetW: w, targetReps: minR + 1 };
   }
   if (minR < 10) {
-    return { ...base, todayHtml: `Mantieni <strong>${w}kg</strong> — punta a ${meta.sets}×10-12, forma prima di tutto`, delta: `= peso rispetto a ${day}`, color: "yellow", targetW: w, targetReps: meta.reps };
+    return { ...base, todayHtml: `Mantieni il peso e punta alla forma pulita`, color: "yellow", targetW: w, targetReps: meta.reps };
   }
   // 10-11 reps → consolida
-  return { ...base, todayHtml: `Consolida <strong>${w}kg</strong> fino a ${meta.sets}×12 🎯`, delta: `+reps rispetto a ${day}`, color: "green", targetW: w, targetReps: 12 };
+  return { ...base, todayHtml: `Consolida fino a serie piene 🎯`, color: "green", targetW: w, targetReps: 12 };
 }
 
 // Sessione di oggi per la scheda corrente (se esiste)
@@ -208,8 +208,7 @@ function renderWorkout() {
             : '— nessuna sessione precedente'}</div>
 
           <div class="sugg-box sugg-${sug.color}">
-            <div class="sugg-head"><span class="sugg-label">🎯 Oggi</span><span class="sugg-delta delta-${sug.color}">${sug.delta}</span></div>
-            <div class="sugg-text">${sug.todayHtml}</div>
+            <div class="sugg-text"><span class="sugg-label">Oggi:</span> ${sug.todayHtml}</div>
           </div>
 
           <div class="weight-label">I tuoi dati di oggi</div>
