@@ -326,9 +326,9 @@ function renderWorkout() {
 
           <div class="weight-label">Com'è andata? (per il suggerimento della prossima volta)</div>
           <div class="quality-row" data-ex="${ex.key}">
-            <button class="qbtn qbtn-clean ${qsel === 'clean' ? 'on' : ''}" onclick="setQuality('${ex.key}','clean',this)">✅ Pulito</button>
-            <button class="qbtn qbtn-hard ${qsel === 'hard' ? 'on' : ''}" onclick="setQuality('${ex.key}','hard',this)">⚠️ Faticoso</button>
-            <button class="qbtn qbtn-fail ${qsel === 'fail' ? 'on' : ''}" onclick="setQuality('${ex.key}','fail',this)">❌ Non finito</button>
+            <button class="qbtn qbtn-clean ${qsel === 'clean' ? 'on' : ''}" onclick="setQuality('${ex.key}','clean',this)">Pulito</button>
+            <button class="qbtn qbtn-hard ${qsel === 'hard' ? 'on' : ''}" onclick="setQuality('${ex.key}','hard',this)">Tosta</button>
+            <button class="qbtn qbtn-fail ${qsel === 'fail' ? 'on' : ''}" onclick="setQuality('${ex.key}','fail',this)">Non finita</button>
           </div>
         </div>`}
         ${ex.time ? `<button class="plank-done" onclick="togglePlankDone(${i})">✓ Segna come fatto</button>` : ''}
@@ -503,6 +503,12 @@ function showSummary(s, newPRs, newBadges) {
    ============================================================ */
 let guided = null;
 
+const Q_ICON = {
+  clean: `<svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.2 4.2L19 7" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  hard:  `<svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2s5 3.6 5 8.8a5 5 0 11-10 0c0-1.8 1-3.2 1-3.2s.6 2.1 2.1 2.7C11.2 8.7 9 6.8 12 2z"/></svg>`,
+  fail:  `<svg viewBox="0 0 24 24" fill="none"><path d="M6 9.5l6 6 6-6" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+};
+
 const G_MOTTOS = [
   "Una macchina alla volta, stai andando alla grande! 🔥",
   "Bella serie! Avanti con la prossima 💪",
@@ -651,12 +657,21 @@ function renderGuided() {
   } else if (guided.phase === "quality") {
     body = `
       <div class="g-body">
-        <div class="g-name">${meta.name}</div>
-        <div class="g-qq">Com'è andata? Serve per il consiglio della prossima volta.</div>
+        <div class="g-qname">${meta.name}</div>
+        <div class="g-qq">Com'è andata?</div>
         <div class="g-qcol">
-          <button class="g-qbtn clean" onclick="guidedQuality('clean')">✅ Pulito fino alla fine</button>
-          <button class="g-qbtn hard" onclick="guidedQuality('hard')">⚠️ Completato ma faticoso</button>
-          <button class="g-qbtn fail" onclick="guidedQuality('fail')">❌ Non completato / forma persa</button>
+          <button class="gq gq-clean" onclick="guidedQuality('clean')">
+            <span class="gq-ico">${Q_ICON.clean}</span>
+            <span class="gq-txt"><b>Pulito</b><small>Controllo totale, posso spingere</small></span>
+          </button>
+          <button class="gq gq-hard" onclick="guidedQuality('hard')">
+            <span class="gq-ico">${Q_ICON.hard}</span>
+            <span class="gq-txt"><b>Tosta</b><small>Completata ma a fatica</small></span>
+          </button>
+          <button class="gq gq-fail" onclick="guidedQuality('fail')">
+            <span class="gq-ico">${Q_ICON.fail}</span>
+            <span class="gq-txt"><b>Non finita</b><small>Forma persa o reps saltate</small></span>
+          </button>
         </div>
       </div>`;
   } else if (meta.time) {
