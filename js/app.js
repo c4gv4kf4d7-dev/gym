@@ -184,7 +184,7 @@ function renderWorkout() {
       </div>
       <div class="ex-body">
         <div class="muscle-row">
-          <div class="silhouette">${svgSilhouettes[ex.bodyPart]}</div>
+          <img class="ex-gif" src="assets/gifs/${ex.key}.gif" loading="lazy" alt="${ex.name}" onerror="this.style.display='none'">
           <div class="muscle-info">
             <div class="muscle-primary">Muscolo target: ${ex.muscle}</div>
             <div class="muscle-secondary">Secondari: ${ex.secondary}</div>
@@ -201,6 +201,11 @@ function renderWorkout() {
           <div class="tip-label">⚠️ Errore comune</div>
           <div class="tip-text">${ex.tip}</div>
         </div>
+        ${EXERCISE_STEPS[ex.key] ? `
+        <details class="steps">
+          <summary>📋 Come si esegue</summary>
+          <ol class="steps-list">${EXERCISE_STEPS[ex.key].map(st => `<li>${st}</li>`).join("")}</ol>
+        </details>` : ''}
         ${ex.time ? '' : `
         <div class="prog-block">
           <div class="last-time">📊 Ultima volta: ${sug.last
