@@ -536,7 +536,6 @@ function pauseGuided() {
   saveGuided();
   closeGuidedOverlay();
   renderWorkout();
-  toast("⏸️ Allenamento in pausa — riprendi quando vuoi");
 }
 
 function resumeGuided() {
