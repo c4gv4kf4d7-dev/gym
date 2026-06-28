@@ -30,7 +30,7 @@ function seedState() {
   return Object.assign(defaultState(), {
     sessions: [{
       id: 1750800000000,
-      date: "2026-06-26",
+      date: "2026-06-25",
       workoutId: "fullbody",
       exercises: {
         chestpress: { sets: [{ w: 20, r: 12 }, { w: 20, r: 12 }, { w: 20, r: 12 }], quality: null },
@@ -44,7 +44,7 @@ function seedState() {
     }],
     bodyweight: [{ date: "2026-06-25", v: 60.1 }],
     schedule: {
-      "2026-06-26": { workoutId: "fullbody", done: true },
+      "2026-06-25": { workoutId: "fullbody", done: true },
       "2026-06-29": { workoutId: "fullbody", done: false },
       "2026-07-01": { workoutId: "fullbody", done: false, note: "Con Denis (PT)" },
       "2026-07-02": { workoutId: "fullbody", done: false }
@@ -61,7 +61,7 @@ function seedState() {
       date: "2026-06-25", weight: 60.1, bodyFat: 13.1, skeletalMuscle: 49.64,
       boneMass: 2.59, bodyWater: 62.7, bmr: 1489, metabolicAge: 38
     }],
-    migrations: ["fix-initial-schedule", "progression-v1"]   // il seed nasce già corretto
+    migrations: ["fix-initial-schedule", "progression-v1", "fix-session-date-25"]   // il seed nasce già corretto
   });
 }
 
@@ -100,6 +100,16 @@ function applyMigrations(s) {
       }
     });
     s.migrations.push("progression-v1");
+  }
+
+  // Correzione: l'allenamento è stato fatto giovedì 25/6, non venerdì 26/6
+  if (!s.migrations.includes("fix-session-date-25")) {
+    (s.sessions || []).forEach(sess => { if (sess.date === "2026-06-26") sess.date = "2026-06-25"; });
+    if (s.schedule && s.schedule["2026-06-26"]) {
+      s.schedule["2026-06-25"] = s.schedule["2026-06-26"];
+      delete s.schedule["2026-06-26"];
+    }
+    s.migrations.push("fix-session-date-25");
   }
 
   return s;
