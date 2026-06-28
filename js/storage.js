@@ -21,6 +21,7 @@ const defaultState = () => ({
     height: null       // cm
   },
   composition: [],     // { date, weight, bodyFat, skeletalMuscle, boneMass, bodyWater, bmr, metabolicAge }
+  badges: [],          // id dei traguardi sbloccati
   migrations: [],      // id delle migrazioni già applicate
   version: 2
 });

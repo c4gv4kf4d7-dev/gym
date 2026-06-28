@@ -97,6 +97,39 @@ function weightProjection() {
   return { ratePerWeek, date: eta.toISOString().split("T")[0] };
 }
 
+// Numero di PR registrati (esercizi con un massimale)
+function prCount() {
+  const keys = new Set();
+  state.sessions.forEach(x => Object.keys(x.exercises || {}).forEach(k => keys.add(k)));
+  return [...keys].filter(k => bestPR(k) > 0).length;
+}
+// Kg guadagnati dall'inizio
+function massGain() {
+  const cur = currentBW(), start = state.goals.startWeight;
+  return (cur != null && start != null) ? cur - start : 0;
+}
+// Sessioni nella settimana corrente
+function thisWeekCount() {
+  const wk = weekStart(todayStr());
+  return state.sessions.filter(s => weekStart(s.date) === wk).length;
+}
+
+// TRAGUARDI (badge)
+const BADGES = [
+  { id: "start",   icon: "🌱", name: "Si comincia!",        test: () => state.sessions.length >= 1 },
+  { id: "s10",     icon: "💪", name: "10 allenamenti",      test: () => state.sessions.length >= 10 },
+  { id: "s25",     icon: "🏅", name: "25 allenamenti",      test: () => state.sessions.length >= 25 },
+  { id: "s50",     icon: "🏆", name: "50 allenamenti",      test: () => state.sessions.length >= 50 },
+  { id: "streak2", icon: "🔥", name: "2 settimane di fila", test: () => weekStreak() >= 2 },
+  { id: "streak4", icon: "🔥", name: "1 mese di costanza",  test: () => weekStreak() >= 4 },
+  { id: "streak8", icon: "⚡", name: "2 mesi inarrestabile",test: () => weekStreak() >= 8 },
+  { id: "pr5",     icon: "📈", name: "5 record personali",  test: () => prCount() >= 5 },
+  { id: "gain2",   icon: "🍽️", name: "+2 kg di massa",      test: () => massGain() >= 2 },
+  { id: "gain5",   icon: "💥", name: "+5 kg di massa",      test: () => massGain() >= 5 },
+  { id: "goal",    icon: "👑", name: "Obiettivo raggiunto!",test: () => { const c = currentBW(), t = state.goals.targetWeight; return c != null && t != null && c >= t; } }
+];
+function earnedBadgeIds() { return BADGES.filter(b => b.test()).map(b => b.id); }
+
 // Esercizio nell'ultima sessione (prima di oggi): { date, sets, quality }
 function lastExercise(exKey) {
   const past = state.sessions
@@ -400,12 +433,47 @@ function saveSession() {
   }
   // segna il giorno come fatto nel calendario
   state.schedule[todayStr()] = { workoutId: w.id, done: true };
+
+  // badge sbloccati con questa sessione
+  const before = state.badges || [];
+  const now = earnedBadgeIds();
+  const newBadges = BADGES.filter(b => now.includes(b.id) && !before.includes(b.id));
+  state.badges = now;
   saveState(state);
 
-  let msg = "✅ Sessione salvata!";
-  if (newPRs.length) msg = `🏆 Nuovo record su ${newPRs.join(", ")}!`;
-  toast(msg);
   renderWorkout();
+  showSummary(todaySession(w.id) || state.sessions[state.sessions.length - 1], newPRs, newBadges);
+}
+
+function showSummary(s, newPRs, newBadges) {
+  const w = getWorkout(s.workoutId);
+  const vol = Math.round(sessionVolume(s));
+  const wkNum = thisWeekCount();
+  const streak = weekStreak();
+  const motivations = [
+    "Mattone su mattone. 🧱", "Costanza batte motivazione. 🔁", "Il te di domani ringrazia. 🙌",
+    "Un passo più vicino ai 70 kg. 🎯", "Ti stai costruendo, davvero. 🛠️"
+  ];
+  const motto = motivations[state.sessions.length % motivations.length];
+
+  $("modal-title").textContent = "Sessione completata 💪";
+  $("modal-body").innerHTML = `
+    <div class="sum-hero" style="background:${w ? w.color : '#FF6B6B'}">
+      <div class="sum-w">${w ? w.emoji + ' ' + w.name : 'Allenamento'}</div>
+      <div class="sum-motto">${motto}</div>
+    </div>
+    <div class="sum-stats">
+      <div class="sum-stat"><div class="sum-n">${vol}</div><div class="sum-l">kg volume</div></div>
+      <div class="sum-stat"><div class="sum-n">${wkNum}°</div><div class="sum-l">sess. settimana</div></div>
+      <div class="sum-stat"><div class="sum-n">${streak}🔥</div><div class="sum-l">streak sett.</div></div>
+    </div>
+    ${newPRs.length ? `<div class="sum-pr">🏆 Nuovo record su <strong>${newPRs.join(", ")}</strong>!</div>` : ''}
+    ${newBadges.length ? `<div class="sum-badges">
+        <div class="sum-badges-t">🎉 Traguardo${newBadges.length > 1 ? 'i' : ''} sbloccat${newBadges.length > 1 ? 'i' : 'o'}!</div>
+        ${newBadges.map(b => `<div class="sum-badge"><span class="sum-badge-i">${b.icon}</span>${b.name}</div>`).join("")}
+      </div>` : ''}
+    <button class="btn-save" style="margin-top:16px" onclick="closeModal()">Chiudi</button>`;
+  $("modal").classList.add("show");
 }
 
 /* ============================================================
@@ -677,6 +745,7 @@ function renderGoals() {
   }
 
   renderNutrition();
+  renderBadges();
 
   // lista PR
   const allKeys = new Set();
@@ -700,6 +769,17 @@ function projectionHTML() {
       : ` — un po' <strong>indietro</strong> sull'obiettivo, alza il surplus 💪`;
   }
   return `<div class="goal-proj">📈 Stai crescendo ~<strong>${rate.toFixed(2)} kg/sett</strong>: a questo ritmo arrivi a ${g.targetWeight} kg verso <strong>${fmtLong(p.date)}</strong>${onTrack}</div>`;
+}
+
+function renderBadges() {
+  const earned = new Set(earnedBadgeIds());
+  $("badge-list").innerHTML = BADGES.map(b => {
+    const on = earned.has(b.id);
+    return `<div class="badge ${on ? 'on' : 'off'}" title="${b.name}">
+      <span class="badge-i">${on ? b.icon : '🔒'}</span>
+      <span class="badge-n">${b.name}</span>
+    </div>`;
+  }).join("");
 }
 
 function renderNutrition() {

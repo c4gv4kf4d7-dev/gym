@@ -315,6 +315,30 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-se
 .sd-sets { font-size: 13px; font-weight: 700; color: var(--coral); }
 .sd-notes { font-size: 13px; color: #666; background: var(--bg); border-radius: 10px; padding: 11px 13px; margin-top: 14px; line-height: 1.5; }
 
+/* SESSION SUMMARY (post-save) */
+.sum-hero { border-radius: 14px; padding: 18px; color: #fff; text-align: center; margin-bottom: 14px; }
+.sum-w { font-size: 19px; font-weight: 800; }
+.sum-motto { font-size: 13px; opacity: .9; margin-top: 4px; }
+.sum-stats { display: flex; gap: 10px; margin-bottom: 4px; }
+.sum-stat { flex: 1; background: var(--bg); border-radius: 12px; padding: 13px 6px; text-align: center; }
+.sum-n { font-size: 21px; font-weight: 800; color: var(--coral); }
+.sum-l { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.sum-pr { background: var(--amber-light); color: #92400E; border-radius: 10px; padding: 11px 13px; font-size: 14px; margin-top: 12px; text-align: center; }
+.sum-badges { background: #F5F3FF; border-radius: 10px; padding: 13px; margin-top: 12px; text-align: center; }
+.sum-badges-t { font-size: 13px; font-weight: 700; color: #6D28D9; margin-bottom: 8px; }
+.sum-badge { display: inline-flex; align-items: center; gap: 6px; background: #fff; border: 1.5px solid #DDD6FE; border-radius: 20px; padding: 6px 12px; font-size: 13px; font-weight: 700; margin: 3px; }
+.sum-badge-i { font-size: 16px; }
+
+/* BADGE GRID */
+.badge-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.badge { display: flex; flex-direction: column; align-items: center; gap: 4px; border-radius: 12px; padding: 12px 6px; text-align: center; }
+.badge.on { background: #F5F3FF; }
+.badge.off { background: var(--bg); opacity: .55; }
+.badge-i { font-size: 24px; }
+.badge.off .badge-i { filter: grayscale(1); }
+.badge-n { font-size: 10px; font-weight: 600; color: var(--muted); line-height: 1.2; }
+.badge.on .badge-n { color: #6D28D9; }
+
 /* TOAST */
 .toast { position: fixed; bottom: calc(86px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%) translateY(20px); background: #1a1a1a; color: #fff; padding: 12px 20px; border-radius: 12px; font-size: 14px; font-weight: 600; opacity: 0; pointer-events: none; transition: all .3s; z-index: 300; max-width: 90%; text-align: center; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
