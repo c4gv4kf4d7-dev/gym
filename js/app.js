@@ -22,6 +22,9 @@ const fmtLong = (str) => {
 };
 const getWorkout = (id) => WORKOUTS.find(w => w.id === id);
 
+// Colore del cerchietto esercizio per tipo di attrezzo
+const TYPE_COLOR = { machine: "#5B8DEF", dumbbell: "#2BD576", cable: "#FF8A5B", body: "#A855F7" };
+
 // Sets [{w,r}] di un esercizio in una sessione
 function exSets(s, exKey) {
   return (s.exercises && s.exercises[exKey] && s.exercises[exKey].sets) || [];
@@ -259,12 +262,13 @@ function renderWorkout() {
     const phW = sug && sug.targetW != null ? sug.targetW : "kg";
     const phR = sug ? sug.targetReps : "reps";
 
+    const exColor = TYPE_COLOR[ex.type] || "#FF2D95";
     const card = document.createElement("div");
-    card.className = "ex-card";
+    card.className = "ex-card" + (ex.time ? " is-plank" : "");
     card.id = `ex-${i}`;
     card.innerHTML = `
       <div class="ex-header" onclick="toggleCard(${i})">
-        <div class="ex-num" id="exnum-${i}">${i + 1}</div>
+        <div class="ex-num" id="exnum-${i}" data-c="${exColor}" style="background:${exColor}">${i + 1}</div>
         <div class="ex-title-group">
           <div class="ex-name">${ex.name}</div>
           <div class="ex-muscle">${ex.muscle}${pr ? ` · <span class="pr-tag">🏆 PR ${pr} kg</span>` : ''}</div>
@@ -327,6 +331,7 @@ function renderWorkout() {
             <button class="qbtn qbtn-fail ${qsel === 'fail' ? 'on' : ''}" onclick="setQuality('${ex.key}','fail',this)">❌ Non finito</button>
           </div>
         </div>`}
+        ${ex.time ? `<button class="plank-done" onclick="togglePlankDone(${i})">✓ Segna come fatto</button>` : ''}
       </div>`;
     cont.appendChild(card);
   });
@@ -361,10 +366,10 @@ function checkDone(i) {
   const filled = [...ws].filter(inp => inp.value.trim() !== "").length;
   const num = $(`exnum-${i}`);
   if (ws.length > 0 && filled === ws.length) {
-    num.style.background = "#10B981";
+    num.style.background = "#2BD576";
     num.textContent = "✓";
   } else {
-    num.style.background = "";
+    num.style.background = num.dataset.c || "";
     num.textContent = i + 1;
   }
   // PR highlight sul peso
@@ -376,15 +381,26 @@ function checkDone(i) {
   updateProgress();
 }
 
+function togglePlankDone(i) {
+  const card = $(`ex-${i}`);
+  const on = card.classList.toggle("plank-on");
+  const num = $(`exnum-${i}`);
+  if (on) { num.style.background = "#2BD576"; num.textContent = "✓"; }
+  else { num.style.background = num.dataset.c || ""; num.textContent = i + 1; }
+  updateProgress();
+}
+
 function updateProgress() {
   const cards = document.querySelectorAll("#ex-cards .ex-card");
   let done = 0, total = 0;
   cards.forEach((card) => {
-    const ws = card.querySelectorAll(".setw");
-    if (ws.length === 0) return;   // plank: nessun peso
     total++;
-    const filled = [...ws].filter(inp => inp.value.trim() !== "").length;
-    if (filled === ws.length) done++;
+    if (card.classList.contains("is-plank")) {
+      if (card.classList.contains("plank-on")) done++;
+    } else {
+      const ws = card.querySelectorAll(".setw");
+      if (ws.length && [...ws].every(inp => inp.value.trim() !== "")) done++;
+    }
   });
   $("prog-count").textContent = `${done} / ${total}`;
   $("prog-bar").style.width = (total ? Math.round((done / total) * 100) : 0) + "%";

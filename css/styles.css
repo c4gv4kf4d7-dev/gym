@@ -78,7 +78,9 @@ body {
 
 /* HERO */
 .workout-hero { border-radius: 22px; padding: 22px; margin-bottom: 16px; color: #fff; position: relative; overflow: hidden; box-shadow: var(--shadow); }
-.workout-hero::after { content: ""; position: absolute; inset: 0; background: radial-gradient(120% 80% at 80% 0%, rgba(255,255,255,.22), transparent 55%); pointer-events: none; }
+.workout-hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,.10) 0%, transparent 32%, rgba(6,4,16,.42) 100%); pointer-events: none; }
+.workout-hero::after { content: ""; position: absolute; top: -40%; right: -10%; width: 70%; height: 90%; background: radial-gradient(closest-side, rgba(255,255,255,.28), transparent 70%); pointer-events: none; }
+.workout-hero > * { position: relative; }
 .hero-label { font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; opacity: .85; margin-bottom: 5px; }
 .hero-title { font-size: 25px; font-weight: 800; margin-bottom: 4px; letter-spacing: -.3px; }
 .hero-sub { font-size: 13px; opacity: .9; }
@@ -127,7 +129,7 @@ body {
 /* EXERCISE CARD */
 .ex-card { border-radius: 20px; margin-bottom: 12px; overflow: hidden; }
 .ex-header { display: flex; align-items: center; gap: 12px; padding: 14px 16px 12px; cursor: pointer; }
-.ex-num { width: 30px; height: 30px; border-radius: 50%; background: var(--grad); color: #fff; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 14px -4px var(--magenta); transition: background .2s; }
+.ex-num { width: 30px; height: 30px; border-radius: 50%; background: var(--grad); color: #fff; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 12px -4px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.25); transition: background .2s; }
 .ex-title-group { flex: 1; min-width: 0; }
 .ex-name { font-size: 16px; font-weight: 800; }
 .ex-muscle { font-size: 12px; color: var(--pink); font-weight: 700; margin-top: 2px; }
@@ -203,6 +205,10 @@ body {
 .qbtn-clean.on { background: rgba(43,213,118,.18); border-color: #2BD576; color: #9DF0C2; }
 .qbtn-hard.on { background: rgba(255,180,84,.18); border-color: var(--amber); color: #FFD9A0; }
 .qbtn-fail.on { background: rgba(255,77,109,.18); border-color: #FF4D6D; color: #FF9DAE; }
+
+/* PLANK DONE */
+.plank-done { width: 100%; margin-top: 4px; background: rgba(43,213,118,.14); border: 1px solid rgba(43,213,118,.4); color: #9DF0C2; border-radius: 12px; padding: 12px; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; transition: all .15s; }
+.ex-card.plank-on .plank-done { background: rgba(43,213,118,.24); color: #BFFFDC; }
 
 /* legacy weight inputs */
 .weight-section { margin-top: 12px; }
