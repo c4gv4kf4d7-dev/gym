@@ -335,6 +335,7 @@ function renderWorkout() {
   $("log-calories").value = sess && sess.calories != null ? sess.calories : "";
   $("toggle-all").textContent = "Espandi tutto";
 
+  renderGuidedResume();
   updateProgress();
 }
 
@@ -499,7 +500,16 @@ function restSec(meta) { const n = parseInt(meta && meta.rest); return Math.min(
 function gMeta() { return EXERCISES[guided.keys[guided.exIndex]]; }
 function gKey() { return guided.keys[guided.exIndex]; }
 
+const GUIDED_KEY = "guided_session_v2";
+function guidedSnapshot() {
+  return { workoutId: guided.workoutId, keys: guided.keys, exIndex: guided.exIndex, setIndex: guided.setIndex, phase: guided.phase, data: guided.data, next: guided.next, restLeft: guided.restLeft };
+}
+function saveGuided() { try { localStorage.setItem(GUIDED_KEY, JSON.stringify(guidedSnapshot())); } catch (e) {} }
+function loadGuided() { try { const r = localStorage.getItem(GUIDED_KEY); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
+function clearGuided() { localStorage.removeItem(GUIDED_KEY); }
+
 function startGuided() {
+  clearGuided();
   const w = getWorkout(currentWorkoutId);
   guided = { workoutId: w.id, keys: w.exercises.slice(), exIndex: 0, setIndex: 0, phase: "set", data: {}, timer: null, next: null, restLeft: 0 };
   $("guided").classList.add("show");
@@ -507,12 +517,59 @@ function startGuided() {
   renderGuided();
 }
 
-function quitGuided() {
+function closeGuidedOverlay() {
   if (guided && guided.timer) clearInterval(guided.timer);
   guided = null;
   $("guided").classList.remove("show");
   $("guided").innerHTML = "";
   document.body.style.overflow = "";
+}
+
+// Chiusura con ✕ → mette in pausa e salva (riprendibile)
+function pauseGuided() {
+  if (!guided) return;
+  if (guided.timer) { clearInterval(guided.timer); guided.timer = null; }
+  // se era in riposo, alla ripresa si riparte direttamente dalla serie successiva
+  if (guided.phase === "rest" && guided.next) {
+    guided.exIndex = guided.next.exIndex; guided.setIndex = guided.next.setIndex; guided.phase = "set";
+  }
+  saveGuided();
+  closeGuidedOverlay();
+  renderWorkout();
+  toast("⏸️ Allenamento in pausa — riprendi quando vuoi");
+}
+
+function resumeGuided() {
+  const snap = loadGuided();
+  if (!snap) return;
+  guided = Object.assign({ timer: null }, snap);
+  currentWorkoutId = guided.workoutId;
+  renderWorkoutChips();
+  $("guided").classList.add("show");
+  document.body.style.overflow = "hidden";
+  renderGuided();
+}
+
+function discardGuided() {
+  clearGuided();
+  renderWorkout();
+  toast("Allenamento in pausa eliminato");
+}
+
+function renderGuidedResume() {
+  const el = $("guided-resume");
+  if (!el) return;
+  const snap = loadGuided();
+  if (!snap) { el.innerHTML = ""; return; }
+  const w = getWorkout(snap.workoutId);
+  el.innerHTML = `
+    <div class="resume-bar">
+      <div class="resume-info">⏸️ Allenamento in pausa
+        <span>${w ? w.emoji + ' ' + w.name : ''} · esercizio ${snap.exIndex + 1}/${snap.keys.length}</span>
+      </div>
+      <button class="resume-btn" onclick="resumeGuided()">Riprendi ▶︎</button>
+      <button class="resume-x" onclick="discardGuided()" title="Elimina">✕</button>
+    </div>`;
 }
 
 function gStore(key) { if (!guided.data[key]) guided.data[key] = { sets: [], quality: null }; return guided.data[key]; }
@@ -530,7 +587,7 @@ function renderGuided() {
     : `Esercizio ${guided.exIndex + 1}/${N} · Serie ${Math.min(guided.setIndex + 1, totalSets)}/${totalSets}`;
   const top = `
     <div class="g-top">
-      <button class="g-close" onclick="quitGuided()">✕</button>
+      <button class="g-close" onclick="pauseGuided()">✕</button>
       <div class="g-prog">${progTxt}</div>
     </div>
     <div class="g-bar"><div class="g-bar-fill" style="width:${pct}%"></div></div>`;
@@ -604,6 +661,7 @@ function renderGuided() {
       </div>`;
   }
   $("guided").innerHTML = top + body;
+  saveGuided();
 }
 
 function guidedCompleteSet() {
@@ -680,7 +738,8 @@ function finishGuided() {
     if (guided.data[k].sets.length) exercises[k] = guided.data[k];
   });
   const wid = guided.workoutId;
-  quitGuided();
+  clearGuided();
+  closeGuidedOverlay();
   if (!Object.keys(exercises).length) { toast("Allenamento chiuso (nessun dato)"); return; }
   commitSession(wid, exercises, { duration: null, calories: null, notes: "" });
 }
