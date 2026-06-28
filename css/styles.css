@@ -366,6 +366,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-se
 .g-rest-time { font-size: 72px; font-weight: 800; color: var(--coral); line-height: 1; }
 .g-skip { background: var(--card); border: 1.5px solid var(--border); color: var(--text); border-radius: 12px; padding: 13px 22px; font-size: 15px; font-weight: 700; cursor: pointer; }
 .g-next { font-size: 13px; color: var(--muted); }
+.g-trans-lbl { font-size: 13px; font-weight: 800; color: var(--coral); text-transform: uppercase; letter-spacing: .1em; }
+.g-eq { color: var(--muted); font-weight: 600; }
+.g-motto { font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.4; max-width: 320px; }
 .g-qq { font-size: 15px; color: var(--muted); line-height: 1.4; }
 .g-qcol { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 340px; }
 .g-qbtn { border: 2px solid var(--border); background: var(--card); border-radius: 14px; padding: 16px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; color: var(--text); }

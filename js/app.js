@@ -485,6 +485,16 @@ function showSummary(s, newPRs, newBadges) {
    ============================================================ */
 let guided = null;
 
+const G_MOTTOS = [
+  "Una macchina alla volta, stai andando alla grande! 🔥",
+  "Bella serie! Avanti con la prossima 💪",
+  "Sei in pieno flow, non mollare 🚀",
+  "Ogni esercizio è un mattone verso i 70 kg 🧱",
+  "Concentrato e preciso: così si cresce 🎯",
+  "Quasi fatto, dai il meglio anche qui ⚡",
+  "Stai costruendo il tuo fisico, serie dopo serie 🛠️"
+];
+
 function restSec(meta) { const n = parseInt(meta && meta.rest); return Math.min(60, isNaN(n) ? 60 : n); }
 function gMeta() { return EXERCISES[guided.keys[guided.exIndex]]; }
 function gKey() { return guided.keys[guided.exIndex]; }
@@ -511,16 +521,36 @@ function renderGuided() {
   const meta = gMeta(), key = gKey();
   const N = guided.keys.length;
   const totalSets = meta.sets;
-  const pct = Math.round(((guided.exIndex + (guided.setIndex / totalSets)) / N) * 100);
+  const isNext = guided.phase === "nextex";
+  const pct = isNext
+    ? Math.round(((guided.exIndex + 1) / N) * 100)
+    : Math.round(((guided.exIndex + (guided.setIndex / totalSets)) / N) * 100);
+  const progTxt = isNext
+    ? `Esercizio ${guided.exIndex + 1}/${N} completato 💪`
+    : `Esercizio ${guided.exIndex + 1}/${N} · Serie ${Math.min(guided.setIndex + 1, totalSets)}/${totalSets}`;
   const top = `
     <div class="g-top">
       <button class="g-close" onclick="quitGuided()">✕</button>
-      <div class="g-prog">Esercizio ${guided.exIndex + 1}/${N} · Serie ${Math.min(guided.setIndex + 1, totalSets)}/${totalSets}</div>
+      <div class="g-prog">${progTxt}</div>
     </div>
     <div class="g-bar"><div class="g-bar-fill" style="width:${pct}%"></div></div>`;
 
   let body = "";
-  if (guided.phase === "rest") {
+  if (guided.phase === "nextex") {
+    const nkey = guided.keys[guided.next.exIndex];
+    const nmeta = EXERCISES[nkey];
+    const motto = G_MOTTOS[guided.exIndex % G_MOTTOS.length];
+    const [badgeClass, badgeLabel] = badgeMap[nmeta.type];
+    body = `
+      <div class="g-body">
+        <div class="g-trans-lbl">Prossimo esercizio</div>
+        <img class="g-gif" src="assets/gifs/${nkey}.gif" onerror="this.style.display='none'">
+        <div class="g-name">${nmeta.name}</div>
+        <div class="g-muscle">${nmeta.muscle} · <span class="g-eq">${badgeLabel}</span></div>
+        <div class="g-motto">${motto}</div>
+        <button class="g-done" onclick="applyNext()">Vai → ${nmeta.name}</button>
+      </div>`;
+  } else if (guided.phase === "rest") {
     const n = guided.next;
     const nextLbl = n.exIndex === guided.exIndex
       ? `Serie ${n.setIndex + 1} di ${meta.name}`
@@ -614,7 +644,9 @@ function guidedQuality(q) {
 function goNextExercise() {
   const ni = guided.exIndex + 1;
   if (ni >= guided.keys.length) { finishGuided(); return; }
-  startRest(restSec(EXERCISES[guided.keys[ni]]), { exIndex: ni, setIndex: 0 });
+  guided.next = { exIndex: ni, setIndex: 0 };
+  guided.phase = "nextex";
+  renderGuided();
 }
 
 function startRest(sec, next) {
@@ -633,12 +665,14 @@ function startRest(sec, next) {
 
 function skipRest() { if (guided.timer) clearInterval(guided.timer); guided.timer = null; endRest(); }
 
-function endRest() {
+function applyNext() {
+  if (guided.timer) { clearInterval(guided.timer); guided.timer = null; }
   guided.exIndex = guided.next.exIndex;
   guided.setIndex = guided.next.setIndex;
   guided.phase = "set";
   renderGuided();
 }
+function endRest() { applyNext(); }
 
 function finishGuided() {
   const exercises = {};
