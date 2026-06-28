@@ -7,6 +7,7 @@ saveState(state);   // persiste il seed al primo avvio
 let currentWorkoutId = WORKOUTS[0].id;
 let calRef = new Date();          // mese mostrato nel calendario
 let charts = {};                  // istanze Chart.js
+let selectedQuality = {};         // qualità scelta per esercizio nella sessione corrente
 
 /* ---------- UTIL ---------- */
 const $ = (id) => document.getElementById(id);
@@ -21,21 +22,81 @@ const fmtLong = (str) => {
 };
 const getWorkout = (id) => WORKOUTS.find(w => w.id === id);
 
+// Sets [{w,r}] di un esercizio in una sessione
+function exSets(s, exKey) {
+  return (s.exercises && s.exercises[exKey] && s.exercises[exKey].sets) || [];
+}
+
 // Migliore peso (PR) mai registrato per un esercizio
 function bestPR(exKey) {
   let best = 0;
-  state.sessions.forEach(s => {
-    const sets = s.weights[exKey];
-    if (sets) sets.forEach(v => { if (v > best) best = v; });
-  });
+  state.sessions.forEach(s => exSets(s, exKey).forEach(set => { if (set.w > best) best = set.w; }));
   return best;
 }
 
-// Volume totale (kg) di una sessione
+// Volume (carico) totale di una sessione: Σ peso × ripetizioni
 function sessionVolume(s) {
   let tot = 0;
-  Object.values(s.weights).forEach(sets => sets.forEach(v => { tot += v || 0; }));
+  Object.values(s.exercises || {}).forEach(ex => ex.sets.forEach(set => { tot += (set.w || 0) * (set.r || 0); }));
   return tot;
+}
+
+// Esercizio nell'ultima sessione (prima di oggi): { date, sets, quality }
+function lastExercise(exKey) {
+  const past = state.sessions
+    .filter(s => s.date < todayStr() && exSets(s, exKey).length)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  if (!past.length) return null;
+  const sess = past[0];
+  return { date: sess.date, sets: exSets(sess, exKey), quality: sess.exercises[exKey].quality };
+}
+
+// SOVRACCARICO PROGRESSIVO — suggerimento per l'esercizio di oggi
+function suggestion(exKey) {
+  const meta = EXERCISES[exKey];
+  const last = lastExercise(exKey);
+  const inc = meta.type === "dumbbell" ? 2 : 2.5;   // +2 manubri, +2.5 macchine/cavi
+
+  if (!last) {
+    return { last: null, todayHtml: `Scegli un peso per fare <strong>${meta.sets}×${meta.reps}</strong> con buona forma`,
+             delta: "Prima volta", color: "gray", targetW: null, targetReps: meta.reps };
+  }
+
+  const w = Math.max(...last.sets.map(s => s.w));
+  const minR = Math.min(...last.sets.map(s => s.r));
+  const nSets = last.sets.length;
+  const q = last.quality;
+  const day = new Date(last.date + "T00:00:00").toLocaleDateString("it-IT", { weekday: "long" });
+  const base = { last, lastW: w, lastR: minR, lastSets: nSets, day };
+
+  // ❌ non completato / forma persa
+  if (q === "fail") {
+    if (minR < 10) {
+      const nw = Math.max(0, +(w - inc).toFixed(1));
+      return { ...base, todayHtml: `Scendi a <strong>${nw}kg</strong> e ritrova la tecnica`, delta: `−${inc}kg rispetto a ${day}`, color: "red", targetW: nw, targetReps: meta.reps };
+    }
+    return { ...base, todayHtml: `Conferma <strong>${meta.sets}×${minR}</strong> a ${w}kg — focus sulla forma`, delta: `= peso rispetto a ${day}`, color: "yellow", targetW: w, targetReps: minR };
+  }
+  // ⚠️ completato ma faticoso
+  if (q === "hard") {
+    return { ...base, todayHtml: `Conferma <strong>${meta.sets}×${minR}</strong> a ${w}kg — consolida`, delta: `= rispetto a ${day}`, color: "yellow", targetW: w, targetReps: minR };
+  }
+  // ✅ pulito (o non indicato) → progressione
+  if (nSets < meta.sets) {
+    return { ...base, todayHtml: `Prova <strong>${meta.sets}×${minR}</strong> a ${w}kg — aggiungi la ${meta.sets}ª serie 🎯`, delta: `+1 serie rispetto a ${day}`, color: "green", targetW: w, targetReps: minR };
+  }
+  if (minR >= 15) {
+    const nw = +(w + inc).toFixed(1);
+    return { ...base, todayHtml: `Sali a <strong>${nw}kg</strong> — torna a ${meta.sets}×12 🎯`, delta: `+${inc}kg rispetto a ${day}`, color: "green", targetW: nw, targetReps: 12 };
+  }
+  if (minR >= 12) {
+    return { ...base, todayHtml: `Prova <strong>${meta.sets}×${minR + 1}-${minR + 2}</strong> — stesso peso (${w}kg), 1-2 reps in più 🎯`, delta: `+1-2 reps rispetto a ${day}`, color: "green", targetW: w, targetReps: minR + 1 };
+  }
+  if (minR < 10) {
+    return { ...base, todayHtml: `Mantieni <strong>${w}kg</strong> — punta a ${meta.sets}×10-12, forma prima di tutto`, delta: `= peso rispetto a ${day}`, color: "yellow", targetW: w, targetReps: meta.reps };
+  }
+  // 10-11 reps → consolida
+  return { ...base, todayHtml: `Consolida <strong>${w}kg</strong> fino a ${meta.sets}×12 🎯`, delta: `+reps rispetto a ${day}`, color: "green", targetW: w, targetReps: 12 };
 }
 
 // Sessione di oggi per la scheda corrente (se esiste)
@@ -94,12 +155,19 @@ function renderWorkout() {
   // CARDS
   const cont = $("ex-cards");
   cont.innerHTML = "";
+  selectedQuality = {};
   exList.forEach((ex, i) => {
     const [badgeClass, badgeLabel] = badgeMap[ex.type];
     const repsNum = ex.time ? ex.time : ex.reps;
     const pr = bestPR(ex.key);
-    const last = ex.time ? null : lastWeight(ex.key);
-    const saved = sess && sess.weights[ex.key] ? sess.weights[ex.key] : [null, null, null];
+    const sug = ex.time ? null : suggestion(ex.key);
+    const today = sess && sess.exercises ? sess.exercises[ex.key] : null;
+    if (today) selectedQuality[ex.key] = today.quality || null;
+    const qsel = today ? (today.quality || null) : null;
+    const valW = (s) => (today && today.sets[s]) ? today.sets[s].w : "";
+    const valR = (s) => (today && today.sets[s]) ? today.sets[s].r : "";
+    const phW = sug && sug.targetW != null ? sug.targetW : "kg";
+    const phR = sug ? sug.targetReps : "reps";
 
     const card = document.createElement("div");
     card.className = "ex-card";
@@ -127,23 +195,42 @@ function renderWorkout() {
           <div class="set-pill"><div class="set-pill-num">${repsNum}</div><div class="set-pill-lbl">${ex.time ? 'Durata' : 'Rip.'}</div></div>
           ${ex.time
             ? `<div class="set-pill"><div class="set-pill-num">${ex.rest}</div><div class="set-pill-lbl">Riposo</div></div>`
-            : `<div class="set-pill"><div class="set-pill-num">${last != null ? last : '—'}</div><div class="set-pill-lbl">Kg ultima</div></div>`}
+            : `<div class="set-pill"><div class="set-pill-num">${sug && sug.lastW != null ? sug.lastW : '—'}</div><div class="set-pill-lbl">Kg ultima</div></div>`}
         </div>
         <div class="tip-box">
           <div class="tip-label">⚠️ Errore comune</div>
           <div class="tip-text">${ex.tip}</div>
         </div>
         ${ex.time ? '' : `
-        <div class="weight-section">
-          <div class="weight-label">Peso usato oggi (kg)${pr ? ` · record: <strong>${pr} kg</strong>` : ''}</div>
-          <div class="weight-sets">
+        <div class="prog-block">
+          <div class="last-time">📊 Ultima volta: ${sug.last
+            ? `<strong>${sug.lastW}kg</strong> · ${sug.lastSets}×${sug.lastR} <span class="lt-day">(${sug.day})</span>`
+            : '— nessuna sessione precedente'}</div>
+
+          <div class="sugg-box sugg-${sug.color}">
+            <div class="sugg-head"><span class="sugg-label">🎯 Oggi</span><span class="sugg-delta delta-${sug.color}">${sug.delta}</span></div>
+            <div class="sugg-text">${sug.todayHtml}</div>
+          </div>
+
+          <div class="weight-label">I tuoi dati di oggi</div>
+          <div class="set-log">
             ${[0, 1, 2].map(s => `
-              <div class="weight-input-group">
-                <div class="weight-input-lbl">Serie ${s + 1}</div>
-                <input class="weight-input" type="number" inputmode="decimal" data-ex="${ex.key}" data-set="${s}"
-                       value="${saved[s] != null ? saved[s] : ''}" placeholder="—" min="0" max="500" step="2.5"
-                       oninput="checkDone(${i})">
+              <div class="set-log-row">
+                <span class="set-log-n">Serie ${s + 1}</span>
+                <input class="setw" type="number" inputmode="decimal" data-ex="${ex.key}" data-set="${s}"
+                       value="${valW(s)}" placeholder="${phW}" min="0" max="500" step="2.5" oninput="checkDone(${i})">
+                <span class="set-x">kg ×</span>
+                <input class="setr" type="number" inputmode="numeric" data-ex="${ex.key}" data-set="${s}"
+                       value="${valR(s)}" placeholder="${phR}" min="0" max="50" oninput="checkDone(${i})">
+                <span class="set-x">rip.</span>
               </div>`).join("")}
+          </div>
+
+          <div class="weight-label">Com'è andata? (per il suggerimento della prossima volta)</div>
+          <div class="quality-row" data-ex="${ex.key}">
+            <button class="qbtn qbtn-clean ${qsel === 'clean' ? 'on' : ''}" onclick="setQuality('${ex.key}','clean',this)">✅ Pulito</button>
+            <button class="qbtn qbtn-hard ${qsel === 'hard' ? 'on' : ''}" onclick="setQuality('${ex.key}','hard',this)">⚠️ Faticoso</button>
+            <button class="qbtn qbtn-fail ${qsel === 'fail' ? 'on' : ''}" onclick="setQuality('${ex.key}','fail',this)">❌ Non finito</button>
           </div>
         </div>`}
       </div>`;
@@ -159,30 +246,26 @@ function renderWorkout() {
 
 function toggleCard(i) { $(`ex-${i}`).classList.toggle("open"); }
 
-// Peso usato nell'ultima sessione (prima di oggi) per un esercizio
-function lastWeight(exKey) {
-  const past = state.sessions
-    .filter(s => s.date < todayStr() && s.weights[exKey] && s.weights[exKey].some(v => v > 0))
-    .sort((a, b) => b.date.localeCompare(a.date));
-  if (!past.length) return null;
-  const sets = past[0].weights[exKey].filter(v => v > 0);
-  return Math.max(...sets);
+function setQuality(exKey, q, btn) {
+  selectedQuality[exKey] = (selectedQuality[exKey] === q) ? null : q;  // ritocco = deseleziona
+  btn.parentElement.querySelectorAll(".qbtn").forEach(b => b.classList.remove("on"));
+  if (selectedQuality[exKey]) btn.classList.add("on");
 }
 
 function checkDone(i) {
   const card = $(`ex-${i}`);
-  const inputs = card.querySelectorAll(".weight-input");
-  const filled = [...inputs].filter(inp => inp.value.trim() !== "").length;
+  const ws = card.querySelectorAll(".setw");
+  const filled = [...ws].filter(inp => inp.value.trim() !== "").length;
   const num = $(`exnum-${i}`);
-  if (filled === inputs.length && inputs.length > 0) {
+  if (ws.length > 0 && filled === ws.length) {
     num.style.background = "#10B981";
     num.textContent = "✓";
   } else {
     num.style.background = "";
     num.textContent = i + 1;
   }
-  // PR highlight
-  inputs.forEach(inp => {
+  // PR highlight sul peso
+  ws.forEach(inp => {
     const v = parseFloat(inp.value);
     const pr = bestPR(inp.dataset.ex);
     inp.classList.toggle("is-pr", !isNaN(v) && v > 0 && v >= pr && pr > 0);
@@ -192,39 +275,44 @@ function checkDone(i) {
 
 function updateProgress() {
   const cards = document.querySelectorAll("#ex-cards .ex-card");
-  let done = 0;
+  let done = 0, total = 0;
   cards.forEach((card) => {
-    const inputs = card.querySelectorAll(".weight-input");
-    if (inputs.length === 0) {
-      // plank: conta se il timer è stato avviato? lo lasciamo opzionale → conta sempre come fatto se altri completi
-      return;
-    }
-    const filled = [...inputs].filter(inp => inp.value.trim() !== "").length;
-    if (filled === inputs.length) done++;
+    const ws = card.querySelectorAll(".setw");
+    if (ws.length === 0) return;   // plank: nessun peso
+    total++;
+    const filled = [...ws].filter(inp => inp.value.trim() !== "").length;
+    if (filled === ws.length) done++;
   });
-  const total = [...cards].filter(c => c.querySelectorAll(".weight-input").length > 0).length;
   $("prog-count").textContent = `${done} / ${total}`;
   $("prog-bar").style.width = (total ? Math.round((done / total) * 100) : 0) + "%";
 }
 
 function saveSession() {
   const w = getWorkout(currentWorkoutId);
-  const weights = {};
+  const exercises = {};
   let any = false;
-  document.querySelectorAll("#ex-cards .weight-input").forEach(inp => {
-    const k = inp.dataset.ex, s = +inp.dataset.set;
-    const v = parseFloat(inp.value) || 0;
-    if (!weights[k]) weights[k] = [0, 0, 0];
-    weights[k][s] = v;
-    if (v > 0) any = true;
+  w.exercises.forEach(k => {
+    if (EXERCISES[k].time) return;   // plank: niente peso/reps
+    const ws = [...document.querySelectorAll(`.setw[data-ex="${k}"]`)];
+    const rs = [...document.querySelectorAll(`.setr[data-ex="${k}"]`)];
+    const sets = [];
+    ws.forEach((inp, idx) => {
+      const wv = parseFloat(inp.value);
+      if (!isNaN(wv) && wv > 0) {
+        const rv = parseInt(rs[idx] ? rs[idx].value : "");
+        sets.push({ w: wv, r: isNaN(rv) ? (EXERCISES[k].reps || 12) : rv });
+        any = true;
+      }
+    });
+    if (sets.length) exercises[k] = { sets, quality: selectedQuality[k] || null };
   });
   if (!any) { toast("Inserisci almeno un peso prima di salvare 💪"); return; }
 
   // PR check (prima di salvare lo storico)
   const newPRs = [];
-  Object.keys(weights).forEach(k => {
+  Object.keys(exercises).forEach(k => {
     const prev = bestPR(k);
-    const max = Math.max(...weights[k]);
+    const max = Math.max(...exercises[k].sets.map(s => s.w));
     if (max > prev && prev > 0) newPRs.push(EXERCISES[k].name);
   });
 
@@ -233,13 +321,13 @@ function saveSession() {
   const duration = parseInt($("log-duration").value) || null;
   const calories = parseInt($("log-calories").value) || null;
   if (existing) {
-    existing.weights = weights;
+    existing.exercises = exercises;
     existing.notes = notes;
     existing.duration = duration;
     existing.calories = calories;
   } else {
     state.sessions.push({
-      id: Date.now(), date: todayStr(), workoutId: w.id, weights, duration, calories, notes
+      id: Date.now(), date: todayStr(), workoutId: w.id, exercises, duration, calories, notes
     });
   }
   // segna il giorno come fatto nel calendario
@@ -335,16 +423,17 @@ function sessionDetailHTML(s) {
     `🏋️ ${Math.round(sessionVolume(s))} kg di volume`
   ].filter(Boolean);
 
-  const rows = Object.keys(s.weights)
-    .filter(k => s.weights[k].some(v => v > 0))
+  const rows = Object.keys(s.exercises || {})
     .map(k => {
-      const sets = s.weights[k];
+      const sets = s.exercises[k].sets;
+      const q = s.exercises[k].quality;
+      const qIcon = q === 'clean' ? '✅' : q === 'hard' ? '⚠️' : q === 'fail' ? '❌' : '';
       const pr = bestPR(k);
-      const max = Math.max(...sets.filter(v => v > 0));
+      const max = Math.max(...sets.map(x => x.w));
       const isPr = max >= pr && pr > 0;
       return `<div class="sd-row">
-        <span class="sd-name">${EXERCISES[k] ? EXERCISES[k].name : k}${isPr ? ' 🏆' : ''}</span>
-        <span class="sd-sets">${sets.filter(v => v > 0).join(' · ')} kg</span>
+        <span class="sd-name">${EXERCISES[k] ? EXERCISES[k].name : k}${isPr ? ' 🏆' : ''} ${qIcon}</span>
+        <span class="sd-sets">${sets.map(x => `${x.w}×${x.r}`).join(' · ')}</span>
       </div>`;
     }).join("");
 
@@ -385,7 +474,7 @@ function renderProgress() {
   const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString().split("T")[0];
   const thisWeek = s.filter(x => x.date >= weekAgo).length;
   let prCount = 0;
-  const allKeys = new Set(); s.forEach(x => Object.keys(x.weights).forEach(k => allKeys.add(k)));
+  const allKeys = new Set(); s.forEach(x => Object.keys(x.exercises || {}).forEach(k => allKeys.add(k)));
   allKeys.forEach(k => { if (bestPR(k) > 0) prCount++; });
 
   $("stat-sessions").textContent = s.length;
@@ -426,12 +515,12 @@ function renderExChart() {
   if (charts.ex) charts.ex.destroy();
   if (!k) return;
   const pts = [...state.sessions]
-    .filter(s => s.weights[k])
+    .filter(s => exSets(s, k).length)
     .sort((a, b) => a.date.localeCompare(b.date))
     .map(s => {
-      const sets = s.weights[k].filter(v => v > 0);
-      return { d: fmtShort(s.date), avg: sets.length ? +(sets.reduce((a, b) => a + b, 0) / sets.length).toFixed(1) : null };
-    }).filter(p => p.avg != null);
+      const sets = exSets(s, k);
+      return { d: fmtShort(s.date), avg: +(sets.reduce((a, b) => a + b.w, 0) / sets.length).toFixed(1) };
+    });
   if (!pts.length) return;
   charts.ex = new Chart(ctx, {
     type: "line",
@@ -520,7 +609,7 @@ function renderGoals() {
 
   // lista PR
   const allKeys = new Set();
-  state.sessions.forEach(x => Object.keys(x.weights).forEach(k => allKeys.add(k)));
+  state.sessions.forEach(x => Object.keys(x.exercises || {}).forEach(k => allKeys.add(k)));
   const prs = [...allKeys].map(k => ({ name: EXERCISES[k].name, v: bestPR(k) })).filter(p => p.v > 0).sort((a, b) => b.v - a.v);
   $("pr-list").innerHTML = prs.length
     ? prs.map(p => `<div class="pr-row"><span class="pr-medal">🏆</span><span class="pr-name">${p.name}</span><span class="pr-val">${p.v} kg</span></div>`).join("")
@@ -636,7 +725,7 @@ function renderHistory() {
   if (!s.length) { list.innerHTML = `<div class="empty-mini">Nessuna sessione registrata.</div>`; return; }
   list.innerHTML = s.map(sess => {
     const w = getWorkout(sess.workoutId);
-    const nEx = Object.values(sess.weights).filter(sets => sets.some(v => v > 0)).length;
+    const nEx = Object.keys(sess.exercises || {}).length;
     const meta = [
       `${nEx} esercizi`,
       `${Math.round(sessionVolume(sess))} kg vol.`,

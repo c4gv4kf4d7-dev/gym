@@ -30,13 +30,13 @@ function seedState() {
   return Object.assign(defaultState(), {
     sessions: [{
       id: 1750800000000,
-      date: "2026-06-25",
+      date: "2026-06-26",
       workoutId: "fullbody",
-      weights: {
-        chestpress: [20, 20, 20],
-        latmachine: [25, 25, 25],
-        legpress:   [40, 40, 40],
-        curl:       [6, 6, 0]
+      exercises: {
+        chestpress: { sets: [{ w: 20, r: 12 }, { w: 20, r: 12 }, { w: 20, r: 12 }], quality: null },
+        latmachine: { sets: [{ w: 25, r: 12 }, { w: 25, r: 12 }, { w: 25, r: 12 }], quality: null },
+        legpress:   { sets: [{ w: 40, r: 12 }, { w: 40, r: 12 }, { w: 40, r: 12 }], quality: null },
+        curl:       { sets: [{ w: 6, r: 12 }, { w: 6, r: 12 }], quality: null }
       },
       duration: 55,
       calories: 338,
@@ -44,7 +44,7 @@ function seedState() {
     }],
     bodyweight: [{ date: "2026-06-25", v: 60.1 }],
     schedule: {
-      "2026-06-25": { workoutId: "fullbody", done: true },
+      "2026-06-26": { workoutId: "fullbody", done: true },
       "2026-06-29": { workoutId: "fullbody", done: false },
       "2026-07-01": { workoutId: "fullbody", done: false, note: "Con Denis (PT)" },
       "2026-07-02": { workoutId: "fullbody", done: false }
@@ -61,7 +61,7 @@ function seedState() {
       date: "2026-06-25", weight: 60.1, bodyFat: 13.1, skeletalMuscle: 49.64,
       boneMass: 2.59, bodyWater: 62.7, bmr: 1489, metabolicAge: 38
     }],
-    migrations: ["fix-initial-schedule"]   // il seed nasce già corretto
+    migrations: ["fix-initial-schedule", "progression-v1"]   // il seed nasce già corretto
   });
 }
 
@@ -78,6 +78,28 @@ function applyMigrations(s) {
     if (next["2026-07-02"]) delete next["2026-07-02"].note;
     s.schedule = next;
     s.migrations.push("fix-initial-schedule");
+  }
+
+  // Sistema di progressione: sposta la prima sessione a venerdì 26/6 e
+  // converte weights[] → exercises{ sets:[{w,r}], quality }
+  if (!s.migrations.includes("progression-v1")) {
+    (s.sessions || []).forEach(sess => { if (sess.date === "2026-06-25") sess.date = "2026-06-26"; });
+    if (s.schedule && s.schedule["2026-06-25"]) {
+      s.schedule["2026-06-26"] = s.schedule["2026-06-25"];
+      delete s.schedule["2026-06-25"];
+    }
+    (s.sessions || []).forEach(sess => {
+      if (sess.weights && !sess.exercises) {
+        sess.exercises = {};
+        Object.entries(sess.weights).forEach(([k, arr]) => {
+          const r = (typeof EXERCISES !== "undefined" && EXERCISES[k] && EXERCISES[k].reps) ? EXERCISES[k].reps : 12;
+          const sets = arr.filter(v => v > 0).map(v => ({ w: v, r }));
+          if (sets.length) sess.exercises[k] = { sets, quality: null };
+        });
+        delete sess.weights;
+      }
+    });
+    s.migrations.push("progression-v1");
   }
 
   return s;
