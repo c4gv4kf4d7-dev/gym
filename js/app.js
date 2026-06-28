@@ -41,6 +41,62 @@ function sessionVolume(s) {
   return tot;
 }
 
+// 1RM stimato (formula di Epley) da peso × ripetizioni
+function estimate1RM(w, r) { return w * (1 + r / 30); }
+// Miglior 1RM stimato in una sessione per un esercizio
+function session1RM(s, exKey) {
+  const sets = exSets(s, exKey);
+  return sets.length ? Math.max(...sets.map(x => estimate1RM(x.w, x.r))) : 0;
+}
+
+// Peso corporeo attuale
+function currentBW() { const bw = state.bodyweight; return bw.length ? bw[bw.length - 1].v : null; }
+
+// Lunedì della settimana di una data (YYYY-MM-DD)
+function weekStart(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d.toISOString().split("T")[0];
+}
+// Streak: settimane consecutive (fino ad ora) con almeno un allenamento
+function weekStreak() {
+  const weeks = new Set(state.sessions.map(s => weekStart(s.date)));
+  let probe = new Date(); probe.setDate(probe.getDate() - ((probe.getDay() + 6) % 7));
+  let key = probe.toISOString().split("T")[0];
+  if (!weeks.has(key)) { probe.setDate(probe.getDate() - 7); key = probe.toISOString().split("T")[0]; }
+  let n = 0;
+  while (weeks.has(key)) { n++; probe.setDate(probe.getDate() - 7); key = probe.toISOString().split("T")[0]; }
+  return n;
+}
+
+// Target nutrizionali per la massa (da BMR + peso)
+function nutritionTargets() {
+  const comp = state.composition;
+  const bmr = (comp.length && comp[comp.length - 1].bmr) || 1489;
+  const bw = currentBW() || state.goals.startWeight || 60;
+  const tdee = Math.round(bmr * 1.5);          // ~3 allenamenti/settimana, attività moderata
+  const bulk = Math.round((tdee + 350) / 10) * 10;  // surplus per massa pulita
+  const protein = Math.round(bw * 1.9);        // g/die
+  const fat = Math.round(bw * 0.9);            // g/die
+  const carbs = Math.max(0, Math.round((bulk - protein * 4 - fat * 9) / 4));
+  return { bmr, bw, tdee, bulk, protein, fat, carbs };
+}
+
+// Proiezione raggiungimento peso obiettivo (richiede ≥2 misurazioni)
+function weightProjection() {
+  const bw = state.bodyweight, g = state.goals;
+  if (bw.length < 2 || g.targetWeight == null) return null;
+  const first = bw[0], last = bw[bw.length - 1];
+  const days = (new Date(last.date) - new Date(first.date)) / 86400000;
+  if (days <= 0) return null;
+  const ratePerWeek = (last.v - first.v) / days * 7;
+  if (ratePerWeek <= 0.01) return { ratePerWeek, date: null };  // fermo o in calo
+  const weeksLeft = (g.targetWeight - last.v) / ratePerWeek;
+  if (weeksLeft <= 0) return { ratePerWeek, date: last.date };
+  const eta = new Date(last.date); eta.setDate(eta.getDate() + Math.round(weeksLeft * 7));
+  return { ratePerWeek, date: eta.toISOString().split("T")[0] };
+}
+
 // Esercizio nell'ultima sessione (prima di oggi): { date, sets, quality }
 function lastExercise(exKey) {
   const past = state.sessions
@@ -492,6 +548,7 @@ function renderProgress() {
   $("stat-sessions").textContent = s.length;
   $("stat-week").textContent = thisWeek;
   $("stat-pr").textContent = prCount;
+  $("stat-streak").textContent = weekStreak();
 
   // popola select esercizi (solo quelli loggati)
   const sel = $("ex-select");
@@ -525,20 +582,19 @@ function renderExChart() {
   const k = $("ex-select").value;
   const ctx = $("ex-chart").getContext("2d");
   if (charts.ex) charts.ex.destroy();
-  if (!k) return;
+  const lbl = $("ex-1rm");
+  if (!k) { if (lbl) lbl.textContent = "—"; return; }
   const pts = [...state.sessions]
     .filter(s => exSets(s, k).length)
     .sort((a, b) => a.date.localeCompare(b.date))
-    .map(s => {
-      const sets = exSets(s, k);
-      return { d: fmtShort(s.date), avg: +(sets.reduce((a, b) => a + b.w, 0) / sets.length).toFixed(1) };
-    });
-  if (!pts.length) return;
+    .map(s => ({ d: fmtShort(s.date), v: +session1RM(s, k).toFixed(1) }));
+  if (!pts.length) { if (lbl) lbl.textContent = "—"; return; }
+  if (lbl) lbl.textContent = `oggi ~${pts[pts.length - 1].v} kg`;
   charts.ex = new Chart(ctx, {
     type: "line",
     data: {
       labels: pts.map(p => p.d),
-      datasets: [{ data: pts.map(p => p.avg), borderColor: "#FF6B6B", backgroundColor: "rgba(255,107,107,.1)", borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#FF6B6B", fill: true, tension: .3 }]
+      datasets: [{ data: pts.map(p => p.v), borderColor: "#FF6B6B", backgroundColor: "rgba(255,107,107,.1)", borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#FF6B6B", fill: true, tension: .3 }]
     },
     options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false, grid: { color: "#f0f0f0" } }, x: { grid: { display: false } } }, responsive: true }
   });
@@ -613,11 +669,14 @@ function renderGoals() {
         <span class="progress-count">${pct}%</span>
       </div>
       <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:#8B5CF6"></div></div>
-      <div class="goal-delta">${done >= 0 ? '+' : ''}${done.toFixed(1)} kg dall'inizio · mancano ${(g.targetWeight - cur).toFixed(1)} kg${g.targetDate ? ` · entro ${fmtLong(g.targetDate)}` : ''}</div>`;
+      <div class="goal-delta">${done >= 0 ? '+' : ''}${done.toFixed(1)} kg dall'inizio · mancano ${(g.targetWeight - cur).toFixed(1)} kg${g.targetDate ? ` · entro ${fmtLong(g.targetDate)}` : ''}</div>
+      ${projectionHTML()}`;
     wrap.style.display = "block";
   } else {
     wrap.style.display = "none";
   }
+
+  renderNutrition();
 
   // lista PR
   const allKeys = new Set();
@@ -626,6 +685,34 @@ function renderGoals() {
   $("pr-list").innerHTML = prs.length
     ? prs.map(p => `<div class="pr-row"><span class="pr-medal">🏆</span><span class="pr-name">${p.name}</span><span class="pr-val">${p.v} kg</span></div>`).join("")
     : `<div class="empty-mini">Registra qualche sessione per vedere i tuoi record qui.</div>`;
+}
+
+function projectionHTML() {
+  const p = weightProjection();
+  if (!p) return `<div class="goal-proj">📈 Registra il peso per qualche settimana per vedere la proiezione verso l'obiettivo.</div>`;
+  if (!p.date) return `<div class="goal-proj warn">⚠️ Peso fermo o in calo: per la massa serve un piccolo surplus calorico. Vedi il coach nutrizione qui sotto.</div>`;
+  const rate = p.ratePerWeek;
+  const g = state.goals;
+  let onTrack = "";
+  if (g.targetDate) {
+    onTrack = p.date <= g.targetDate
+      ? ` — sei <strong>in linea</strong> con l'obiettivo ✅`
+      : ` — un po' <strong>indietro</strong> sull'obiettivo, alza il surplus 💪`;
+  }
+  return `<div class="goal-proj">📈 Stai crescendo ~<strong>${rate.toFixed(2)} kg/sett</strong>: a questo ritmo arrivi a ${g.targetWeight} kg verso <strong>${fmtLong(p.date)}</strong>${onTrack}</div>`;
+}
+
+function renderNutrition() {
+  const n = nutritionTargets();
+  $("nutrition-card").innerHTML = `
+    <div class="nutri-head">Per costruire massa partendo da <strong>${n.bw} kg</strong> (BMR ${n.bmr} kcal):</div>
+    <div class="nutri-grid">
+      <div class="nutri-cell"><div class="nutri-num" style="color:#FF6B6B">${n.bulk}</div><div class="nutri-lbl">kcal / giorno</div></div>
+      <div class="nutri-cell"><div class="nutri-num" style="color:#10B981">${n.protein}g</div><div class="nutri-lbl">Proteine</div></div>
+      <div class="nutri-cell"><div class="nutri-num" style="color:#F59E0B">${n.carbs}g</div><div class="nutri-lbl">Carboidrati</div></div>
+      <div class="nutri-cell"><div class="nutri-num" style="color:#0EA5E9">${n.fat}g</div><div class="nutri-lbl">Grassi</div></div>
+    </div>
+    <div class="nutri-note">Mantenimento stimato ~${n.tdee} kcal · per crescere punta a <strong>+${n.bulk - n.tdee} kcal</strong> di surplus. Le proteine (~1.9 g/kg) sono la priorità per il muscolo. Pesa ogni settimana e, se il peso non sale, aggiungi 100-150 kcal.</div>`;
 }
 
 function saveBW() {

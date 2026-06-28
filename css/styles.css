@@ -157,6 +157,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-se
 
 /* STAT CARDS */
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+.stats-grid.stats-4 { grid-template-columns: 1fr 1fr; }
 .stat-card { background: var(--card); border-radius: 14px; padding: 14px 10px; border: 0.5px solid var(--border); text-align: center; }
 .stat-num { font-size: 24px; font-weight: 800; color: var(--coral); }
 .stat-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; }
@@ -202,6 +203,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-se
 .goal-field input { width: 100%; border: 1.5px solid var(--border); border-radius: 8px; padding: 9px; font-size: 14px; font-weight: 600; text-align: center; outline: none; }
 .goal-note { width: 100%; border: 1.5px solid var(--border); border-radius: 8px; padding: 10px; font-size: 13px; resize: none; height: 56px; outline: none; font-family: inherit; margin-bottom: 10px; }
 .goal-delta { font-size: 12px; color: var(--muted); margin-top: 8px; }
+.goal-proj { font-size: 12px; color: var(--text); background: #F5F3FF; border-radius: 8px; padding: 9px 11px; margin-top: 10px; line-height: 1.45; }
+.goal-proj.warn { background: var(--amber-light); color: #92400E; }
+
+/* NUTRITION */
+.nutri-head { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+.nutri-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; }
+.nutri-cell { background: var(--bg); border-radius: 12px; padding: 12px 6px; text-align: center; }
+.nutri-num { font-size: 18px; font-weight: 800; }
+.nutri-lbl { font-size: 9px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: .03em; }
+.nutri-note { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 12px; }
 .btn-secondary { width: 100%; background: #8B5CF6; color: #fff; border: none; border-radius: 10px; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; }
 .pr-row { display: flex; align-items: center; gap: 10px; background: var(--card); border: 0.5px solid var(--border); border-radius: 12px; padding: 11px 14px; margin-bottom: 8px; }
 .pr-medal { font-size: 16px; }

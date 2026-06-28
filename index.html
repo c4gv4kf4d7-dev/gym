@@ -63,8 +63,9 @@
 
 <!-- ============ PROGRESSI ============ -->
 <div class="section" id="section-progressi">
-  <div class="stats-grid">
+  <div class="stats-grid stats-4">
     <div class="stat-card"><div class="stat-num" id="stat-sessions">0</div><div class="stat-lbl">Sessioni totali</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-streak">0</div><div class="stat-lbl">🔥 Streak (sett.)</div></div>
     <div class="stat-card"><div class="stat-num" id="stat-week">0</div><div class="stat-lbl">Questa settimana</div></div>
     <div class="stat-card"><div class="stat-num" id="stat-pr">0</div><div class="stat-lbl">Record (PR)</div></div>
   </div>
@@ -76,8 +77,8 @@
   </div>
 
   <div class="chart-card">
-    <div class="chart-title">Andamento per esercizio</div>
-    <div class="chart-sub">Peso medio nel tempo</div>
+    <div class="chart-title">Forza per esercizio</div>
+    <div class="chart-sub">Massimale stimato (1RM) nel tempo — <span id="ex-1rm">—</span></div>
     <select class="chart-select" id="ex-select" onchange="renderExChart()"></select>
     <canvas id="ex-chart" height="150"></canvas>
   </div>
@@ -115,6 +116,9 @@
     <button class="btn-secondary" onclick="saveGoals()">Aggiorna obiettivo</button>
     <div class="progress-wrap" id="goal-progress" style="display:none;margin-top:14px"></div>
   </div>
+
+  <div class="section-label">🍽️ Coach nutrizione (massa)</div>
+  <div class="goal-card" id="nutrition-card"></div>
 
   <div class="section-label">📊 Composizione corporea</div>
   <div class="goal-card">
