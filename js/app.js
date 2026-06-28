@@ -609,6 +609,16 @@ function renderGuidedResume() {
 
 function gStore(key) { if (!guided.data[key]) guided.data[key] = { sets: [], quality: null }; return guided.data[key]; }
 
+// Box "Occhio a" con i punti tecnici del PT
+function cuesHTML(key) {
+  const c = (typeof EXERCISE_CUES !== "undefined" && EXERCISE_CUES[key]) || [];
+  if (!c.length) return "";
+  return `<div class="g-cues">
+    <div class="g-cues-h">👁️ Occhio a</div>
+    <ul>${c.map(x => `<li>${x}</li>`).join("")}</ul>
+  </div>`;
+}
+
 function renderGuided() {
   const meta = gMeta(), key = gKey();
   const N = guided.keys.length;
@@ -683,6 +693,7 @@ function renderGuided() {
         <img class="g-gif" src="assets/gifs/${key}.gif" onerror="this.style.display='none'">
         <div class="g-name">${meta.name}</div>
         <div class="g-muscle">${meta.muscle}</div>
+        ${cuesHTML(key)}
         <div class="g-rest-time" id="g-hold">${parseInt(meta.time) || 30}"</div>
         <button class="g-done" id="g-holdbtn" onclick="guidedHold()">▶︎ Avvia ${parseInt(meta.time) || 30}"</button>
       </div>`;
@@ -698,6 +709,7 @@ function renderGuided() {
         <div class="g-name">${meta.name}</div>
         <div class="g-muscle">${meta.muscle}</div>
         <div class="g-sugg sugg-${sug.color}"><span class="sugg-label">Oggi:</span> ${sug.todayHtml}</div>
+        ${cuesHTML(key)}
         <div class="g-inputs">
           <div class="g-ig"><div class="g-ilbl">Peso (kg)</div><input id="g-w" type="number" inputmode="decimal" value="${prevW}" min="0" max="500" step="2.5"></div>
           <div class="g-ix">×</div>

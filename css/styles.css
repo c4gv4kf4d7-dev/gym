@@ -432,6 +432,11 @@ input::placeholder { color: var(--faint); }
 .g-muscle { font-size: 14px; color: var(--pink); font-weight: 700; margin-top: -8px; }
 .g-eq { color: var(--muted); font-weight: 600; }
 .g-sugg { width: 100%; border-radius: 14px; padding: 12px 14px; font-size: 14px; border: 1px solid var(--border); border-left-width: 4px; text-align: left; }
+.g-cues { width: 100%; text-align: left; background: rgba(255,180,84,.12); border: 1px solid rgba(255,180,84,.28); border-left: 4px solid var(--amber); border-radius: 14px; padding: 11px 14px; }
+.g-cues-h { font-size: 11px; font-weight: 800; color: var(--amber); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+.g-cues ul { margin: 0; padding-left: 18px; }
+.g-cues li { font-size: 13px; line-height: 1.5; color: #FFE0B8; margin-bottom: 4px; }
+.g-cues li:last-child { margin-bottom: 0; }
 .g-inputs { display: flex; align-items: flex-end; justify-content: center; gap: 12px; width: 100%; }
 .g-ig { flex: 1; max-width: 130px; }
 .g-ilbl { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
