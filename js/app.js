@@ -556,7 +556,7 @@ function discardGuided() {
   $("modal-body").innerHTML = `
     <p class="modal-q">Sei sicuro di voler terminare l'allenamento in pausa${w ? ` (${w.emoji} ${w.name})` : ''}? I dati di questa sessione non ancora salvati andranno persi.</p>
     <div class="confirm-row">
-      <button class="confirm-cancel" onclick="closeModal()">Annulla</button>
+      <button class="confirm-cancel" onclick="closeModal(); resumeGuided()">No, riprendi</button>
       <button class="confirm-danger" onclick="doDiscardGuided()">Sì, termina</button>
     </div>`;
   $("modal").classList.add("show");
