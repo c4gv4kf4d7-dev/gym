@@ -35,7 +35,7 @@ const WORKOUTS = [
     id: "fullbody",
     name: "Full Body A",
     emoji: "💪",
-    color: "#FF6B6B",
+    color: "#FF2D95",
     sub: "7 esercizi · tutto il corpo",
     focus: "Ipertrofia generale",
     exercises: ["legpress", "chestpress", "latmachine", "shoulderpress", "curl", "tricipiti", "plank"]
@@ -44,7 +44,7 @@ const WORKOUTS = [
     id: "gambe",
     name: "Gambe",
     emoji: "🦵",
-    color: "#8B5CF6",
+    color: "#A855F7",
     sub: "7 esercizi · parte inferiore",
     focus: "Quadricipiti, femorali, glutei",
     exercises: ["legpress", "legext", "legcurl", "hipthrust", "abductor", "calf", "plank"]
@@ -53,7 +53,7 @@ const WORKOUTS = [
     id: "spinta",
     name: "Spinta",
     emoji: "🔼",
-    color: "#0EA5E9",
+    color: "#5B8DEF",
     sub: "7 esercizi · push",
     focus: "Petto, spalle, tricipiti",
     exercises: ["chestpress", "chestfly", "shoulderpress", "lateral", "tricipiti", "frenchpress", "plank"]
@@ -62,7 +62,7 @@ const WORKOUTS = [
     id: "tirata",
     name: "Tirata",
     emoji: "🔽",
-    color: "#10B981",
+    color: "#FF8A5B",
     sub: "7 esercizi · pull",
     focus: "Schiena, bicipiti, posteriori",
     exercises: ["latmachine", "pulley", "reversefly", "curl", "hammer", "facepull", "crunch"]

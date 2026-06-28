@@ -229,7 +229,8 @@ function renderWorkout() {
   const sess = todaySession(w.id);
 
   // HERO
-  $("workout-hero").style.background = w.color;
+  $("workout-hero").style.background = `linear-gradient(150deg, ${w.color} 0%, #2A1B4A 95%)`;
+  $("workout-hero").style.boxShadow = `0 10px 40px -8px ${w.color}66, inset 0 1px 0 rgba(255,255,255,.18)`;
   $("workout-hero").innerHTML = `
     <div class="hero-label">Scheda del giorno</div>
     <div class="hero-title">${w.name} ${w.emoji}</div>
@@ -920,9 +921,9 @@ function renderVolumeChart() {
     type: "bar",
     data: {
       labels: s.map(x => fmtShort(x.date)),
-      datasets: [{ data: s.map(sessionVolume), backgroundColor: "rgba(255,107,107,.75)", borderRadius: 6 }]
+      datasets: [{ data: s.map(sessionVolume), backgroundColor: "rgba(255,45,149,.8)", borderRadius: 6 }]
     },
-    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: "#f0f0f0" } }, x: { grid: { display: false } } }, responsive: true }
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: "rgba(255,255,255,.08)" } }, x: { grid: { display: false } } }, responsive: true }
   });
 }
 
@@ -942,9 +943,9 @@ function renderExChart() {
     type: "line",
     data: {
       labels: pts.map(p => p.d),
-      datasets: [{ data: pts.map(p => p.v), borderColor: "#FF6B6B", backgroundColor: "rgba(255,107,107,.1)", borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#FF6B6B", fill: true, tension: .3 }]
+      datasets: [{ data: pts.map(p => p.v), borderColor: "#FF2D95", backgroundColor: "rgba(255,45,149,.18)", borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#FF2D95", fill: true, tension: .3 }]
     },
-    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false, grid: { color: "#f0f0f0" } }, x: { grid: { display: false } } }, responsive: true }
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false, grid: { color: "rgba(255,255,255,.08)" } }, x: { grid: { display: false } } }, responsive: true }
   });
 }
 
@@ -957,9 +958,9 @@ function renderBWChart() {
     type: "line",
     data: {
       labels: bw.map(b => fmtShort(b.date)),
-      datasets: [{ data: bw.map(b => b.v), borderColor: "#8B5CF6", backgroundColor: "rgba(139,92,246,.1)", borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#8B5CF6", fill: true, tension: .3 }]
+      datasets: [{ data: bw.map(b => b.v), borderColor: "#A855F7", backgroundColor: "rgba(168,85,247,.18)", borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#A855F7", fill: true, tension: .3 }]
     },
-    options: { plugins: { legend: { display: false } }, scales: { y: { grid: { color: "#f0f0f0" } }, x: { grid: { display: false } } }, responsive: true }
+    options: { plugins: { legend: { display: false } }, scales: { y: { grid: { color: "rgba(255,255,255,.08)" } }, x: { grid: { display: false } } }, responsive: true }
   });
 }
 
@@ -1257,6 +1258,10 @@ function setDate() {
 }
 
 // INIT
+if (window.Chart) {
+  Chart.defaults.color = "rgba(245,240,255,.55)";
+  Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, sans-serif";
+}
 setDate();
 renderWorkoutChips();
 renderWorkout();
