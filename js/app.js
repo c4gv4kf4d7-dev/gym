@@ -5,7 +5,6 @@
 let state = loadState();
 saveState(state);   // persiste il seed al primo avvio
 let currentWorkoutId = WORKOUTS[0].id;
-let timers = {};
 let calRef = new Date();          // mese mostrato nel calendario
 let charts = {};                  // istanze Chart.js
 
@@ -97,8 +96,9 @@ function renderWorkout() {
   cont.innerHTML = "";
   exList.forEach((ex, i) => {
     const [badgeClass, badgeLabel] = badgeMap[ex.type];
-    const repsLabel = ex.time ? ex.time : `${ex.reps} rip.`;
+    const repsNum = ex.time ? ex.time : ex.reps;
     const pr = bestPR(ex.key);
+    const last = ex.time ? null : lastWeight(ex.key);
     const saved = sess && sess.weights[ex.key] ? sess.weights[ex.key] : [null, null, null];
 
     const card = document.createElement("div");
@@ -124,8 +124,10 @@ function renderWorkout() {
         </div>
         <div class="sets-row">
           <div class="set-pill"><div class="set-pill-num">${ex.sets}</div><div class="set-pill-lbl">Serie</div></div>
-          <div class="set-pill"><div class="set-pill-num">${repsLabel}</div><div class="set-pill-lbl">${ex.time ? 'Durata' : 'Rip.'}</div></div>
-          <div class="set-pill"><div class="set-pill-num">${ex.rest}</div><div class="set-pill-lbl">Riposo</div></div>
+          <div class="set-pill"><div class="set-pill-num">${repsNum}</div><div class="set-pill-lbl">${ex.time ? 'Durata' : 'Rip.'}</div></div>
+          ${ex.time
+            ? `<div class="set-pill"><div class="set-pill-num">${ex.rest}</div><div class="set-pill-lbl">Riposo</div></div>`
+            : `<div class="set-pill"><div class="set-pill-num">${last != null ? last : '—'}</div><div class="set-pill-lbl">Kg ultima</div></div>`}
         </div>
         <div class="tip-box">
           <div class="tip-label">⚠️ Errore comune</div>
@@ -144,11 +146,6 @@ function renderWorkout() {
               </div>`).join("")}
           </div>
         </div>`}
-        <div class="rest-row">
-          <span class="rest-info">${ex.time ? '⏱ Timer plank' : '🔄 Timer riposo'}</span>
-          <button class="rest-timer-btn" onclick="startTimer(${i}, ${ex.time ? 30 : 90}, this)">Inizia ${ex.time ? 30 : 90}"</button>
-          <span class="timer-display" id="timer-${i}"></span>
-        </div>
       </div>`;
     cont.appendChild(card);
   });
@@ -162,28 +159,14 @@ function renderWorkout() {
 
 function toggleCard(i) { $(`ex-${i}`).classList.toggle("open"); }
 
-function startTimer(i, seconds, btn) {
-  if (timers[i]) {
-    clearInterval(timers[i]); timers[i] = null;
-    btn.textContent = `Inizia ${seconds}"`;
-    $(`timer-${i}`).textContent = "";
-    return;
-  }
-  let rem = seconds;
-  $(`timer-${i}`).textContent = rem + '"';
-  btn.textContent = "Stop";
-  timers[i] = setInterval(() => {
-    rem--;
-    const el = $(`timer-${i}`);
-    if (rem <= 0) {
-      clearInterval(timers[i]); timers[i] = null;
-      el.textContent = "✓ Via!";
-      btn.textContent = `Inizia ${seconds}"`;
-      setTimeout(() => { el.textContent = ""; }, 2000);
-    } else {
-      el.textContent = rem + '"';
-    }
-  }, 1000);
+// Peso usato nell'ultima sessione (prima di oggi) per un esercizio
+function lastWeight(exKey) {
+  const past = state.sessions
+    .filter(s => s.date < todayStr() && s.weights[exKey] && s.weights[exKey].some(v => v > 0))
+    .sort((a, b) => b.date.localeCompare(a.date));
+  if (!past.length) return null;
+  const sets = past[0].weights[exKey].filter(v => v > 0);
+  return Math.max(...sets);
 }
 
 function checkDone(i) {
@@ -319,21 +302,60 @@ function renderCalendar() {
 function calNav(delta) { calRef.setMonth(calRef.getMonth() + delta); renderCalendar(); }
 
 function openDay(ds) {
-  const sched = state.schedule[ds];
   const d = new Date(ds + "T00:00:00").toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
   $("modal-title").textContent = d.charAt(0).toUpperCase() + d.slice(1);
-  $("modal-body").innerHTML = `
-    <p class="modal-q">Quale scheda vuoi programmare?</p>
-    <div class="modal-opts">
-      ${WORKOUTS.map(w => `
-        <button class="modal-opt ${sched && sched.workoutId === w.id ? 'sel' : ''}"
-                style="border-color:${w.color}" onclick="assignDay('${ds}','${w.id}')">
-          <span class="modal-opt-emoji">${w.emoji}</span>
-          <span>${w.name}</span>
-        </button>`).join("")}
-    </div>
-    ${sched ? `<button class="modal-clear" onclick="clearDay('${ds}')">🗑 Rimuovi programmazione</button>` : ''}`;
+
+  // Se quel giorno è stato fatto un allenamento → mostra i dettagli, non il selettore
+  const session = state.sessions.find(s => s.date === ds);
+  if (session) {
+    $("modal-body").innerHTML = sessionDetailHTML(session);
+  } else {
+    const sched = state.schedule[ds];
+    $("modal-body").innerHTML = `
+      <p class="modal-q">Quale scheda vuoi programmare?</p>
+      <div class="modal-opts">
+        ${WORKOUTS.map(w => `
+          <button class="modal-opt ${sched && sched.workoutId === w.id ? 'sel' : ''}"
+                  style="border-color:${w.color}" onclick="assignDay('${ds}','${w.id}')">
+            <span class="modal-opt-emoji">${w.emoji}</span>
+            <span>${w.name}</span>
+          </button>`).join("")}
+      </div>
+      ${sched ? `<button class="modal-clear" onclick="clearDay('${ds}')">🗑 Rimuovi programmazione</button>` : ''}`;
+  }
   $("modal").classList.add("show");
+}
+
+function sessionDetailHTML(s) {
+  const w = getWorkout(s.workoutId);
+  const sched = state.schedule[s.date];
+  const meta = [
+    s.duration ? `⏱ ${s.duration} min` : null,
+    s.calories ? `🔥 ${s.calories} kcal` : null,
+    `🏋️ ${Math.round(sessionVolume(s))} kg di volume`
+  ].filter(Boolean);
+
+  const rows = Object.keys(s.weights)
+    .filter(k => s.weights[k].some(v => v > 0))
+    .map(k => {
+      const sets = s.weights[k];
+      const pr = bestPR(k);
+      const max = Math.max(...sets.filter(v => v > 0));
+      const isPr = max >= pr && pr > 0;
+      return `<div class="sd-row">
+        <span class="sd-name">${EXERCISES[k] ? EXERCISES[k].name : k}${isPr ? ' 🏆' : ''}</span>
+        <span class="sd-sets">${sets.filter(v => v > 0).join(' · ')} kg</span>
+      </div>`;
+    }).join("");
+
+  return `
+    <div class="sd-head" style="background:${w ? w.color : '#999'}">
+      <div class="sd-title">${w ? w.emoji + ' ' + w.name : 'Sessione'} ✓</div>
+      ${sched && sched.note ? `<div class="sd-note">${sched.note}</div>` : ''}
+    </div>
+    <div class="sd-meta">${meta.join(' &nbsp;·&nbsp; ')}</div>
+    <div class="sd-list">${rows || '<div class="empty-mini">Nessun peso registrato.</div>'}</div>
+    ${s.notes ? `<div class="sd-notes">📝 ${s.notes}</div>` : ''}`;
 }
 
 function assignDay(ds, workoutId) {

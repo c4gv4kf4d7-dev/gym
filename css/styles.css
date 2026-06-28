@@ -242,6 +242,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-se
 .modal-opt-emoji { font-size: 24px; }
 .modal-clear { width: 100%; margin-top: 14px; background: #FEF2F2; color: #CC4444; border: none; border-radius: 10px; padding: 12px; font-size: 13px; font-weight: 700; cursor: pointer; }
 
+/* SESSION DETAIL (calendario) */
+.sd-head { border-radius: 14px; padding: 14px 16px; color: #fff; margin-bottom: 14px; }
+.sd-title { font-size: 17px; font-weight: 800; }
+.sd-note { font-size: 12px; opacity: .9; margin-top: 3px; }
+.sd-meta { font-size: 13px; color: var(--muted); font-weight: 600; margin-bottom: 14px; }
+.sd-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+.sd-row:last-child { border-bottom: none; }
+.sd-name { font-size: 14px; font-weight: 600; }
+.sd-sets { font-size: 13px; font-weight: 700; color: var(--coral); }
+.sd-notes { font-size: 13px; color: #666; background: var(--bg); border-radius: 10px; padding: 11px 13px; margin-top: 14px; line-height: 1.5; }
+
 /* TOAST */
 .toast { position: fixed; bottom: 86px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1a1a1a; color: #fff; padding: 12px 20px; border-radius: 12px; font-size: 14px; font-weight: 600; opacity: 0; pointer-events: none; transition: all .3s; z-index: 300; max-width: 90%; text-align: center; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
