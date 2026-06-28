@@ -409,7 +409,15 @@ function saveSession() {
   });
   if (!any) { toast("Inserisci almeno un peso prima di salvare 💪"); return; }
 
-  // PR check (prima di salvare lo storico)
+  const notes = $("log-notes").value.trim();
+  const duration = parseInt($("log-duration").value) || null;
+  const calories = parseInt($("log-calories").value) || null;
+  commitSession(w.id, exercises, { duration, calories, notes });
+}
+
+// Salva (o aggiorna) la sessione di oggi e mostra il riepilogo
+function commitSession(workoutId, exercises, meta) {
+  // PR check (prima di scrivere lo storico)
   const newPRs = [];
   Object.keys(exercises).forEach(k => {
     const prev = bestPR(k);
@@ -417,24 +425,20 @@ function saveSession() {
     if (max > prev && prev > 0) newPRs.push(EXERCISES[k].name);
   });
 
-  const existing = todaySession(w.id);
-  const notes = $("log-notes").value.trim();
-  const duration = parseInt($("log-duration").value) || null;
-  const calories = parseInt($("log-calories").value) || null;
+  const existing = todaySession(workoutId);
   if (existing) {
     existing.exercises = exercises;
-    existing.notes = notes;
-    existing.duration = duration;
-    existing.calories = calories;
+    existing.notes = meta.notes;
+    existing.duration = meta.duration;
+    existing.calories = meta.calories;
   } else {
     state.sessions.push({
-      id: Date.now(), date: todayStr(), workoutId: w.id, exercises, duration, calories, notes
+      id: Date.now(), date: todayStr(), workoutId, exercises,
+      duration: meta.duration, calories: meta.calories, notes: meta.notes
     });
   }
-  // segna il giorno come fatto nel calendario
-  state.schedule[todayStr()] = { workoutId: w.id, done: true };
+  state.schedule[todayStr()] = { workoutId, done: true };
 
-  // badge sbloccati con questa sessione
   const before = state.badges || [];
   const now = earnedBadgeIds();
   const newBadges = BADGES.filter(b => now.includes(b.id) && !before.includes(b.id));
@@ -442,7 +446,7 @@ function saveSession() {
   saveState(state);
 
   renderWorkout();
-  showSummary(todaySession(w.id) || state.sessions[state.sessions.length - 1], newPRs, newBadges);
+  showSummary(todaySession(workoutId) || state.sessions[state.sessions.length - 1], newPRs, newBadges);
 }
 
 function showSummary(s, newPRs, newBadges) {
@@ -474,6 +478,177 @@ function showSummary(s, newPRs, newBadges) {
       </div>` : ''}
     <button class="btn-save" style="margin-top:16px" onclick="closeModal()">Chiudi</button>`;
   $("modal").classList.add("show");
+}
+
+/* ============================================================
+   MODALITÀ ALLENAMENTO GUIDATA
+   ============================================================ */
+let guided = null;
+
+function restSec(meta) { const n = parseInt(meta && meta.rest); return isNaN(n) ? 75 : n; }
+function gMeta() { return EXERCISES[guided.keys[guided.exIndex]]; }
+function gKey() { return guided.keys[guided.exIndex]; }
+
+function startGuided() {
+  const w = getWorkout(currentWorkoutId);
+  guided = { workoutId: w.id, keys: w.exercises.slice(), exIndex: 0, setIndex: 0, phase: "set", data: {}, timer: null, next: null, restLeft: 0 };
+  $("guided").classList.add("show");
+  document.body.style.overflow = "hidden";
+  renderGuided();
+}
+
+function quitGuided() {
+  if (guided && guided.timer) clearInterval(guided.timer);
+  guided = null;
+  $("guided").classList.remove("show");
+  $("guided").innerHTML = "";
+  document.body.style.overflow = "";
+}
+
+function gStore(key) { if (!guided.data[key]) guided.data[key] = { sets: [], quality: null }; return guided.data[key]; }
+
+function renderGuided() {
+  const meta = gMeta(), key = gKey();
+  const N = guided.keys.length;
+  const totalSets = meta.sets;
+  const pct = Math.round(((guided.exIndex + (guided.setIndex / totalSets)) / N) * 100);
+  const top = `
+    <div class="g-top">
+      <button class="g-close" onclick="quitGuided()">✕</button>
+      <div class="g-prog">Esercizio ${guided.exIndex + 1}/${N} · Serie ${Math.min(guided.setIndex + 1, totalSets)}/${totalSets}</div>
+    </div>
+    <div class="g-bar"><div class="g-bar-fill" style="width:${pct}%"></div></div>`;
+
+  let body = "";
+  if (guided.phase === "rest") {
+    const n = guided.next;
+    const nextLbl = n.exIndex === guided.exIndex
+      ? `Serie ${n.setIndex + 1} di ${meta.name}`
+      : `${EXERCISES[guided.keys[n.exIndex]].name}`;
+    body = `
+      <div class="g-body g-rest">
+        <div class="g-rest-lbl">Recupero</div>
+        <div class="g-rest-time" id="g-rest">${guided.restLeft}"</div>
+        <button class="g-skip" onclick="skipRest()">Salta riposo →</button>
+        <div class="g-next">Poi: <strong>${nextLbl}</strong></div>
+      </div>`;
+  } else if (guided.phase === "quality") {
+    body = `
+      <div class="g-body">
+        <div class="g-name">${meta.name}</div>
+        <div class="g-qq">Com'è andata? Serve per il consiglio della prossima volta.</div>
+        <div class="g-qcol">
+          <button class="g-qbtn clean" onclick="guidedQuality('clean')">✅ Pulito fino alla fine</button>
+          <button class="g-qbtn hard" onclick="guidedQuality('hard')">⚠️ Completato ma faticoso</button>
+          <button class="g-qbtn fail" onclick="guidedQuality('fail')">❌ Non completato / forma persa</button>
+        </div>
+      </div>`;
+  } else if (meta.time) {
+    // plank: hold a tempo
+    body = `
+      <div class="g-body">
+        <img class="g-gif" src="assets/gifs/${key}.gif" onerror="this.style.display='none'">
+        <div class="g-name">${meta.name}</div>
+        <div class="g-muscle">${meta.muscle}</div>
+        <div class="g-rest-time" id="g-hold">${parseInt(meta.time) || 30}"</div>
+        <button class="g-done" id="g-holdbtn" onclick="guidedHold()">▶︎ Avvia ${parseInt(meta.time) || 30}"</button>
+      </div>`;
+  } else {
+    // set con peso × reps
+    const sug = suggestion(key);
+    const dset = guided.data[key] && guided.data[key].sets;
+    const prevW = dset && dset.length ? dset[dset.length - 1].w : (sug.targetW != null ? sug.targetW : "");
+    const prevR = dset && dset.length ? dset[dset.length - 1].r : (sug.targetReps != null ? sug.targetReps : "");
+    body = `
+      <div class="g-body">
+        <img class="g-gif" src="assets/gifs/${key}.gif" onerror="this.style.display='none'">
+        <div class="g-name">${meta.name}</div>
+        <div class="g-muscle">${meta.muscle}</div>
+        <div class="g-sugg sugg-${sug.color}"><span class="sugg-label">Oggi:</span> ${sug.todayHtml}</div>
+        <div class="g-inputs">
+          <div class="g-ig"><div class="g-ilbl">Peso (kg)</div><input id="g-w" type="number" inputmode="decimal" value="${prevW}" min="0" max="500" step="2.5"></div>
+          <div class="g-ix">×</div>
+          <div class="g-ig"><div class="g-ilbl">Ripetizioni</div><input id="g-r" type="number" inputmode="numeric" value="${prevR}" min="0" max="50"></div>
+        </div>
+        <button class="g-done" onclick="guidedCompleteSet()">✓ Serie completata</button>
+      </div>`;
+  }
+  $("guided").innerHTML = top + body;
+}
+
+function guidedCompleteSet() {
+  const meta = gMeta(), key = gKey();
+  if (!meta.time) {
+    const wv = parseFloat($("g-w").value);
+    const rv = parseInt($("g-r").value);
+    if (isNaN(wv) || wv <= 0) { toast("Inserisci il peso della serie"); return; }
+    gStore(key).sets.push({ w: wv, r: isNaN(rv) ? meta.reps : rv });
+  }
+  if (guided.setIndex < meta.sets - 1) {
+    startRest(restSec(meta), { exIndex: guided.exIndex, setIndex: guided.setIndex + 1 });
+  } else if (!meta.time) {
+    guided.phase = "quality";
+    renderGuided();
+  } else {
+    goNextExercise();
+  }
+}
+
+function guidedHold() {
+  const btn = $("g-holdbtn"), el = $("g-hold");
+  if (guided.timer) return;
+  let rem = parseInt(gMeta().time) || 30;
+  btn.textContent = "In corso...";
+  guided.timer = setInterval(() => {
+    rem--;
+    if (rem <= 0) { clearInterval(guided.timer); guided.timer = null; guidedCompleteSet(); }
+    else el.textContent = rem + '"';
+  }, 1000);
+}
+
+function guidedQuality(q) {
+  gStore(gKey()).quality = q;
+  goNextExercise();
+}
+
+function goNextExercise() {
+  const ni = guided.exIndex + 1;
+  if (ni >= guided.keys.length) { finishGuided(); return; }
+  startRest(restSec(EXERCISES[guided.keys[ni]]), { exIndex: ni, setIndex: 0 });
+}
+
+function startRest(sec, next) {
+  guided.phase = "rest";
+  guided.next = next;
+  guided.restLeft = sec;
+  renderGuided();
+  if (guided.timer) clearInterval(guided.timer);
+  guided.timer = setInterval(() => {
+    guided.restLeft--;
+    const el = $("g-rest");
+    if (guided.restLeft <= 0) { clearInterval(guided.timer); guided.timer = null; endRest(); }
+    else if (el) el.textContent = guided.restLeft + '"';
+  }, 1000);
+}
+
+function skipRest() { if (guided.timer) clearInterval(guided.timer); guided.timer = null; endRest(); }
+
+function endRest() {
+  guided.exIndex = guided.next.exIndex;
+  guided.setIndex = guided.next.setIndex;
+  guided.phase = "set";
+  renderGuided();
+}
+
+function finishGuided() {
+  const exercises = {};
+  Object.keys(guided.data).forEach(k => {
+    if (guided.data[k].sets.length) exercises[k] = guided.data[k];
+  });
+  const wid = guided.workoutId;
+  quitGuided();
+  if (!Object.keys(exercises).length) { toast("Allenamento chiuso (nessun dato)"); return; }
+  commitSession(wid, exercises, { duration: null, calories: null, notes: "" });
 }
 
 /* ============================================================

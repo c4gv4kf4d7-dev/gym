@@ -339,6 +339,38 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-se
 .badge-n { font-size: 10px; font-weight: 600; color: var(--muted); line-height: 1.2; }
 .badge.on .badge-n { color: #6D28D9; }
 
+/* GUIDED MODE */
+.btn-guided { width: 100%; background: #1a1a1a; color: #fff; border: none; border-radius: 14px; padding: 15px; font-size: 15px; font-weight: 800; cursor: pointer; margin-bottom: 16px; transition: opacity .15s; }
+.btn-guided:active { opacity: .85; }
+.guided-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 400; display: none; flex-direction: column; padding: calc(16px + env(safe-area-inset-top)) 18px calc(24px + env(safe-area-inset-bottom)); }
+.guided-overlay.show { display: flex; }
+.g-top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.g-close { background: var(--card); border: 1px solid var(--border); border-radius: 50%; width: 34px; height: 34px; font-size: 16px; cursor: pointer; color: var(--muted); flex-shrink: 0; }
+.g-prog { font-size: 13px; font-weight: 700; color: var(--muted); }
+.g-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+.g-bar-fill { height: 100%; background: var(--coral); border-radius: 3px; transition: width .3s; }
+.g-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 12px; max-width: 460px; width: 100%; margin: 0 auto; }
+.g-gif { width: 200px; height: 200px; max-width: 70vw; max-height: 70vw; object-fit: cover; border-radius: 18px; border: 0.5px solid var(--border); background: var(--card); }
+.g-name { font-size: 24px; font-weight: 800; }
+.g-muscle { font-size: 14px; color: var(--coral); font-weight: 600; margin-top: -6px; }
+.g-sugg { width: 100%; border-radius: 12px; padding: 12px 14px; font-size: 14px; border-left: 4px solid; text-align: left; }
+.g-inputs { display: flex; align-items: flex-end; justify-content: center; gap: 12px; width: 100%; }
+.g-ig { flex: 1; max-width: 130px; }
+.g-ilbl { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+.g-ig input { width: 100%; border: 1.5px solid var(--border); border-radius: 12px; padding: 14px 8px; text-align: center; font-size: 24px; font-weight: 800; outline: none; color: var(--text); }
+.g-ig input:focus { border-color: var(--coral); }
+.g-ix { font-size: 18px; color: var(--muted); font-weight: 700; padding-bottom: 16px; }
+.g-done { width: 100%; max-width: 320px; background: #10B981; color: #fff; border: none; border-radius: 14px; padding: 17px; font-size: 17px; font-weight: 800; cursor: pointer; margin-top: 6px; }
+.g-done:active { opacity: .9; }
+.g-rest .g-rest-lbl, .g-rest-lbl { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.g-rest-time { font-size: 72px; font-weight: 800; color: var(--coral); line-height: 1; }
+.g-skip { background: var(--card); border: 1.5px solid var(--border); color: var(--text); border-radius: 12px; padding: 13px 22px; font-size: 15px; font-weight: 700; cursor: pointer; }
+.g-next { font-size: 13px; color: var(--muted); }
+.g-qq { font-size: 15px; color: var(--muted); line-height: 1.4; }
+.g-qcol { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 340px; }
+.g-qbtn { border: 2px solid var(--border); background: var(--card); border-radius: 14px; padding: 16px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; color: var(--text); }
+.g-qbtn.clean:active { background: #ECFDF5; } .g-qbtn.hard:active { background: var(--amber-light); } .g-qbtn.fail:active { background: #FEF2F2; }
+
 /* TOAST */
 .toast { position: fixed; bottom: calc(86px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%) translateY(20px); background: #1a1a1a; color: #fff; padding: 12px 20px; border-radius: 12px; font-size: 14px; font-weight: 600; opacity: 0; pointer-events: none; transition: all .3s; z-index: 300; max-width: 90%; text-align: center; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
