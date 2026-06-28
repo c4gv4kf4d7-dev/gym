@@ -419,9 +419,11 @@ input::placeholder { color: var(--faint); }
     #060410;
 }
 .guided-overlay.show { display: flex; }
-.g-top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.g-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .g-close { background: rgba(255,255,255,.08); border: 1px solid var(--border); border-radius: 50%; width: 36px; height: 36px; font-size: 16px; cursor: pointer; color: var(--text); flex-shrink: 0; }
-.g-prog { font-size: 13px; font-weight: 800; color: var(--muted); }
+.g-back { background: rgba(255,255,255,.06); border: 1px solid var(--border); border-radius: 20px; padding: 8px 13px; font-size: 13px; font-weight: 800; cursor: pointer; color: var(--text); flex-shrink: 0; font-family: inherit; }
+.g-back:active { background: rgba(255,255,255,.12); }
+.g-prog { font-size: 13px; font-weight: 800; color: var(--muted); margin-left: auto; }
 .g-bar { height: 6px; background: rgba(255,255,255,.12); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
 .g-bar-fill { height: 100%; background: var(--grad); border-radius: 3px; transition: width .3s; box-shadow: 0 0 12px var(--magenta); }
 .g-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 14px; max-width: 460px; width: 100%; margin: 0 auto; }

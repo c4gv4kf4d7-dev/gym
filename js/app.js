@@ -534,7 +534,7 @@ function clearGuided() { localStorage.removeItem(GUIDED_KEY); }
 function startGuided() {
   clearGuided();
   const w = getWorkout(currentWorkoutId);
-  guided = { workoutId: w.id, keys: w.exercises.slice(), exIndex: 0, setIndex: 0, phase: "set", data: {}, timer: null, next: null, restLeft: 0 };
+  guided = { workoutId: w.id, keys: w.exercises.slice(), exIndex: 0, setIndex: 0, phase: "set", data: {}, timer: null, next: null, restLeft: 0, history: [] };
   $("guided").classList.add("show");
   document.body.style.overflow = "hidden";
   renderGuided();
@@ -564,7 +564,7 @@ function pauseGuided() {
 function resumeGuided() {
   const snap = loadGuided();
   if (!snap) return;
-  guided = Object.assign({ timer: null }, snap);
+  guided = Object.assign({ timer: null, history: [] }, snap);
   currentWorkoutId = guided.workoutId;
   renderWorkoutChips();
   $("guided").classList.add("show");
@@ -620,9 +620,11 @@ function renderGuided() {
   const progTxt = isNext
     ? `Esercizio ${guided.exIndex + 1}/${N} completato 💪`
     : `Esercizio ${guided.exIndex + 1}/${N} · Serie ${Math.min(guided.setIndex + 1, totalSets)}/${totalSets}`;
+  const canBack = (guided.history || []).length > 0;
   const top = `
     <div class="g-top">
       <button class="g-close" onclick="pauseGuided()">✕</button>
+      <button class="g-back" onclick="guidedBack()" ${canBack ? '' : 'style="visibility:hidden"'}>‹ Indietro</button>
       <div class="g-prog">${progTxt}</div>
     </div>
     <div class="g-bar"><div class="g-bar-fill" style="width:${pct}%"></div></div>`;
@@ -640,7 +642,7 @@ function renderGuided() {
         <div class="g-name">${nmeta.name}</div>
         <div class="g-muscle">${nmeta.muscle} · <span class="g-eq">${badgeLabel}</span></div>
         <div class="g-motto">${motto}</div>
-        <button class="g-done" onclick="applyNext()">Vai → ${nmeta.name}</button>
+        <button class="g-done" onclick="guidedAdvance()">Vai → ${nmeta.name}</button>
       </div>`;
   } else if (guided.phase === "rest") {
     const n = guided.next;
@@ -714,7 +716,10 @@ function guidedCompleteSet() {
     const wv = parseFloat($("g-w").value);
     const rv = parseInt($("g-r").value);
     if (isNaN(wv) || wv <= 0) { toast("Inserisci il peso della serie"); return; }
+    gPush();
     gStore(key).sets.push({ w: wv, r: isNaN(rv) ? meta.reps : rv });
+  } else {
+    gPush();
   }
   if (guided.setIndex < meta.sets - 1) {
     startRest(restSec(meta), { exIndex: guided.exIndex, setIndex: guided.setIndex + 1 });
@@ -739,6 +744,7 @@ function guidedHold() {
 }
 
 function guidedQuality(q) {
+  gPush();
   gStore(gKey()).quality = q;
   goNextExercise();
 }
@@ -775,6 +781,22 @@ function applyNext() {
   renderGuided();
 }
 function endRest() { applyNext(); }
+function guidedAdvance() { gPush(); applyNext(); }   // pulsante "Vai →" (annullabile)
+
+// salva lo stato corrente per poter tornare indietro
+function gPush() {
+  guided.history = guided.history || [];
+  guided.history.push(JSON.parse(JSON.stringify({
+    exIndex: guided.exIndex, setIndex: guided.setIndex, phase: guided.phase,
+    data: guided.data, next: guided.next, restLeft: guided.restLeft
+  })));
+}
+function guidedBack() {
+  if (!guided.history || !guided.history.length) return;
+  if (guided.timer) { clearInterval(guided.timer); guided.timer = null; }
+  Object.assign(guided, guided.history.pop());
+  renderGuided();
+}
 
 function finishGuided() {
   const exercises = {};
