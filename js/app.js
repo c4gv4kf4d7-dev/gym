@@ -485,7 +485,7 @@ function showSummary(s, newPRs, newBadges) {
    ============================================================ */
 let guided = null;
 
-function restSec(meta) { const n = parseInt(meta && meta.rest); return isNaN(n) ? 75 : n; }
+function restSec(meta) { const n = parseInt(meta && meta.rest); return Math.min(60, isNaN(n) ? 60 : n); }
 function gMeta() { return EXERCISES[guided.keys[guided.exIndex]]; }
 function gKey() { return guided.keys[guided.exIndex]; }
 
