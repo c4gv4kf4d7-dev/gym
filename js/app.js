@@ -116,20 +116,49 @@ function thisWeekCount() {
   const wk = weekStart(todayStr());
   return state.sessions.filter(s => weekStart(s.date) === wk).length;
 }
+// Volume (carico) totale sollevato in tutte le sessioni
+function totalVolumeAll() { return state.sessions.reduce((a, s) => a + sessionVolume(s), 0); }
+// Schede diverse provate
+function distinctWorkouts() { return new Set(state.sessions.map(s => s.workoutId)).size; }
+// Massimo numero di allenamenti in una stessa settimana
+function maxWeekSessions() {
+  const c = {};
+  state.sessions.forEach(s => { const k = weekStart(s.date); c[k] = (c[k] || 0) + 1; });
+  return Object.values(c).reduce((m, v) => Math.max(m, v), 0);
+}
 
-// TRAGUARDI (badge)
+// TRAGUARDI (badge) — con spiegazione (tocca per leggerla)
 const BADGES = [
-  { id: "start",   icon: "🌱", name: "Si comincia!",        test: () => state.sessions.length >= 1 },
-  { id: "s10",     icon: "💪", name: "10 allenamenti",      test: () => state.sessions.length >= 10 },
-  { id: "s25",     icon: "🏅", name: "25 allenamenti",      test: () => state.sessions.length >= 25 },
-  { id: "s50",     icon: "🏆", name: "50 allenamenti",      test: () => state.sessions.length >= 50 },
-  { id: "streak2", icon: "🔥", name: "2 settimane di fila", test: () => weekStreak() >= 2 },
-  { id: "streak4", icon: "🔥", name: "1 mese di costanza",  test: () => weekStreak() >= 4 },
-  { id: "streak8", icon: "⚡", name: "2 mesi inarrestabile",test: () => weekStreak() >= 8 },
-  { id: "pr5",     icon: "📈", name: "5 record personali",  test: () => prCount() >= 5 },
-  { id: "gain2",   icon: "🍽️", name: "+2 kg di massa",      test: () => massGain() >= 2 },
-  { id: "gain5",   icon: "💥", name: "+5 kg di massa",      test: () => massGain() >= 5 },
-  { id: "goal",    icon: "👑", name: "Obiettivo raggiunto!",test: () => { const c = currentBW(), t = state.goals.targetWeight; return c != null && t != null && c >= t; } }
+  { id: "start",   icon: "🌱", name: "Si comincia!",         test: () => state.sessions.length >= 1,
+    desc: "Hai registrato il tuo primo allenamento. Ogni grande risultato parte da qui." },
+  { id: "fullweek",icon: "📅", name: "Settimana piena",       test: () => maxWeekSessions() >= 3,
+    desc: "Hai fatto 3 allenamenti in una stessa settimana: il tuo ritmo ideale per crescere." },
+  { id: "s10",     icon: "💪", name: "10 allenamenti",        test: () => state.sessions.length >= 10,
+    desc: "10 sessioni registrate. La costanza sta diventando un'abitudine." },
+  { id: "s25",     icon: "🏅", name: "25 allenamenti",        test: () => state.sessions.length >= 25,
+    desc: "25 allenamenti! Non è più una prova, è uno stile di vita." },
+  { id: "s50",     icon: "🏆", name: "50 allenamenti",        test: () => state.sessions.length >= 50,
+    desc: "50 sessioni. Sei ufficialmente uno che in palestra ci sa stare." },
+  { id: "streak2", icon: "🔥", name: "2 settimane di fila",   test: () => weekStreak() >= 2,
+    desc: "Due settimane consecutive di allenamento. La fiamma è accesa." },
+  { id: "streak4", icon: "🔥", name: "1 mese di costanza",    test: () => weekStreak() >= 4,
+    desc: "Un mese intero senza saltare una settimana. Disciplina vera." },
+  { id: "streak8", icon: "⚡", name: "2 mesi inarrestabile",   test: () => weekStreak() >= 8,
+    desc: "Otto settimane di fila. A questo punto non ti ferma più niente." },
+  { id: "pr5",     icon: "📈", name: "5 record personali",    test: () => prCount() >= 5,
+    desc: "Hai battuto il tuo massimo su 5 esercizi diversi. Stai diventando più forte." },
+  { id: "vol10k",  icon: "🏋️", name: "Una tonnellata e più",  test: () => totalVolumeAll() >= 10000,
+    desc: "Hai sollevato in totale oltre 10.000 kg (peso × ripetizioni). Letteralmente tonnellate." },
+  { id: "gain2",   icon: "🍽️", name: "+2 kg di massa",        test: () => massGain() >= 2,
+    desc: "+2 kg dal peso di partenza. Il surplus e gli allenamenti stanno pagando." },
+  { id: "halfway", icon: "🧗", name: "A metà strada",         test: () => { const t = state.goals.targetWeight, s = state.goals.startWeight; return t != null && s != null && t > s && massGain() >= (t - s) / 2; },
+    desc: "Sei a metà del percorso verso il tuo peso obiettivo. La vetta è vicina." },
+  { id: "gain5",   icon: "💥", name: "+5 kg di massa",        test: () => massGain() >= 5,
+    desc: "+5 kg di massa dall'inizio. Trasformazione in pieno corso." },
+  { id: "allschede",icon: "🧭", name: "Esploratore",          test: () => distinctWorkouts() >= 4,
+    desc: "Hai provato tutte e 4 le schede (Full Body, Gambe, Spinta, Tirata). Allenamento completo." },
+  { id: "goal",    icon: "👑", name: "Obiettivo raggiunto!",  test: () => { const c = currentBW(), t = state.goals.targetWeight; return c != null && t != null && c >= t; },
+    desc: "Hai raggiunto il tuo peso obiettivo. Campione. Ora si punta più in alto." }
 ];
 function earnedBadgeIds() { return BADGES.filter(b => b.test()).map(b => b.id); }
 
@@ -572,13 +601,12 @@ const G_MOTTOS = [
   "Stai costruendo il tuo fisico, serie dopo serie 🛠️"
 ];
 
-function restSec(meta) { const n = parseInt(meta && meta.rest); return Math.min(60, isNaN(n) ? 60 : n); }
 function gMeta() { return EXERCISES[guided.keys[guided.exIndex]]; }
 function gKey() { return guided.keys[guided.exIndex]; }
 
 const GUIDED_KEY = "guided_session_v2";
 function guidedSnapshot() {
-  return { workoutId: guided.workoutId, keys: guided.keys, exIndex: guided.exIndex, setIndex: guided.setIndex, phase: guided.phase, data: guided.data, next: guided.next, restLeft: guided.restLeft };
+  return { workoutId: guided.workoutId, keys: guided.keys, exIndex: guided.exIndex, setIndex: guided.setIndex, phase: guided.phase, data: guided.data, next: guided.next, status: guided.status };
 }
 function saveGuided() { try { localStorage.setItem(GUIDED_KEY, JSON.stringify(guidedSnapshot())); } catch (e) {} }
 function loadGuided() { try { const r = localStorage.getItem(GUIDED_KEY); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
@@ -587,7 +615,7 @@ function clearGuided() { localStorage.removeItem(GUIDED_KEY); }
 function startGuided() {
   clearGuided();
   const w = getWorkout(currentWorkoutId);
-  guided = { workoutId: w.id, keys: w.exercises.slice(), exIndex: 0, setIndex: 0, phase: "set", data: {}, timer: null, next: null, restLeft: 0, history: [] };
+  guided = { workoutId: w.id, keys: w.exercises.slice(), exIndex: 0, setIndex: 0, phase: "set", data: {}, status: {}, timer: null, next: null, history: [], menuReturn: "set" };
   $("guided").classList.add("show");
   document.body.style.overflow = "hidden";
   renderGuided();
@@ -605,10 +633,7 @@ function closeGuidedOverlay() {
 function pauseGuided() {
   if (!guided) return;
   if (guided.timer) { clearInterval(guided.timer); guided.timer = null; }
-  // se era in riposo, alla ripresa si riparte direttamente dalla serie successiva
-  if (guided.phase === "rest" && guided.next) {
-    guided.exIndex = guided.next.exIndex; guided.setIndex = guided.next.setIndex; guided.phase = "set";
-  }
+  if (guided.phase === "menu") guided.phase = guided.menuReturn || "set";   // non riaprire sul menù
   saveGuided();
   closeGuidedOverlay();
   renderWorkout();
@@ -617,7 +642,8 @@ function pauseGuided() {
 function resumeGuided() {
   const snap = loadGuided();
   if (!snap) return;
-  guided = Object.assign({ timer: null, history: [] }, snap);
+  guided = Object.assign({ timer: null, history: [], status: {}, menuReturn: "set" }, snap);
+  if (guided.phase === "menu") guided.phase = guided.menuReturn || "set";
   currentWorkoutId = guided.workoutId;
   renderWorkoutChips();
   $("guided").classList.add("show");
@@ -676,24 +702,41 @@ function renderGuided() {
   const meta = gMeta(), key = gKey();
   const N = guided.keys.length;
   const totalSets = meta.sets;
-  const isNext = guided.phase === "nextex";
-  const pct = isNext
-    ? Math.round(((guided.exIndex + 1) / N) * 100)
-    : Math.round(((guided.exIndex + (guided.setIndex / totalSets)) / N) * 100);
-  const progTxt = isNext
-    ? `Esercizio ${guided.exIndex + 1}/${N} completato 💪`
-    : `Esercizio ${guided.exIndex + 1}/${N} · Serie ${Math.min(guided.setIndex + 1, totalSets)}/${totalSets}`;
+  const done = Object.values(guided.status || {}).filter(s => s === "done").length;
+  const pct = Math.round((done / N) * 100);
   const canBack = (guided.history || []).length > 0;
   const top = `
     <div class="g-top">
-      <button class="g-close" onclick="pauseGuided()">✕</button>
-      <button class="g-back" onclick="guidedBack()" ${canBack ? '' : 'style="visibility:hidden"'}>‹ Indietro</button>
-      <div class="g-prog">${progTxt}</div>
+      <button class="g-close" onclick="pauseGuided()" title="Metti in pausa">✕</button>
+      <button class="g-back" onclick="guidedBack()" ${canBack ? '' : 'style="visibility:hidden"'} title="Indietro">‹</button>
+      <div class="g-prog">${done}/${N} completati</div>
+      ${guided.phase !== "menu" ? `<button class="g-menu-btn" onclick="openMenu()" title="Esercizi">☰</button>` : ''}
     </div>
     <div class="g-bar"><div class="g-bar-fill" style="width:${pct}%"></div></div>`;
 
   let body = "";
-  if (guided.phase === "nextex") {
+  if (guided.phase === "menu") {
+    body = `
+      <div class="g-body g-menu">
+        <div class="g-menu-h">Esercizi · tocca per andarci</div>
+        <div class="g-menu-list">
+          ${guided.keys.map((k, idx) => {
+            const st = guided.status[k], cur = idx === guided.exIndex;
+            const ic = st === "done" ? "✓" : cur ? "●" : st === "skipped" ? "↪" : "○";
+            const cls = st === "done" ? "gm-done" : cur ? "gm-cur" : st === "skipped" ? "gm-skip" : "gm-todo";
+            const logged = (guided.data[k] && guided.data[k].sets.length) || 0;
+            const sub = st === "done" ? "fatto" : st === "skipped" ? "saltato — da riprendere" : cur ? "in corso" : (logged ? logged + " serie fatte" : "da fare");
+            return `<button class="g-menu-row ${cls}" onclick="jumpTo(${idx})">
+              <span class="gm-ic">${ic}</span>
+              <span class="gm-name">${EXERCISES[k].name}</span>
+              <span class="gm-sub">${sub}</span>
+            </button>`;
+          }).join("")}
+        </div>
+        <button class="g-finish" onclick="finishGuided()">✅ Termina e salva ora</button>
+        <button class="g-skip" onclick="closeMenu()">Continua l'allenamento</button>
+      </div>`;
+  } else if (guided.phase === "nextex") {
     const nkey = guided.keys[guided.next.exIndex];
     const nmeta = EXERCISES[nkey];
     const motto = G_MOTTOS[guided.exIndex % G_MOTTOS.length];
@@ -706,18 +749,6 @@ function renderGuided() {
         <div class="g-muscle">${nmeta.muscle} · <span class="g-eq">${badgeLabel}</span></div>
         <div class="g-motto">${motto}</div>
         <button class="g-done" onclick="guidedAdvance()">Vai → ${nmeta.name}</button>
-      </div>`;
-  } else if (guided.phase === "rest") {
-    const n = guided.next;
-    const nextLbl = n.exIndex === guided.exIndex
-      ? `Serie ${n.setIndex + 1} di ${meta.name}`
-      : `${EXERCISES[guided.keys[n.exIndex]].name}`;
-    body = `
-      <div class="g-body g-rest">
-        <div class="g-rest-lbl">Recupero</div>
-        <div class="g-rest-time" id="g-rest">${guided.restLeft}"</div>
-        <button class="g-skip" onclick="skipRest()">Salta riposo →</button>
-        <div class="g-next">Poi: <strong>${nextLbl}</strong></div>
       </div>`;
   } else if (guided.phase === "quality") {
     body = `
@@ -749,6 +780,7 @@ function renderGuided() {
         ${cuesHTML(key)}
         <div class="g-rest-time" id="g-hold">${parseInt(meta.time) || 30}"</div>
         <button class="g-done" id="g-holdbtn" onclick="guidedHold()">▶︎ Avvia ${parseInt(meta.time) || 30}"</button>
+        <button class="g-skip" onclick="skipCurrent()">⤼ Salta — riprendi dopo</button>
       </div>`;
   } else {
     // set con peso × reps
@@ -760,7 +792,7 @@ function renderGuided() {
       <div class="g-body">
         <img class="g-gif" src="assets/gifs/${key}.gif" onerror="this.style.display='none'">
         <div class="g-name">${meta.name}</div>
-        <div class="g-muscle">${meta.muscle}</div>
+        <div class="g-muscle">${meta.muscle} · Serie ${Math.min(guided.setIndex + 1, totalSets)}/${totalSets}</div>
         <div class="g-sugg sugg-${sug.color}"><span class="sugg-label">Oggi:</span> ${sug.todayHtml}</div>
         ${cuesHTML(key)}
         <div class="g-inputs">
@@ -769,6 +801,7 @@ function renderGuided() {
           <div class="g-ig"><div class="g-ilbl">Ripetizioni</div><input id="g-r" type="number" inputmode="numeric" value="${prevR}" min="0" max="50"></div>
         </div>
         <button class="g-done" onclick="guidedCompleteSet()">✓ Serie completata</button>
+        <button class="g-skip" onclick="skipCurrent()">⤼ Salta — macchina occupata</button>
       </div>`;
   }
   $("guided").innerHTML = top + body;
@@ -787,7 +820,9 @@ function guidedCompleteSet() {
     gPush();
   }
   if (guided.setIndex < meta.sets - 1) {
-    startRest(restSec(meta), { exIndex: guided.exIndex, setIndex: guided.setIndex + 1 });
+    guided.setIndex++;            // serie successiva, senza recupero (lo gestisci tu sull'Apple Watch)
+    guided.phase = "set";
+    renderGuided();
   } else if (!meta.time) {
     guided.phase = "quality";
     renderGuided();
@@ -814,38 +849,58 @@ function guidedQuality(q) {
   goNextExercise();
 }
 
+// indice del prossimo esercizio NON ancora completato (escluso quello corrente)
+function nextPendingIndex(from) {
+  const n = guided.keys.length;
+  for (let i = 1; i < n; i++) {
+    const idx = (from + i) % n;
+    if (guided.status[guided.keys[idx]] !== "done") return idx;
+  }
+  return -1;
+}
+// da quale serie ripartire per un esercizio (continua se già iniziato)
+function resumeSet(key) {
+  const len = (guided.data[key] && guided.data[key].sets.length) || 0;
+  return Math.min(len, EXERCISES[key].sets - 1);
+}
+
 function goNextExercise() {
-  const ni = guided.exIndex + 1;
-  if (ni >= guided.keys.length) { finishGuided(); return; }
-  guided.next = { exIndex: ni, setIndex: 0 };
+  guided.status[gKey()] = "done";
+  const ni = nextPendingIndex(guided.exIndex);
+  if (ni < 0) { finishGuided(); return; }   // tutti completati
+  guided.next = { exIndex: ni, setIndex: resumeSet(guided.keys[ni]) };
   guided.phase = "nextex";
   renderGuided();
 }
 
-function startRest(sec, next) {
-  guided.phase = "rest";
-  guided.next = next;
-  guided.restLeft = sec;
+// Salta l'esercizio corrente (macchina occupata) → vai al prossimo da fare, lo riprendi dopo
+function skipCurrent() {
+  const ni = nextPendingIndex(guided.exIndex);
+  if (ni < 0) { toast("È l'ultimo esercizio rimasto 💪"); return; }
+  gPush();
+  guided.status[gKey()] = "skipped";
+  guided.exIndex = ni;
+  guided.setIndex = resumeSet(gKey());
+  guided.phase = "set";
   renderGuided();
-  if (guided.timer) clearInterval(guided.timer);
-  guided.timer = setInterval(() => {
-    guided.restLeft--;
-    const el = $("g-rest");
-    if (guided.restLeft <= 0) { clearInterval(guided.timer); guided.timer = null; endRest(); }
-    else if (el) el.textContent = guided.restLeft + '"';
-  }, 1000);
 }
 
-function skipRest() { if (guided.timer) clearInterval(guided.timer); guided.timer = null; endRest(); }
+// Menù esercizi: salta a uno qualsiasi (anche per riprenderne uno saltato)
+function openMenu() { guided.menuReturn = guided.phase; guided.phase = "menu"; renderGuided(); }
+function closeMenu() { guided.phase = guided.menuReturn || "set"; renderGuided(); }
+function jumpTo(idx) {
+  guided.exIndex = idx;
+  guided.setIndex = resumeSet(guided.keys[idx]);
+  guided.phase = "set";
+  renderGuided();
+}
 
 function applyNext() {
-  if (guided.timer) { clearInterval(guided.timer); guided.timer = null; }
   guided.exIndex = guided.next.exIndex;
   guided.setIndex = guided.next.setIndex;
   guided.phase = "set";
   renderGuided();
 }
-function endRest() { applyNext(); }
 function guidedAdvance() { gPush(); applyNext(); }   // pulsante "Vai →" (annullabile)
 
 // salva lo stato corrente per poter tornare indietro
@@ -853,7 +908,7 @@ function gPush() {
   guided.history = guided.history || [];
   guided.history.push(JSON.parse(JSON.stringify({
     exIndex: guided.exIndex, setIndex: guided.setIndex, phase: guided.phase,
-    data: guided.data, next: guided.next, restLeft: guided.restLeft
+    data: guided.data, next: guided.next, status: guided.status
   })));
 }
 function guidedBack() {
@@ -1175,11 +1230,27 @@ function renderBadges() {
   const earned = new Set(earnedBadgeIds());
   $("badge-list").innerHTML = BADGES.map(b => {
     const on = earned.has(b.id);
-    return `<div class="badge ${on ? 'on' : 'off'}" title="${b.name}">
+    return `<div class="badge ${on ? 'on' : 'off'}" onclick="showBadge('${b.id}')">
       <span class="badge-i">${on ? b.icon : '🔒'}</span>
       <span class="badge-n">${b.name}</span>
     </div>`;
   }).join("");
+}
+
+function showBadge(id) {
+  const b = BADGES.find(x => x.id === id);
+  if (!b) return;
+  const on = b.test();
+  $("modal-title").textContent = "Traguardo";
+  $("modal-body").innerHTML = `
+    <div class="badge-detail">
+      <div class="badge-detail-i ${on ? 'on' : 'off'}">${on ? b.icon : '🔒'}</div>
+      <div class="badge-detail-n">${b.name}</div>
+      <div class="badge-detail-s ${on ? 'ok' : ''}">${on ? '✅ Sbloccato' : '🔒 Ancora da sbloccare'}</div>
+      <div class="badge-detail-d">${b.desc}</div>
+    </div>
+    <button class="btn-save" style="margin-top:16px" onclick="closeModal()">Chiudi</button>`;
+  $("modal").classList.add("show");
 }
 
 function renderNutrition() {

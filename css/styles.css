@@ -316,13 +316,22 @@ input::placeholder { color: var(--faint); }
 .pr-name { flex: 1; font-size: 14px; font-weight: 700; }
 .pr-val { font-size: 14px; font-weight: 800; color: var(--amber); }
 .badge-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-.badge { display: flex; flex-direction: column; align-items: center; gap: 4px; border-radius: 14px; padding: 13px 6px; text-align: center; border: 1px solid var(--border); }
+.badge { display: flex; flex-direction: column; align-items: center; gap: 4px; border-radius: 14px; padding: 13px 6px; text-align: center; border: 1px solid var(--border); cursor: pointer; transition: transform .12s; }
+.badge:active { transform: scale(.95); }
 .badge.on { background: rgba(168,85,247,.16); box-shadow: 0 6px 18px -8px var(--purple); }
 .badge.off { background: rgba(255,255,255,.03); opacity: .5; }
 .badge-i { font-size: 24px; }
 .badge.off .badge-i { filter: grayscale(1); }
 .badge-n { font-size: 10px; font-weight: 700; color: var(--muted); line-height: 1.2; }
 .badge.on .badge-n { color: #D6B2FF; }
+.badge-detail { text-align: center; padding: 6px 0; }
+.badge-detail-i { width: 76px; height: 76px; margin: 0 auto 12px; border-radius: 22px; display: flex; align-items: center; justify-content: center; font-size: 38px; }
+.badge-detail-i.on { background: rgba(168,85,247,.18); box-shadow: 0 10px 30px -8px var(--purple); }
+.badge-detail-i.off { background: rgba(255,255,255,.05); filter: grayscale(1); opacity: .7; }
+.badge-detail-n { font-size: 20px; font-weight: 800; }
+.badge-detail-s { font-size: 13px; font-weight: 700; color: var(--muted); margin-top: 4px; }
+.badge-detail-s.ok { color: #7BE6AC; }
+.badge-detail-d { font-size: 14px; color: rgba(244,238,255,.8); line-height: 1.5; margin-top: 12px; }
 
 /* BACKUP */
 .backup-row { display: flex; gap: 8px; }
@@ -426,6 +435,22 @@ input::placeholder { color: var(--faint); }
 .g-back { background: rgba(255,255,255,.06); border: 1px solid var(--border); border-radius: 20px; padding: 8px 13px; font-size: 13px; font-weight: 800; cursor: pointer; color: var(--text); flex-shrink: 0; font-family: inherit; }
 .g-back:active { background: rgba(255,255,255,.12); }
 .g-prog { font-size: 13px; font-weight: 800; color: var(--muted); margin-left: auto; }
+.g-menu-btn { background: rgba(255,255,255,.08); border: 1px solid var(--border); border-radius: 12px; width: 40px; height: 36px; font-size: 16px; cursor: pointer; color: var(--text); flex-shrink: 0; }
+
+/* MENÙ ESERCIZI (guidato) */
+.g-menu { justify-content: flex-start !important; gap: 8px !important; padding-top: 6px; }
+.g-menu-h { font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; align-self: flex-start; }
+.g-menu-list { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+.g-menu-row { display: flex; align-items: center; gap: 12px; text-align: left; width: 100%; border: 1px solid var(--border); background: rgba(255,255,255,.05); border-radius: 14px; padding: 13px 14px; cursor: pointer; font-family: inherit; color: var(--text); }
+.gm-ic { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex-shrink: 0; background: rgba(255,255,255,.1); }
+.gm-name { flex: 1; font-size: 15px; font-weight: 700; }
+.gm-sub { font-size: 11px; color: var(--muted); }
+.g-menu-row.gm-done .gm-ic { background: #2BD576; color: #04240f; }
+.g-menu-row.gm-cur { border-color: var(--magenta); box-shadow: 0 6px 20px -8px var(--magenta); }
+.g-menu-row.gm-cur .gm-ic { background: var(--magenta); color: #fff; }
+.g-menu-row.gm-skip .gm-ic { background: var(--amber); color: #3a2600; }
+.g-finish { width: 100%; margin-top: 8px; border: none; border-radius: 16px; padding: 16px; font-size: 16px; font-weight: 800; cursor: pointer; font-family: inherit; color: #fff; background: linear-gradient(135deg,#1FBF6B,#2BD576); box-shadow: 0 12px 30px -8px #2BD576; }
+.g-skip { background: rgba(255,255,255,.06); border: 1px solid var(--border); color: var(--text); border-radius: 14px; padding: 13px 22px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
 .g-bar { height: 6px; background: rgba(255,255,255,.12); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
 .g-bar-fill { height: 100%; background: var(--grad); border-radius: 3px; transition: width .3s; box-shadow: 0 0 12px var(--magenta); }
 .g-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 14px; max-width: 460px; width: 100%; margin: 0 auto; }
