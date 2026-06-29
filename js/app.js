@@ -494,8 +494,61 @@ function showSummary(s, newPRs, newBadges) {
         <div class="sum-badges-t">🎉 Traguardo${newBadges.length > 1 ? 'i' : ''} sbloccat${newBadges.length > 1 ? 'i' : 'o'}!</div>
         ${newBadges.map(b => `<div class="sum-badge"><span class="sum-badge-i">${b.icon}</span>${b.name}</div>`).join("")}
       </div>` : ''}
-    <button class="btn-save" style="margin-top:16px" onclick="closeModal()">Chiudi</button>`;
+    <button class="btn-save" style="margin-top:16px" onclick="closeModal();openRecap(${s.id})">📸 Riepilogo da salvare</button>
+    <button class="g-skip" style="width:100%;margin-top:10px" onclick="closeModal()">Chiudi</button>`;
   $("modal").classList.add("show");
+}
+
+/* ---------- RIEPILOGO (una schermata, da screenshot) ---------- */
+function recapHTML(s) {
+  const w = getWorkout(s.workoutId);
+  const vol = Math.round(sessionVolume(s));
+  const exKeys = Object.keys(s.exercises || {});
+  const d = new Date(s.date + "T00:00:00").toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  const stats = [
+    { n: vol, l: "kg volume" },
+    { n: exKeys.length, l: "esercizi" },
+    s.duration ? { n: s.duration + "'", l: "durata" } : null,
+    s.calories ? { n: s.calories, l: "kcal" } : null
+  ].filter(Boolean);
+  const rows = exKeys.map(k => {
+    const sets = s.exercises[k].sets;
+    const pr = bestPR(k), max = Math.max(...sets.map(x => x.w));
+    const isPr = max >= pr && pr > 0;
+    const q = s.exercises[k].quality;
+    const qc = q === "clean" ? "#2BD576" : q === "hard" ? "#FFB454" : q === "fail" ? "#FF4D6D" : "";
+    return `<div class="recap-row">
+      <span class="recap-ex">${EXERCISES[k] ? EXERCISES[k].name : k}${isPr ? ' <span class="recap-pr">🏆</span>' : ''}</span>
+      <span class="recap-sets">${sets.map(x => `${x.w}×${x.r}`).join('  ·  ')}${qc ? ` <i class="recap-q" style="background:${qc}"></i>` : ''}</span>
+    </div>`;
+  }).join("");
+  return `
+    <div class="recap-card">
+      <div class="recap-head" style="background:linear-gradient(135deg, ${w ? w.color : '#FF2D95'}, #2A1B4A)">
+        <div class="recap-h-lbl">Riepilogo allenamento</div>
+        <div class="recap-h-w">${w ? w.emoji + ' ' + w.name : 'Allenamento'}</div>
+        <div class="recap-h-date">${d}</div>
+      </div>
+      <div class="recap-stats">
+        ${stats.map(x => `<div class="recap-stat"><b>${x.n}</b><span>${x.l}</span></div>`).join("")}
+      </div>
+      <div class="recap-list">${rows || '<div class="empty-mini">Nessun esercizio registrato.</div>'}</div>
+      ${s.notes ? `<div class="recap-notes">📝 ${s.notes}</div>` : ''}
+      <div class="recap-foot">💪 GYM TRACKER · verso i 70 kg</div>
+    </div>`;
+}
+
+function openRecap(id) {
+  const s = state.sessions.find(x => x.id === id);
+  if (!s) { toast("Sessione non trovata"); return; }
+  $("recap").innerHTML = recapHTML(s) + `<button class="recap-close" onclick="closeRecap()">Chiudi</button>`;
+  $("recap").classList.add("show");
+  document.body.style.overflow = "hidden";
+}
+function closeRecap() {
+  $("recap").classList.remove("show");
+  $("recap").innerHTML = "";
+  document.body.style.overflow = "";
 }
 
 /* ============================================================
@@ -926,7 +979,8 @@ function sessionDetailHTML(s) {
     </div>
     <div class="sd-meta">${meta.join(' &nbsp;·&nbsp; ')}</div>
     <div class="sd-list">${rows || '<div class="empty-mini">Nessun peso registrato.</div>'}</div>
-    ${s.notes ? `<div class="sd-notes">📝 ${s.notes}</div>` : ''}`;
+    ${s.notes ? `<div class="sd-notes">📝 ${s.notes}</div>` : ''}
+    <button class="btn-save" style="margin-top:14px" onclick="closeModal();openRecap(${s.id})">📸 Riepilogo da salvare</button>`;
 }
 
 function assignDay(ds, workoutId) {
