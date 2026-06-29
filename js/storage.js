@@ -37,7 +37,8 @@ function seedState() {
         chestpress: { sets: [{ w: 20, r: 12 }, { w: 20, r: 12 }, { w: 20, r: 12 }], quality: null },
         latmachine: { sets: [{ w: 25, r: 12 }, { w: 25, r: 12 }, { w: 25, r: 12 }], quality: null },
         legpress:   { sets: [{ w: 40, r: 12 }, { w: 40, r: 12 }, { w: 40, r: 12 }], quality: null },
-        curl:       { sets: [{ w: 6, r: 12 }, { w: 6, r: 12 }], quality: null }
+        curl:       { sets: [{ w: 6, r: 12 }, { w: 6, r: 12 }], quality: null },
+        tricipiti:  { sets: [{ w: 10, r: 12 }, { w: 10, r: 12 }, { w: 10, r: 12 }], quality: null }
       },
       duration: 55,
       calories: 338,
@@ -62,7 +63,7 @@ function seedState() {
       date: "2026-06-25", weight: 60.1, bodyFat: 13.1, skeletalMuscle: 49.64,
       boneMass: 2.59, bodyWater: 62.7, bmr: 1489, metabolicAge: 38
     }],
-    migrations: ["fix-initial-schedule", "progression-v1", "fix-session-date-25"]   // il seed nasce già corretto
+    migrations: ["fix-initial-schedule", "progression-v1", "fix-session-date-25", "add-tricipiti-25jun"]   // il seed nasce già corretto
   });
 }
 
@@ -111,6 +112,16 @@ function applyMigrations(s) {
       delete s.schedule["2026-06-26"];
     }
     s.migrations.push("fix-session-date-25");
+  }
+
+  // Aggiunge i Tricipiti ai Cavi (3×12 a 10 kg) alla sessione del 25/6
+  if (!s.migrations.includes("add-tricipiti-25jun")) {
+    (s.sessions || []).forEach(sess => {
+      if (sess.date === "2026-06-25" && sess.exercises && !sess.exercises.tricipiti) {
+        sess.exercises.tricipiti = { sets: [{ w: 10, r: 12 }, { w: 10, r: 12 }, { w: 10, r: 12 }], quality: null };
+      }
+    });
+    s.migrations.push("add-tricipiti-25jun");
   }
 
   return s;
