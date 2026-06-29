@@ -44,7 +44,7 @@ function seedState() {
       calories: 338,
       notes: "Primo allenamento. Tensione spalla sinistra alla Lat Machine. Gambe molto affaticate. Energia alta tutto il giorno."
     }],
-    bodyweight: [{ date: "2026-06-25", v: 60.1 }],
+    bodyweight: [{ date: "2026-06-01", v: 59.8 }, { date: "2026-06-29", v: 60.0 }],
     schedule: {
       "2026-06-25": { workoutId: "fullbody", done: true },
       "2026-06-29": { workoutId: "fullbody", done: false },
@@ -59,11 +59,11 @@ function seedState() {
       note: "Costruzione massa muscolare: da 60,1 a 70 kg in 12 mesi, entro il 1 luglio 2027."
     },
     profile: { name: "Mike", birthday: "1987-03-01", height: 179 },
-    composition: [{
-      date: "2026-06-25", weight: 60.1, bodyFat: 13.1, skeletalMuscle: 49.64,
-      boneMass: 2.59, bodyWater: 62.7, bmr: 1489, metabolicAge: 38
-    }],
-    migrations: ["fix-initial-schedule", "progression-v1", "fix-session-date-25", "add-tricipiti-25jun"]   // il seed nasce già corretto
+    composition: [
+      { date: "2026-06-01", weight: 59.8, bodyFat: 12.9, skeletalMuscle: 49.45, boneMass: 2.64, bodyWater: 62.9, bmr: 1510, metabolicAge: 39 },
+      { date: "2026-06-29", weight: 60.0, bodyFat: 13.0, skeletalMuscle: 49.56, boneMass: 2.64, bodyWater: 62.8, bmr: 1510, metabolicAge: 38 }
+    ],
+    migrations: ["fix-initial-schedule", "progression-v1", "fix-session-date-25", "add-tricipiti-25jun", "bodycomp-jun2026"]   // il seed nasce già corretto
   });
 }
 
@@ -122,6 +122,21 @@ function applyMigrations(s) {
       }
     });
     s.migrations.push("add-tricipiti-25jun");
+  }
+
+  // Misurazioni corporee reali (bilancia): 1 giu e 29 giu; rimuove il dato 25/6 approssimativo
+  if (!s.migrations.includes("bodycomp-jun2026")) {
+    const dropC = ["2026-06-25", "2026-06-01", "2026-06-29"];
+    s.composition = (s.composition || []).filter(c => dropC.indexOf(c.date) < 0);
+    s.composition.push(
+      { date: "2026-06-01", weight: 59.8, bodyFat: 12.9, skeletalMuscle: 49.45, boneMass: 2.64, bodyWater: 62.9, bmr: 1510, metabolicAge: 39 },
+      { date: "2026-06-29", weight: 60.0, bodyFat: 13.0, skeletalMuscle: 49.56, boneMass: 2.64, bodyWater: 62.8, bmr: 1510, metabolicAge: 38 }
+    );
+    s.composition.sort((a, b) => a.date.localeCompare(b.date));
+    s.bodyweight = (s.bodyweight || []).filter(b => dropC.indexOf(b.date) < 0);
+    s.bodyweight.push({ date: "2026-06-01", v: 59.8 }, { date: "2026-06-29", v: 60.0 });
+    s.bodyweight.sort((a, b) => a.date.localeCompare(b.date));
+    s.migrations.push("bodycomp-jun2026");
   }
 
   return s;
