@@ -1332,42 +1332,57 @@ function renderComposition() {
 
 function renderCompChart() {
   const comp = (state.composition || []).slice().sort((a, b) => a.date.localeCompare(b.date));
-  const ctx = $("comp-chart").getContext("2d");
-  const empty = $("comp-chart-empty");
-  if (charts.comp) charts.comp.destroy();
-  if (comp.length < 1) {
-    $("comp-chart").style.display = "none";
-    empty.innerHTML = `<div class="empty-mini">Aggiungi qualche misurazione per vedere il trend.</div>`;
+  const host = $("comp-trend");
+  if (charts.sparks) charts.sparks.forEach(c => c.destroy());
+  charts.sparks = [];
+  if (!comp.length) {
+    host.innerHTML = `<div class="empty-mini">Aggiungi qualche misurazione per vedere il trend.</div>`;
     return;
   }
-  $("comp-chart").style.display = "block";
-  empty.innerHTML = "";
+  // ogni metrica ha la SUA scala → si vede la variazione anche se piccola
+  const metrics = [
+    { key: "weight", lbl: "Peso", unit: " kg", suffix: "", color: "#FF2D95", upGood: true },
+    { key: "skeletalMuscle", lbl: "Massa muscolare", unit: " kg", suffix: "", color: "#2BD576", upGood: true },
+    { key: "bodyFat", lbl: "Grasso corporeo", unit: "", suffix: "%", color: "#FFB454", upGood: false }
+  ];
   const labels = comp.map(c => fmtShort(c.date));
-  const line = (data, color, axis, dash) => ({
-    label: "", data, borderColor: color, backgroundColor: color, yAxisID: axis,
-    tension: .3, pointRadius: 3, pointBackgroundColor: color, borderWidth: 2.5, spanGaps: true,
-    borderDash: dash || []
-  });
-  charts.comp = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        Object.assign(line(comp.map(c => c.weight ?? null), "#FF2D95", "kg"), { label: "Peso (kg)" }),
-        Object.assign(line(comp.map(c => c.skeletalMuscle ?? null), "#2BD576", "kg"), { label: "Massa musc. (kg)" }),
-        Object.assign(line(comp.map(c => c.bodyFat ?? null), "#FFB454", "pct", [5, 4]), { label: "Grasso (%)" })
-      ]
-    },
-    options: {
-      interaction: { mode: "index", intersect: false },
-      plugins: { legend: { display: true, position: "top", labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8, padding: 14, font: { size: 11 } } } },
-      scales: {
-        kg: { position: "left", grid: { color: "rgba(255,255,255,.08)" }, ticks: { font: { size: 10 } } },
-        pct: { position: "right", grid: { display: false }, ticks: { font: { size: 10 }, callback: v => v + "%" } },
-        x: { grid: { display: false }, ticks: { font: { size: 10 } } }
-      },
-      responsive: true
+
+  host.innerHTML = metrics.map(m => {
+    const vals = comp.map(c => c[m.key]).filter(v => v != null);
+    const latest = vals.length ? vals[vals.length - 1] : null;
+    let badge = "";
+    if (vals.length >= 2) {
+      const d = +(vals[vals.length - 1] - vals[vals.length - 2]).toFixed(2);
+      if (d === 0) badge = `<span class="spark-d flat">=</span>`;
+      else {
+        const good = (d > 0) === m.upGood;
+        badge = `<span class="spark-d ${good ? 'up' : 'down'}">${d > 0 ? '▲' : '▼'} ${Math.abs(d)}${m.suffix}</span>`;
+      }
     }
+    return `<div class="spark-row">
+      <div class="spark-head">
+        <span class="spark-lbl" style="color:${m.color}">${m.lbl}</span>
+        <span class="spark-val">${latest != null ? latest + m.suffix + m.unit : '—'} ${badge}</span>
+      </div>
+      <div class="spark-wrap"><canvas id="spark-${m.key}"></canvas></div>
+    </div>`;
+  }).join("");
+
+  metrics.forEach(m => {
+    const data = comp.map(c => c[m.key] ?? null);
+    const nums = data.filter(v => v != null);
+    if (!nums.length) return;
+    const mn = Math.min(...nums), mx = Math.max(...nums);
+    const pad = Math.max((mx - mn) * 0.6, Math.abs(mn) * 0.004, 0.25);   // margine per non schiacciare la linea
+    charts.sparks.push(new Chart($("spark-" + m.key).getContext("2d"), {
+      type: "line",
+      data: { labels, datasets: [{ data, borderColor: m.color, backgroundColor: m.color + "22", pointRadius: 3, pointBackgroundColor: m.color, borderWidth: 2.5, tension: .3, fill: true, spanGaps: true }] },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: { y: { min: mn - pad, max: mx + pad, display: false }, x: { display: false } },
+        responsive: true, maintainAspectRatio: false
+      }
+    }));
   });
 }
 

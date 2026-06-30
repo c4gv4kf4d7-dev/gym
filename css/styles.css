@@ -298,6 +298,19 @@ input::placeholder { color: var(--faint); }
 .nutri-lbl { font-size: 9px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: .03em; }
 .nutri-note { font-size: 12px; color: var(--muted); line-height: 1.55; margin-top: 12px; }
 
+/* COMP TREND (sparkline per metrica) */
+.spark-row { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.07); }
+.spark-row:first-child { padding-top: 2px; }
+.spark-row:last-child { border-bottom: none; padding-bottom: 2px; }
+.spark-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+.spark-lbl { font-size: 13px; font-weight: 800; }
+.spark-val { font-size: 14px; font-weight: 700; color: var(--text); }
+.spark-d { font-size: 11px; font-weight: 800; margin-left: 6px; padding: 2px 7px; border-radius: 20px; }
+.spark-d.up { background: rgba(43,213,118,.18); color: #7BE6AC; }
+.spark-d.down { background: rgba(255,77,109,.18); color: #FF9DAE; }
+.spark-d.flat { background: rgba(255,255,255,.08); color: var(--muted); }
+.spark-wrap { position: relative; height: 48px; }
+
 /* COMPOSITION */
 .comp-date { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
 .comp-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
