@@ -230,6 +230,7 @@ function switchView(view, btn) {
   if (view === "progressi") renderProgress();
   if (view === "obiettivi") renderGoals();
   if (view === "calendario") renderCalendar();
+  if (view === "pasti") renderMeals();
 }
 
 /* ============================================================
@@ -1444,6 +1445,156 @@ function renderHistory() {
       ${sess.notes ? `<div class="hist-notes">📝 ${sess.notes}</div>` : ''}
     </div>`;
   }).join("");
+}
+
+/* ============================================================
+   VISTA PASTI — registrazione nutrizione (inserimento manuale)
+   ============================================================ */
+const PROTEIN_TARGET = 150;   // g/die — obiettivo proteine fisso
+
+function mealsFor(date) { return (state.meals && state.meals[date]) || []; }
+
+function dayTotals(date) {
+  return mealsFor(date).reduce((a, m) => {
+    a.kcal += m.kcal || 0; a.protein += m.protein || 0; return a;
+  }, { kcal: 0, protein: 0 });
+}
+
+// Semaforo proteine vs obiettivo 150 g: verde ≥150, giallo 100-149, rosso <100
+function proteinColor(p) {
+  if (p >= PROTEIN_TARGET) return "#2BD576";
+  if (p >= 100) return "#FFB454";
+  return "#FF4D6D";
+}
+
+function escapeMeal(s) {
+  return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+function renderMeals() {
+  renderMealSummary();
+  renderMealList();
+  renderMealTrend();
+}
+
+function renderMealSummary() {
+  const t = dayTotals(todayStr());
+  const pc = proteinColor(t.protein);
+  const pct = Math.min(100, Math.round((t.protein / PROTEIN_TARGET) * 100));
+  const goalKcal = nutritionTargets().bulk;
+  $("meal-today").innerHTML = `
+    <div class="meal-sum-row">
+      <div class="meal-sum-cell">
+        <div class="meal-sum-num" style="color:#FF6B6B">${t.kcal}</div>
+        <div class="meal-sum-lbl">kcal oggi</div>
+        <div class="meal-sum-sub">obiettivo ~${goalKcal}</div>
+      </div>
+      <div class="meal-sum-cell">
+        <div class="meal-sum-num" style="color:${pc}">${t.protein}g</div>
+        <div class="meal-sum-lbl">proteine oggi</div>
+        <div class="meal-sum-sub">obiettivo ${PROTEIN_TARGET}g</div>
+      </div>
+    </div>
+    <div class="meal-prog">
+      <div class="progress-top">
+        <span class="progress-label">Proteine ${t.protein} / ${PROTEIN_TARGET} g</span>
+        <span class="progress-count" style="color:${pc}">${pct}%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${pc};box-shadow:0 0 12px ${pc}"></div></div>
+    </div>`;
+}
+
+function renderMealList() {
+  const meals = [...mealsFor(todayStr())].sort((a, b) => (a.t || "").localeCompare(b.t || ""));
+  const el = $("meal-list");
+  if (!meals.length) {
+    el.innerHTML = `<div class="empty-mini">Nessun pasto registrato oggi. Aggiungine uno qui sopra. 🍽️</div>`;
+    return;
+  }
+  el.innerHTML = meals.map(m => `
+    <div class="meal-card">
+      <div class="meal-card-main">
+        <div class="meal-card-text">${escapeMeal(m.text)}</div>
+        <div class="meal-card-meta">🔥 ${m.kcal || 0} kcal · 💪 ${m.protein || 0}g prot.${m.t ? ` · ${m.t}` : ""}</div>
+      </div>
+      <button class="meal-del" onclick="deleteMeal(${m.id})" title="Elimina">✕</button>
+    </div>`).join("");
+}
+
+function saveMeal() {
+  const text = $("meal-text").value.trim();
+  const kcal = parseInt($("meal-kcal").value);
+  const prot = parseInt($("meal-prot").value);
+  if (!text) { toast("Scrivi cosa hai mangiato 🍽️"); return; }
+  if (isNaN(kcal) && isNaN(prot)) { toast("Inserisci almeno kcal o proteine"); return; }
+  const day = todayStr();
+  state.meals = state.meals || {};
+  state.meals[day] = state.meals[day] || [];
+  state.meals[day].push({
+    id: Date.now(),
+    text,
+    kcal: isNaN(kcal) ? 0 : Math.max(0, kcal),
+    protein: isNaN(prot) ? 0 : Math.max(0, prot),
+    t: new Date().toTimeString().slice(0, 5)
+  });
+  saveState(state);
+  $("meal-text").value = ""; $("meal-kcal").value = ""; $("meal-prot").value = "";
+  toast("🍽️ Pasto salvato!");
+  renderMeals();
+}
+
+function deleteMeal(id) {
+  const day = todayStr();
+  if (!state.meals || !state.meals[day]) return;
+  state.meals[day] = state.meals[day].filter(m => m.id !== id);
+  saveState(state);
+  renderMeals();
+}
+
+function renderMealTrend() {
+  const host = $("meal-trend");
+  if (charts.mealK) charts.mealK.destroy();
+  if (charts.mealP) charts.mealP.destroy();
+
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    days.push(d.toISOString().split("T")[0]);
+  }
+  const kcals = days.map(d => dayTotals(d).kcal);
+  const prots = days.map(d => dayTotals(d).protein);
+  const loggedDays = days.filter(d => mealsFor(d).length).length;
+
+  if (!loggedDays) {
+    host.innerHTML = `<div class="empty-mini">Registra qualche pasto per vedere l'andamento. Qui appariranno le medie giornaliere di calorie e proteine degli ultimi 7 giorni.</div>`;
+    return;
+  }
+
+  const avgK = Math.round(kcals.reduce((a, b) => a + b, 0) / loggedDays);
+  const avgP = Math.round(prots.reduce((a, b) => a + b, 0) / loggedDays);
+  const labels = days.map(d => new Date(d + "T00:00:00").toLocaleDateString("it-IT", { weekday: "short" }));
+
+  host.innerHTML = `
+    <div class="meal-avg">Media giornaliera (${loggedDays} ${loggedDays === 1 ? "giorno" : "giorni"} registrat${loggedDays === 1 ? "o" : "i"}): <strong style="color:#FF6B6B">${avgK} kcal</strong> · <strong style="color:${proteinColor(avgP)}">${avgP}g proteine</strong></div>
+    <div class="spark-row">
+      <div class="spark-head"><span class="spark-lbl" style="color:#FF6B6B">Calorie</span><span class="spark-val">${avgK} kcal/die</span></div>
+      <div class="spark-wrap" style="height:90px"><canvas id="meal-k-chart"></canvas></div>
+    </div>
+    <div class="spark-row">
+      <div class="spark-head"><span class="spark-lbl" style="color:#2BD576">Proteine</span><span class="spark-val">obiettivo ${PROTEIN_TARGET}g</span></div>
+      <div class="spark-wrap" style="height:90px"><canvas id="meal-p-chart"></canvas></div>
+    </div>`;
+
+  charts.mealK = new Chart($("meal-k-chart").getContext("2d"), {
+    type: "bar",
+    data: { labels, datasets: [{ data: kcals, backgroundColor: "rgba(255,107,107,.8)", borderRadius: 5 }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: "rgba(255,255,255,.08)" } }, x: { grid: { display: false } } }, responsive: true, maintainAspectRatio: false }
+  });
+  charts.mealP = new Chart($("meal-p-chart").getContext("2d"), {
+    type: "bar",
+    data: { labels, datasets: [{ data: prots, backgroundColor: prots.map(p => proteinColor(p) + "cc"), borderRadius: 5 }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, suggestedMax: Math.max(PROTEIN_TARGET, ...prots), grid: { color: "rgba(255,255,255,.08)" } }, x: { grid: { display: false } } }, responsive: true, maintainAspectRatio: false }
+  });
 }
 
 /* ============================================================
