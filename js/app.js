@@ -949,7 +949,7 @@ function renderCalendar() {
     html += `
       <div class="cal-cell ${isToday ? 'today' : ''} ${sched ? 'has' : ''}" onclick="openDay('${ds}')">
         <span class="cal-num">${d}</span>
-        ${w ? `<span class="cal-dot" style="background:${w.color}">${sched.done ? '✓' : w.emoji}</span>` : ''}
+        ${w ? `<span class="cal-dot${sched.pt ? ' cal-pt' : ''}" style="background:${sched.pt ? '#A855F7' : w.color}">${sched.done ? '✓' : (sched.pt ? '🧑‍🏫' : w.emoji)}</span>` : ''}
       </div>`;
   }
   $("cal-grid").innerHTML = html;
@@ -963,9 +963,9 @@ function renderCalendar() {
     ? upcoming.map(([d, s]) => {
         const w = getWorkout(s.workoutId);
         return `<div class="up-row">
-          <span class="up-dot" style="background:${w.color}"></span>
+          <span class="up-dot" style="background:${s.pt ? '#A855F7' : w.color}"></span>
           <span class="up-date">${fmtShort(d)}</span>
-          <span class="up-name">${w.emoji} ${w.name}${s.note ? ` <span class="up-note">· ${s.note}</span>` : ''}</span>
+          <span class="up-name">${s.pt ? '🧑‍🏫' : w.emoji} ${w.name}${s.note ? ` <span class="up-note">· ${s.note}</span>` : ''}</span>
           <span class="up-status">${s.done ? '✓ fatto' : 'programmato'}</span>
         </div>`;
       }).join("")

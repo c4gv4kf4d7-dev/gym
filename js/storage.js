@@ -26,6 +26,22 @@ const defaultState = () => ({
   version: 2
 });
 
+// Sessione reale del 29 giugno (dal backup di Mike)
+function session29Jun() {
+  return {
+    id: 1782720390034, date: "2026-06-29", workoutId: "fullbody",
+    exercises: {
+      legpress:     { sets: [{ w: 40, r: 13 }, { w: 40, r: 13 }, { w: 40, r: 13 }], quality: "hard" },
+      chestpress:   { sets: [{ w: 20, r: 13 }, { w: 20, r: 13 }, { w: 20, r: 13 }], quality: "hard" },
+      latmachine:   { sets: [{ w: 25, r: 13 }, { w: 25, r: 13 }, { w: 25, r: 13 }], quality: "hard" },
+      shoulderpress:{ sets: [{ w: 10, r: 8 }, { w: 10, r: 6 }, { w: 5, r: 8 }], quality: "fail" },
+      curl:         { sets: [{ w: 6, r: 12 }, { w: 6, r: 12 }, { w: 6, r: 12 }], quality: "fail" },
+      tricipiti:    { sets: [{ w: 10, r: 13 }, { w: 10, r: 13 }, { w: 10, r: 13 }], quality: "hard" }
+    },
+    duration: null, calories: null, notes: ""
+  };
+}
+
 // Dati reali di Mike — usati come seed al primo avvio (storage vuoto).
 function seedState() {
   return Object.assign(defaultState(), {
@@ -43,13 +59,18 @@ function seedState() {
       duration: 55,
       calories: 338,
       notes: "Primo allenamento. Tensione spalla sinistra alla Lat Machine. Gambe molto affaticate. Energia alta tutto il giorno."
-    }],
+    }, session29Jun()],
     bodyweight: [{ date: "2026-06-01", v: 59.8 }, { date: "2026-06-29", v: 60.0 }],
     schedule: {
       "2026-06-25": { workoutId: "fullbody", done: true },
-      "2026-06-29": { workoutId: "fullbody", done: false },
-      "2026-07-01": { workoutId: "fullbody", done: false, note: "Con Denis (PT)" },
-      "2026-07-02": { workoutId: "fullbody", done: false }
+      "2026-06-29": { workoutId: "fullbody", done: true },
+      "2026-07-01": { workoutId: "fullbody", done: false, note: "Con Denis (PT)", pt: true },
+      "2026-07-02": { workoutId: "fullbody", done: false },
+      "2026-07-06": { workoutId: "fullbody", done: false },
+      "2026-07-10": { workoutId: "fullbody", done: false },
+      "2026-07-13": { workoutId: "fullbody", done: false },
+      "2026-07-15": { workoutId: "fullbody", done: false, note: "Con Denis (PT)", pt: true },
+      "2026-07-16": { workoutId: "fullbody", done: false }
     },
     goals: {
       startWeight: 60.1,
@@ -63,7 +84,7 @@ function seedState() {
       { date: "2026-06-01", weight: 59.8, bodyFat: 12.9, skeletalMuscle: 49.45, boneMass: 2.64, bodyWater: 62.9, bmr: 1510, metabolicAge: 39 },
       { date: "2026-06-29", weight: 60.0, bodyFat: 13.0, skeletalMuscle: 49.56, boneMass: 2.64, bodyWater: 62.8, bmr: 1510, metabolicAge: 38 }
     ],
-    migrations: ["fix-initial-schedule", "progression-v1", "fix-session-date-25", "add-tricipiti-25jun", "bodycomp-jun2026"]   // il seed nasce già corretto
+    migrations: ["fix-initial-schedule", "progression-v1", "fix-session-date-25", "add-tricipiti-25jun", "bodycomp-jun2026", "plan-jul2026"]   // il seed nasce già corretto
   });
 }
 
@@ -137,6 +158,27 @@ function applyMigrations(s) {
     s.bodyweight.push({ date: "2026-06-01", v: 59.8 }, { date: "2026-06-29", v: 60.0 });
     s.bodyweight.sort((a, b) => a.date.localeCompare(b.date));
     s.migrations.push("bodycomp-jun2026");
+  }
+
+  // Programmazione luglio + sessione 29/6 (dal backup) + flag PT sui giorni con Denis
+  if (!s.migrations.includes("plan-jul2026")) {
+    s.schedule = s.schedule || {};
+    if (s.schedule["2026-07-01"]) s.schedule["2026-07-01"].pt = true;
+    if (s.schedule["2026-06-29"]) s.schedule["2026-06-29"].done = true;
+    const add = {
+      "2026-07-06": { workoutId: "fullbody", done: false },
+      "2026-07-10": { workoutId: "fullbody", done: false },
+      "2026-07-13": { workoutId: "fullbody", done: false },
+      "2026-07-15": { workoutId: "fullbody", done: false, note: "Con Denis (PT)", pt: true },
+      "2026-07-16": { workoutId: "fullbody", done: false }
+    };
+    Object.keys(add).forEach(d => { if (!s.schedule[d]) s.schedule[d] = add[d]; });
+    // sessione 29/6 se per qualche motivo non fosse presente
+    if (!(s.sessions || []).some(x => x.date === "2026-06-29" && x.workoutId === "fullbody")) {
+      (s.sessions = s.sessions || []).push(session29Jun());
+      s.sessions.sort((a, b) => a.date.localeCompare(b.date));
+    }
+    s.migrations.push("plan-jul2026");
   }
 
   return s;
