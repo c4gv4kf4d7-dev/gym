@@ -177,10 +177,12 @@ function suggestion(exKey) {
   const meta = EXERCISES[exKey];
   const last = lastExercise(exKey);
   const inc = meta.type === "dumbbell" ? 2 : 2.5;   // +2 manubri, +2.5 macchine/cavi
+  const baseReps = meta.reps;        // base del contenitore (es. 12)
+  const capReps = baseReps + 3;      // tetto del contenitore (es. 15)
 
   if (!last) {
     return { last: null, todayHtml: `Scegli un peso che ti dia serie pulite`,
-             color: "gray", targetW: null, targetReps: meta.reps };
+             color: "gray", targetW: null, targetReps: baseReps };
   }
 
   const w = Math.max(...last.sets.map(s => s.w));
@@ -190,34 +192,27 @@ function suggestion(exKey) {
   const day = new Date(last.date + "T00:00:00").toLocaleDateString("it-IT", { weekday: "long" });
   const base = { last, lastW: w, lastR: minR, lastSets: nSets, day };
 
-  // ❌ non completato / forma persa
+  // 🔴 ROSSO — giornata storta: stesso peso, stesse ripetizioni, riprova
   if (q === "fail") {
-    if (minR < 10) {
-      const nw = Math.max(0, +(w - inc).toFixed(1));
-      return { ...base, todayHtml: `Scendi di peso e ritrova la tecnica`, color: "red", targetW: nw, targetReps: meta.reps };
-    }
-    return { ...base, todayHtml: `Resta su questo peso e cura la forma`, color: "yellow", targetW: w, targetReps: minR };
+    return { ...base, todayHtml: `Giornata storta? Riprova uguale: stesso peso e ripetizioni`, color: "red", targetW: w, targetReps: minR };
   }
-  // ⚠️ completato ma faticoso
+  // 🟡 GIALLO — faticoso: resta fermo finché non diventa pulito
   if (q === "hard") {
-    return { ...base, todayHtml: `Conferma il carico e consolida`, color: "yellow", targetW: w, targetReps: minR };
+    return { ...base, todayHtml: `Resta su questo peso e ripetizioni finché non diventa pulito`, color: "yellow", targetW: w, targetReps: minR };
   }
-  // ✅ pulito (o non indicato) → progressione
+  // 🟢 VERDE — cresci in reps dentro il contenitore, poi sali di peso e ricominci
   if (nSets < meta.sets) {
     return { ...base, todayHtml: `Aggiungi una serie in più 🎯`, color: "green", targetW: w, targetReps: minR };
   }
-  if (minR >= 15) {
-    const nw = +(w + inc).toFixed(1);
-    return { ...base, todayHtml: `Aumenta il peso oggi 🎯`, color: "green", targetW: nw, targetReps: 12 };
+  if (minR >= capReps) {
+    const nw = +(w + inc).toFixed(1);   // tetto pieno → sali di peso, svuota il contenitore
+    return { ...base, todayHtml: `Tetto ripetizioni raggiunto: sali di peso e riparti dalle base 🎯`, color: "green", targetW: nw, targetReps: baseReps };
   }
-  if (minR >= 12) {
-    return { ...base, todayHtml: `Prova ad aggiungere qualche ripetizione 🎯`, color: "green", targetW: w, targetReps: minR + 1 };
+  if (minR >= baseReps) {               // dentro il range → +1 ripetizione
+    return { ...base, todayHtml: `Aggiungi una ripetizione per serie 🎯`, color: "green", targetW: w, targetReps: minR + 1 };
   }
-  if (minR < 10) {
-    return { ...base, todayHtml: `Mantieni il peso e punta alla forma pulita`, color: "yellow", targetW: w, targetReps: meta.reps };
-  }
-  // 10-11 reps → consolida
-  return { ...base, todayHtml: `Consolida fino a serie piene 🎯`, color: "green", targetW: w, targetReps: 12 };
+  // sotto le ripetizioni base ma pulito → completa le base con questo peso
+  return { ...base, todayHtml: `Completa le ripetizioni con questo peso 🎯`, color: "green", targetW: w, targetReps: baseReps };
 }
 
 // Sessione di oggi per la scheda corrente (se esiste)
