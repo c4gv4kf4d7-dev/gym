@@ -1174,6 +1174,7 @@ function renderGoals() {
 
   renderProfile();
   renderComposition();
+  renderCompChart();
 
   $("g-current").textContent = cur != null ? cur + " kg" : "—";
   $("g-start-input").value = g.startWeight != null ? g.startWeight : "";
@@ -1327,6 +1328,47 @@ function renderComposition() {
       <div class="comp-lbl">${m.lbl}</div>${delta}
     </div>`;
   }).join("");
+}
+
+function renderCompChart() {
+  const comp = (state.composition || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+  const ctx = $("comp-chart").getContext("2d");
+  const empty = $("comp-chart-empty");
+  if (charts.comp) charts.comp.destroy();
+  if (comp.length < 1) {
+    $("comp-chart").style.display = "none";
+    empty.innerHTML = `<div class="empty-mini">Aggiungi qualche misurazione per vedere il trend.</div>`;
+    return;
+  }
+  $("comp-chart").style.display = "block";
+  empty.innerHTML = "";
+  const labels = comp.map(c => fmtShort(c.date));
+  const line = (data, color, axis, dash) => ({
+    label: "", data, borderColor: color, backgroundColor: color, yAxisID: axis,
+    tension: .3, pointRadius: 3, pointBackgroundColor: color, borderWidth: 2.5, spanGaps: true,
+    borderDash: dash || []
+  });
+  charts.comp = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        Object.assign(line(comp.map(c => c.weight ?? null), "#FF2D95", "kg"), { label: "Peso (kg)" }),
+        Object.assign(line(comp.map(c => c.skeletalMuscle ?? null), "#2BD576", "kg"), { label: "Massa musc. (kg)" }),
+        Object.assign(line(comp.map(c => c.bodyFat ?? null), "#FFB454", "pct", [5, 4]), { label: "Grasso (%)" })
+      ]
+    },
+    options: {
+      interaction: { mode: "index", intersect: false },
+      plugins: { legend: { display: true, position: "top", labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8, padding: 14, font: { size: 11 } } } },
+      scales: {
+        kg: { position: "left", grid: { color: "rgba(255,255,255,.08)" }, ticks: { font: { size: 10 } } },
+        pct: { position: "right", grid: { display: false }, ticks: { font: { size: 10 }, callback: v => v + "%" } },
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+      },
+      responsive: true
+    }
+  });
 }
 
 function toggleCompForm() {
