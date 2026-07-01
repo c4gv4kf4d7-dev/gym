@@ -20,10 +20,13 @@ const fmtLong = (str) => {
   const d = new Date(str + "T00:00:00");
   return d.toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" });
 };
-const getWorkout = (id) => WORKOUTS.find(w => w.id === id);
+const getWorkout = (id) => WORKOUTS.find(w => w.id === id)
+  || (typeof PT_WORKOUT !== "undefined" && PT_WORKOUT.id === id ? PT_WORKOUT : undefined);
+// Tutte le schede assegnabili nel calendario (3 Full Body + PT)
+const SCHEDULABLE = () => WORKOUTS.concat(typeof PT_WORKOUT !== "undefined" ? [PT_WORKOUT] : []);
 
 // Colore del cerchietto esercizio per tipo di attrezzo
-const TYPE_COLOR = { machine: "#5B8DEF", dumbbell: "#2BD576", cable: "#FF8A5B", body: "#A855F7" };
+const TYPE_COLOR = { machine: "#5B8DEF", dumbbell: "#2BD576", cable: "#FF8A5B", body: "#A855F7", barbell: "#EF4444" };
 
 // Sets [{w,r}] di un esercizio in una sessione
 function exSets(s, exKey) {
@@ -988,7 +991,7 @@ function openDay(ds) {
     $("modal-body").innerHTML = `
       <p class="modal-q">Quale scheda vuoi programmare?</p>
       <div class="modal-opts">
-        ${WORKOUTS.map(w => `
+        ${SCHEDULABLE().map(w => `
           <button class="modal-opt ${sched && sched.workoutId === w.id ? 'sel' : ''}"
                   style="border-color:${w.color}" onclick="assignDay('${ds}','${w.id}')">
             <span class="modal-opt-emoji">${w.emoji}</span>
@@ -1036,7 +1039,9 @@ function sessionDetailHTML(s) {
 
 function assignDay(ds, workoutId) {
   const prev = state.schedule[ds];
+  const w = getWorkout(workoutId);
   state.schedule[ds] = { workoutId, done: prev ? prev.done : false };
+  if (w && w.pt) state.schedule[ds].pt = true;
   if (prev && prev.note) state.schedule[ds].note = prev.note;
   saveState(state);
   closeModal();
@@ -1078,8 +1083,95 @@ function renderProgress() {
 
   renderVolumeChart();
   renderExChart();
+  renderPT();
   renderBWChart();
   renderHistory();
+}
+
+/* ---------- SUPER ESERCIZI (PT con Denis) ---------- */
+const PT_MOVES = [
+  { key: "panca",  lbl: "Panca",  color: "#FF2D95" },
+  { key: "squat",  lbl: "Squat",  color: "#5B8DEF" },
+  { key: "stacco", lbl: "Stacco", color: "#F59E0B" }
+];
+
+function renderPT() {
+  const card = $("pt-card");
+  if (!card) return;
+  const lifts = [...(state.ptLifts || [])].sort((a, b) => a.date.localeCompare(b.date));
+  card.innerHTML = `
+    <div class="chart-title">🏋️ Super esercizi (PT)</div>
+    <div class="chart-sub">Panca · Squat · Stacco — inserisci i kg sollevati, guarda la progressione nel tempo</div>
+    <div class="pt-form">
+      <input type="date" id="pt-date" class="pt-date" value="${todayStr()}">
+      <div class="pt-inputs">
+        ${PT_MOVES.map(m => `<div class="pt-field"><label>${m.lbl} (kg)</label><input type="number" id="pt-${m.key}" inputmode="decimal" step="0.5" min="0" placeholder="—"></div>`).join("")}
+      </div>
+      <button class="btn-save" onclick="savePTLift()">💪 Registra seduta PT</button>
+    </div>
+    ${lifts.length ? '<canvas id="pt-chart" height="150"></canvas>' : '<div class="empty-mini">Nessuna seduta PT registrata. Inserisci i kg dopo un allenamento con Denis.</div>'}
+    <div class="pt-list">${lifts.slice().reverse().map(ptRowHTML).join("")}</div>`;
+  if (lifts.length) drawPTChart(lifts);
+}
+
+function ptRowHTML(l) {
+  const parts = PT_MOVES.filter(m => l[m.key] != null).map(m => `${m.lbl} <b>${l[m.key]}</b>`);
+  return `<div class="pt-row">
+    <span class="pt-row-date">${fmtShort(l.date)}</span>
+    <span class="pt-row-vals">${parts.length ? parts.join(" · ") + " kg" : "—"}</span>
+    <button class="pt-del" onclick="deletePTLift('${l.date}')">✕</button>
+  </div>`;
+}
+
+function drawPTChart(lifts) {
+  const cv = $("pt-chart");
+  if (!cv) return;
+  const ctx = cv.getContext("2d");
+  if (charts.pt) charts.pt.destroy();
+  charts.pt = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: lifts.map(l => fmtShort(l.date)),
+      datasets: PT_MOVES.map(m => ({
+        label: m.lbl,
+        data: lifts.map(l => (l[m.key] != null ? l[m.key] : null)),
+        borderColor: m.color,
+        backgroundColor: m.color,
+        tension: .3,
+        spanGaps: true,
+        pointRadius: 3,
+        borderWidth: 2
+      }))
+    },
+    options: {
+      plugins: { legend: { display: true, labels: { boxWidth: 12, font: { size: 11 } } } },
+      scales: { y: { beginAtZero: false, grid: { color: "rgba(255,255,255,.08)" }, ticks: { callback: v => v + " kg" } }, x: { grid: { display: false } } },
+      responsive: true
+    }
+  });
+}
+
+function savePTLift() {
+  const date = $("pt-date").value || todayStr();
+  const num = (id) => { const v = parseFloat($(id).value); return isNaN(v) ? null : v; };
+  const vals = {}; PT_MOVES.forEach(m => vals[m.key] = num("pt-" + m.key));
+  if (PT_MOVES.every(m => vals[m.key] == null)) { toast("Inserisci almeno un valore"); return; }
+  state.ptLifts = state.ptLifts || [];
+  const ex = state.ptLifts.find(l => l.date === date);
+  if (ex) {
+    PT_MOVES.forEach(m => { if (vals[m.key] != null) ex[m.key] = vals[m.key]; });
+  } else {
+    state.ptLifts.push(Object.assign({ date }, vals));
+  }
+  saveState(state);
+  renderPT();
+  toast("💪 Seduta PT registrata");
+}
+
+function deletePTLift(date) {
+  state.ptLifts = (state.ptLifts || []).filter(l => l.date !== date);
+  saveState(state);
+  renderPT();
 }
 
 function renderVolumeChart() {

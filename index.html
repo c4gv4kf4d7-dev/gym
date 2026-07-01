@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Allenamento">
 <title>Allenamento</title>
-<link rel="stylesheet" href="css/styles.css?v=20260701e">
+<link rel="stylesheet" href="css/styles.css?v=20260701f">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
@@ -88,6 +88,8 @@
     <select class="chart-select" id="ex-select" onchange="renderExChart()"></select>
     <canvas id="ex-chart" height="150"></canvas>
   </div>
+
+  <div class="chart-card" id="pt-card"></div>
 
   <div class="chart-card">
     <div class="chart-title">Peso corporeo</div>
@@ -218,13 +220,13 @@
 <div class="toast" id="toast"></div>
 
 <script>if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js").catch(function(){}); }</script>
-<script src="js/data.js?v=20260701e"></script>
-<script src="js/exercise-media.js?v=20260701e"></script>
-<script src="js/cues.js?v=20260701e"></script>
-<script src="js/storage.js?v=20260701e"></script>
-<script src="js/app.js?v=20260701e"></script>
+<script src="js/data.js?v=20260701f"></script>
+<script src="js/exercise-media.js?v=20260701f"></script>
+<script src="js/cues.js?v=20260701f"></script>
+<script src="js/storage.js?v=20260701f"></script>
+<script src="js/app.js?v=20260701f"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/cloud-config.js?v=20260701e"></script>
-<script src="js/cloud.js?v=20260701e"></script>
+<script src="js/cloud-config.js?v=20260701f"></script>
+<script src="js/cloud.js?v=20260701f"></script>
 </body>
 </html>

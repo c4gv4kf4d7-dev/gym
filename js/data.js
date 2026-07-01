@@ -26,10 +26,16 @@ const EXERCISES = {
   facepull:     { name: "Face Pull",        muscle: "Deltoide post.",    secondary: "Trapezi, Romboidi",          type: "cable",    sets: 3, reps: 15, rest: '45"', bodyPart: "shoulders", tip: "Tira la corda verso il viso aprendo le mani all'altezza delle orecchie. Ottimo per la postura." },
 
   plank:        { name: "Plank",            muscle: "Core, Addominali",  secondary: "Glutei, Stabilizzatori",     type: "body",     sets: 3, reps: null, rest: '60"', time: '30"', bodyPart: "core", tip: "Non alzare il sedere né lasciarlo cadere. Il corpo deve essere una linea retta dalla testa ai talloni. Respira normalmente." },
-  crunch:       { name: "Crunch ai Cavi",   muscle: "Addominali",        secondary: "Core",                       type: "cable",    sets: 3, reps: 15, rest: '45"', bodyPart: "core",      tip: "Arrotola il busto contraendo gli addominali, non tirare con le braccia. Espira in chiusura." }
+  crunch:       { name: "Crunch ai Cavi",   muscle: "Addominali",        secondary: "Core",                       type: "cable",    sets: 3, reps: 15, rest: '45"', bodyPart: "core",      tip: "Arrotola il busto contraendo gli addominali, non tirare con le braccia. Espira in chiusura." },
+
+  // Esercizi con Denis (bilanciere) — tracciati manualmente nei Progressi
+  panca:        { name: "Panca Piana",      muscle: "Pettorali",         secondary: "Tricipiti, Deltoidi ant.",   type: "barbell",  sets: 3, reps: 8, rest: '120"', bodyPart: "chest",    tip: "Scapole retratte e piedi ben piantati a terra. Il bilanciere scende al centro del petto, gomiti a ~45°. Niente rimbalzo." },
+  squat:        { name: "Squat",            muscle: "Quadricipiti",      secondary: "Glutei, Femorali, Core",     type: "barbell",  sets: 3, reps: 8, rest: '150"', bodyPart: "legs",     tip: "Schiena neutra e petto alto. Scendi almeno a cosce parallele spingendo le ginocchia in fuori. Peso sui talloni." },
+  stacco:       { name: "Stacco da Terra",  muscle: "Catena posteriore", secondary: "Dorsali, Trapezi, Femorali", type: "barbell",  sets: 3, reps: 6, rest: '180"', bodyPart: "back",     tip: "Schiena dritta (mai curva), bilanciere vicino alle tibie. Spingi con le gambe e chiudi con i glutei, non con la lombare." }
 };
 
-// Schede di allenamento (4) — rotazione su 3 giorni/settimana.
+// Schede di allenamento (3 Full Body). A è quella attuale; B e C sono
+// segnaposto da sostituire con gli esercizi reali che darà Denis.
 const WORKOUTS = [
   {
     id: "fullbody",
@@ -41,39 +47,45 @@ const WORKOUTS = [
     exercises: ["legpress", "chestpress", "latmachine", "shoulderpress", "curl", "tricipiti", "plank"]
   },
   {
-    id: "gambe",
-    name: "Gambe",
-    emoji: "🦵",
-    color: "#A855F7",
-    sub: "7 esercizi · parte inferiore",
-    focus: "Quadricipiti, femorali, glutei",
-    exercises: ["legpress", "legext", "legcurl", "hipthrust", "abductor", "calf", "plank"]
-  },
-  {
-    id: "spinta",
-    name: "Spinta",
-    emoji: "🔼",
+    id: "fullbodyB",
+    name: "Full Body B",
+    emoji: "🔥",
     color: "#5B8DEF",
-    sub: "7 esercizi · push",
-    focus: "Petto, spalle, tricipiti",
-    exercises: ["chestpress", "chestfly", "shoulderpress", "lateral", "tricipiti", "frenchpress", "plank"]
+    sub: "7 esercizi · tutto il corpo",
+    focus: "Variante B (da definire con Denis)",
+    exercises: ["hipthrust", "chestfly", "pulley", "lateral", "hammer", "frenchpress", "crunch"]
   },
   {
-    id: "tirata",
-    name: "Tirata",
-    emoji: "🔽",
-    color: "#FF8A5B",
-    sub: "7 esercizi · pull",
-    focus: "Schiena, bicipiti, posteriori",
-    exercises: ["latmachine", "pulley", "reversefly", "curl", "hammer", "facepull", "crunch"]
+    id: "fullbodyC",
+    name: "Full Body C",
+    emoji: "⚡️",
+    color: "#F59E0B",
+    sub: "7 esercizi · tutto il corpo",
+    focus: "Variante C (da definire con Denis)",
+    exercises: ["legext", "legcurl", "reversefly", "chestpress", "facepull", "curl", "plank"]
   }
 ];
+
+// Scheda speciale "Personal Trainer": sedute con Denis a ripetizione di
+// panca, squat e stacco. Non compare tra le schede di "Allena" (i pesi si
+// registrano dai Progressi), ma è selezionabile nel Calendario.
+const PT_WORKOUT = {
+  id: "pt",
+  name: "Personal Trainer",
+  emoji: "🧑‍🏫",
+  color: "#A855F7",
+  sub: "Panca · Squat · Stacco",
+  focus: "Sedute con Denis",
+  exercises: ["panca", "squat", "stacco"],
+  pt: true
+};
 
 const badgeMap = {
   machine:  ['badge-machine', 'Macchina'],
   dumbbell: ['badge-dumbbell', 'Manubri'],
   cable:    ['badge-cable', 'Cavi'],
-  body:     ['badge-body', 'Corpo libero']
+  body:     ['badge-body', 'Corpo libero'],
+  barbell:  ['badge-barbell', 'Bilanciere']
 };
 
 const svgSilhouettes = {

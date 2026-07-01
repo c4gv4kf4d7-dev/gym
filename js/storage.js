@@ -23,6 +23,7 @@ const defaultState = () => ({
   },
   composition: [],     // { date, weight, bodyFat, skeletalMuscle, boneMass, bodyWater, bmr, metabolicAge }
   meals: {},           // "YYYY-MM-DD": [ { id, text, kcal, protein, t:"HH:MM" } ]
+  ptLifts: [],         // sedute con Denis: { date, panca, squat, stacco } — kg dei 3 esercizi
   badges: [],          // id dei traguardi sbloccati
   migrations: [],      // id delle migrazioni già applicate
   version: 2
