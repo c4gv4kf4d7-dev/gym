@@ -617,3 +617,9 @@ input::placeholder { color: var(--faint); }
 .chart-hint { font-size: 11px; color: rgba(245,240,255,.45); margin: 8px 0 6px; }
 .pt-detail { margin-top: 12px; }
 .pt-detail:empty { margin-top: 0; }
+
+/* PASTI: obiettivi editabili */
+.meal-goal { text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer; color: #fff; }
+.meal-goal-hint { font-size: 11px; color: rgba(245,240,255,.4); margin-top: 12px; text-align: center; }
+.meal-card { display: flex; align-items: center; justify-content: space-between; }
+.meal-card-meta { font-size: 14px; color: var(--text); font-weight: 600; }

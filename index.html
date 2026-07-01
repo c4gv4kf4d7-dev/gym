@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Allenamento">
 <title>Allenamento</title>
-<link rel="stylesheet" href="css/styles.css?v=20260701l">
+<link rel="stylesheet" href="css/styles.css?v=20260701m">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
@@ -174,9 +174,8 @@
 <div class="section" id="section-pasti">
   <div class="goal-card meal-summary" id="meal-today"></div>
 
-  <div class="section-label">➕ Aggiungi pasto</div>
+  <div class="section-label">➕ Aggiungi (kcal / proteine)</div>
   <div class="goal-card">
-    <textarea class="meal-text" id="meal-text" placeholder="Cosa hai mangiato? Es: 200g pollo, riso basmati 100g cotto, un filo d'olio"></textarea>
     <div class="meal-fields">
       <div class="goal-field"><div class="goal-field-lbl">Calorie (kcal)</div><input type="number" id="meal-kcal" inputmode="numeric" min="0" max="5000" placeholder="—"></div>
       <div class="goal-field"><div class="goal-field-lbl">Proteine (g)</div><input type="number" id="meal-prot" inputmode="numeric" min="0" max="400" placeholder="—"></div>
@@ -220,13 +219,13 @@
 <div class="toast" id="toast"></div>
 
 <script>if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js").catch(function(){}); }</script>
-<script src="js/data.js?v=20260701l"></script>
-<script src="js/exercise-media.js?v=20260701l"></script>
-<script src="js/cues.js?v=20260701l"></script>
-<script src="js/storage.js?v=20260701l"></script>
-<script src="js/app.js?v=20260701l"></script>
+<script src="js/data.js?v=20260701m"></script>
+<script src="js/exercise-media.js?v=20260701m"></script>
+<script src="js/cues.js?v=20260701m"></script>
+<script src="js/storage.js?v=20260701m"></script>
+<script src="js/app.js?v=20260701m"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/cloud-config.js?v=20260701l"></script>
-<script src="js/cloud.js?v=20260701l"></script>
+<script src="js/cloud-config.js?v=20260701m"></script>
+<script src="js/cloud.js?v=20260701m"></script>
 </body>
 </html>
