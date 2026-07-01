@@ -1127,17 +1127,22 @@ function renderPT() {
   const lifts = [...(state.ptLifts || [])].sort((a, b) => a.date.localeCompare(b.date));
   card.innerHTML = `
     <div class="chart-title">🏋️ Super esercizi (PT)</div>
-    <div class="chart-sub">Panca · Squat · Stacco — inserisci i kg sollevati, guarda la progressione nel tempo</div>
+    <div class="chart-sub">Panca · Squat · Stacco — registra i kg (data di oggi automatica)</div>
     <div class="pt-form">
-      <div class="pt-daterow"><span class="pt-daterow-lbl">📅 Data seduta</span><input type="date" id="pt-date" class="pt-date" value="${todayStr()}"></div>
       <div class="pt-inputs">
         ${PT_MOVES.map(m => `<div class="pt-field"><label>${m.lbl} (kg)</label><input type="number" id="pt-${m.key}" inputmode="decimal" step="0.5" min="0" placeholder="—"></div>`).join("")}
       </div>
       <button class="btn-save" onclick="savePTLift()">💪 Registra seduta PT</button>
     </div>
-    ${lifts.length ? '<canvas id="pt-chart" height="150"></canvas>' : '<div class="empty-mini">Nessuna seduta PT registrata. Inserisci i kg dopo un allenamento con Denis.</div>'}
-    <div class="pt-list">${lifts.slice().reverse().map(ptRowHTML).join("")}</div>`;
+    ${lifts.length ? '<div class="chart-hint">Tocca un punto del grafico per vedere o cancellare la seduta.</div><canvas id="pt-chart" height="150"></canvas>' : '<div class="empty-mini">Nessuna seduta PT registrata. Inserisci i kg dopo un allenamento con Denis.</div>'}
+    <div class="pt-detail" id="pt-detail"></div>`;
   if (lifts.length) drawPTChart(lifts);
+}
+
+function showPTDetail(l) {
+  const el = $("pt-detail");
+  if (!el || !l) return;
+  el.innerHTML = ptRowHTML(l);
 }
 
 function ptRowHTML(l) {
@@ -1170,6 +1175,10 @@ function drawPTChart(lifts) {
       }))
     },
     options: {
+      onClick: (evt) => {
+        const hit = charts.pt.getElementsAtEventForMode(evt, "index", { intersect: false }, true);
+        if (hit.length) showPTDetail(lifts[hit[0].index]);
+      },
       plugins: { legend: { display: true, labels: { boxWidth: 12, font: { size: 11 } } } },
       scales: { y: { beginAtZero: false, grid: { color: "rgba(255,255,255,.08)" }, ticks: { callback: v => v + " kg" } }, x: { grid: { display: false } } },
       responsive: true
@@ -1178,7 +1187,7 @@ function drawPTChart(lifts) {
 }
 
 function savePTLift() {
-  const date = $("pt-date").value || todayStr();
+  const date = todayStr();
   const num = (id) => { const v = parseFloat($(id).value); return isNaN(v) ? null : v; };
   const vals = {}; PT_MOVES.forEach(m => vals[m.key] = num("pt-" + m.key));
   if (PT_MOVES.every(m => vals[m.key] == null)) { toast("Inserisci almeno un valore"); return; }

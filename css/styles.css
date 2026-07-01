@@ -612,3 +612,8 @@ input::placeholder { color: var(--faint); }
 /* Rotazione esercizi PT nei prossimi allenamenti */
 .up-name .pt-next { color: #C9A7FF; font-weight: 800; }
 .up-name .pt-dim { color: rgba(245,240,255,.38); font-weight: 600; }
+
+/* PT: dettaglio su tocco del grafico */
+.chart-hint { font-size: 11px; color: rgba(245,240,255,.45); margin: 8px 0 6px; }
+.pt-detail { margin-top: 12px; }
+.pt-detail:empty { margin-top: 0; }
