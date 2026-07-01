@@ -973,14 +973,14 @@ function renderCalendar() {
         let nameHtml;
         if (isPT) {
           const moveIdx = (baseIdx + ptCounter) % PT_SEQUENCE.length; ptCounter++;
-          nameHtml = `🧑‍🏫 Personal Trainer — <b class="pt-next">${PT_SHORT[PT_SEQUENCE[moveIdx]]}</b>`;
+          nameHtml = `🧑‍🏫 PT — <b class="pt-next">${PT_SHORT[PT_SEQUENCE[moveIdx]]}</b>`;
         } else {
           nameHtml = `${w.emoji} ${w.name}`;
         }
         return `<div class="up-row">
           <span class="up-dot" style="background:${isPT ? '#A855F7' : w.color}"></span>
           <span class="up-date">${fmtShort(d)}</span>
-          <span class="up-name">${nameHtml}${s.note ? ` <span class="up-note">· ${s.note}</span>` : ''}</span>
+          <span class="up-name">${nameHtml}${(!isPT && s.note) ? ` <span class="up-note">· ${s.note}</span>` : ''}</span>
           <span class="up-status">${s.done ? '✓ fatto' : 'programmato'}</span>
         </div>`;
       }).join("")
