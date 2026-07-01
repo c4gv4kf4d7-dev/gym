@@ -1658,4 +1658,3 @@ if (window.Chart) {
 setDate();
 renderWorkoutChips();
 renderWorkout();
-buildGuides();
