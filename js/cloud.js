@@ -82,9 +82,6 @@
   }
 
   function firstLogin() {
-    // Da ora questo dispositivo non deve più ripristinare il seed di Mike
-    localStorage.setItem("gym_no_seed", "1");
-
     if (hasData(state)) {
       const upload = window.confirm(
         "Primo accesso con questo account.\n\n" +
@@ -128,15 +125,11 @@
 
   async function signOut() {
     await sb.auth.signOut();
-    localStorage.removeItem("gym_no_seed");
   }
 
   sb.auth.onAuthStateChange((_event, session) => {
     currentUser = session ? session.user : null;
-    if (currentUser) {
-      localStorage.setItem("gym_no_seed", "1");
-      pullCloud();
-    }
+    if (currentUser) pullCloud();
     renderAccountUI();
   });
 
@@ -186,7 +179,7 @@
         '</div>' +
         '<div class="acct-field-lbl">Nickname (mostrato in alto)</div>' +
         '<div class="acct-nick">' +
-          '<input id="acct-nick-input" class="acct-input" maxlength="18" placeholder="Es. Mike">' +
+          '<input id="acct-nick-input" class="acct-input" maxlength="18" placeholder="Es. il tuo nome">' +
           '<button class="btn-outline acct-nick-btn" onclick="cloudSaveNick()">Salva</button>' +
         '</div>' +
         '<div class="acct-email-sub">Account: ' + (currentUser.email || "") + '</div>' +
