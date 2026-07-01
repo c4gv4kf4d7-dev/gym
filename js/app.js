@@ -959,10 +959,11 @@ function renderCalendar() {
   $("cal-grid").innerHTML = html;
 
   // prossimi allenamenti programmati
+  const limit = new Date(); limit.setDate(limit.getDate() + 21);
+  const limitStr = limit.toISOString().split("T")[0];
   const upcoming = Object.entries(state.schedule)
-    .filter(([d]) => d >= todayStr())
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .slice(0, 5);
+    .filter(([d]) => d >= todayStr() && d <= limitStr)
+    .sort((a, b) => a[0].localeCompare(b[0]));
   const baseIdx = ptNextIndex();
   let ptCounter = 0;
   $("cal-upcoming").innerHTML = upcoming.length
@@ -972,10 +973,7 @@ function renderCalendar() {
         let nameHtml;
         if (isPT) {
           const moveIdx = (baseIdx + ptCounter) % PT_SEQUENCE.length; ptCounter++;
-          const seq = PT_SEQUENCE.map((k, i) => i === moveIdx
-            ? `<b class="pt-next">${PT_SHORT[k]}</b>`
-            : `<span class="pt-dim">${PT_SHORT[k]}</span>`).join(" / ");
-          nameHtml = `🧑‍🏫 Personal Trainer — ${seq}`;
+          nameHtml = `🧑‍🏫 Personal Trainer — <b class="pt-next">${PT_SHORT[PT_SEQUENCE[moveIdx]]}</b>`;
         } else {
           nameHtml = `${w.emoji} ${w.name}`;
         }
