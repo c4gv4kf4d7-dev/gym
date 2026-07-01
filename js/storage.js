@@ -17,6 +17,7 @@ const defaultState = () => ({
   },
   profile: {           // anagrafica
     name: "",
+    nick: "",          // nickname mostrato in alto (account)
     birthday: null,    // "YYYY-MM-DD"
     height: null       // cm
   },

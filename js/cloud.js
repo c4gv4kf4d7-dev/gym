@@ -152,11 +152,18 @@
     if (e) e.textContent = msg;
   }
 
+  function currentNick() {
+    return (typeof state !== "undefined" && state.profile && state.profile.nick) ? state.profile.nick : "";
+  }
+  function displayName() {
+    return currentNick() || (currentUser && currentUser.email ? currentUser.email.split("@")[0] : "Account");
+  }
+
   function renderHeaderChip() {
     const chip = document.getElementById("header-account");
     if (!chip) return;
     if (currentUser) {
-      chip.textContent = "👤 " + (currentUser.email || "").split("@")[0];
+      chip.textContent = "👤 " + displayName();
       chip.classList.add("in");
     } else {
       chip.textContent = "Accedi";
@@ -173,19 +180,27 @@
         '<div class="acct-row">' +
           '<span class="acct-badge">☁️</span>' +
           '<div class="acct-info">' +
-            '<div class="acct-email">' + (currentUser.email || "Account") + '</div>' +
+            '<div class="acct-email">👤 ' + displayName() + '</div>' +
             '<div class="acct-status" id="sync-status">Connesso</div>' +
           '</div>' +
         '</div>' +
+        '<div class="acct-field-lbl">Nickname (mostrato in alto)</div>' +
+        '<div class="acct-nick">' +
+          '<input id="acct-nick-input" class="acct-input" maxlength="18" placeholder="Es. Mike">' +
+          '<button class="btn-outline acct-nick-btn" onclick="cloudSaveNick()">Salva</button>' +
+        '</div>' +
+        '<div class="acct-email-sub">Account: ' + (currentUser.email || "") + '</div>' +
         '<button class="btn-secondary" onclick="cloudSignOut()">Esci</button>';
+      const ni = document.getElementById("acct-nick-input");
+      if (ni) ni.value = currentNick();
     } else {
       el.innerHTML =
         '<div class="acct-intro">Accedi per sincronizzare i tuoi dati e ritrovarli su ogni dispositivo.</div>' +
         '<input id="acct-email" class="acct-input" type="email" inputmode="email" autocomplete="username" placeholder="Email">' +
         '<input id="acct-pw" class="acct-input" type="password" autocomplete="current-password" placeholder="Password (min 6)">' +
         '<div class="acct-btns">' +
+          '<button class="btn-outline" onclick="cloudSignUp()">Registrati</button>' +
           '<button class="btn-save" onclick="cloudSignIn()">Accedi</button>' +
-          '<button class="btn-secondary" onclick="cloudSignUp()">Registrati</button>' +
         '</div>' +
         '<div class="acct-msg" id="acct-msg"></div>';
     }
@@ -207,6 +222,14 @@
   window.cloudSignIn = signIn;
   window.cloudSignUp = signUp;
   window.cloudSignOut = signOut;
+  window.cloudSaveNick = function () {
+    const v = val("acct-nick-input");
+    state.profile = state.profile || {};
+    state.profile.nick = v;
+    saveState(state);            // salva in locale + push su cloud
+    renderAccountUI();
+    if (typeof toast === "function") toast(v ? "Nick salvato ✓" : "Nick rimosso");
+  };
   window.goAccount = function () {
     const btn = document.querySelector('.nav-item[onclick*="obiettivi"]');
     switchView("obiettivi", btn);
