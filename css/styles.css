@@ -606,3 +606,7 @@ input::placeholder { color: var(--faint); }
 .pt-row-vals b { color: #fff; }
 .pt-del { background: transparent; border: none; color: rgba(255,120,120,.8); font-size: 15px; cursor: pointer; padding: 2px 6px; }
 .badge-barbell { background: rgba(239,68,68,.18); color: #FF9A9A; }
+
+/* Rotazione esercizi PT nei prossimi allenamenti */
+.up-name .pt-next { color: #C9A7FF; font-weight: 800; }
+.up-name .pt-dim { color: rgba(245,240,255,.38); font-weight: 600; }

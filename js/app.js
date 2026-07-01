@@ -963,13 +963,26 @@ function renderCalendar() {
     .filter(([d]) => d >= todayStr())
     .sort((a, b) => a[0].localeCompare(b[0]))
     .slice(0, 5);
+  const baseIdx = ptNextIndex();
+  let ptCounter = 0;
   $("cal-upcoming").innerHTML = upcoming.length
     ? upcoming.map(([d, s]) => {
         const w = getWorkout(s.workoutId);
+        const isPT = !!(s.pt || (w && w.pt));
+        let nameHtml;
+        if (isPT) {
+          const moveIdx = (baseIdx + ptCounter) % PT_SEQUENCE.length; ptCounter++;
+          const seq = PT_SEQUENCE.map((k, i) => i === moveIdx
+            ? `<b class="pt-next">${PT_SHORT[k]}</b>`
+            : `<span class="pt-dim">${PT_SHORT[k]}</span>`).join(" / ");
+          nameHtml = `🧑‍🏫 Personal Trainer — ${seq}`;
+        } else {
+          nameHtml = `${w.emoji} ${w.name}`;
+        }
         return `<div class="up-row">
-          <span class="up-dot" style="background:${s.pt ? '#A855F7' : w.color}"></span>
+          <span class="up-dot" style="background:${isPT ? '#A855F7' : w.color}"></span>
           <span class="up-date">${fmtShort(d)}</span>
-          <span class="up-name">${s.pt ? '🧑‍🏫' : w.emoji} ${w.name}${s.note ? ` <span class="up-note">· ${s.note}</span>` : ''}</span>
+          <span class="up-name">${nameHtml}${s.note ? ` <span class="up-note">· ${s.note}</span>` : ''}</span>
           <span class="up-status">${s.done ? '✓ fatto' : 'programmato'}</span>
         </div>`;
       }).join("")
@@ -1094,6 +1107,21 @@ const PT_MOVES = [
   { key: "squat",  lbl: "Squat",  color: "#5B8DEF" },
   { key: "stacco", lbl: "Stacco", color: "#F59E0B" }
 ];
+
+// Rotazione delle sedute con Denis: panca → stacco → squat → panca …
+const PT_SEQUENCE = ["panca", "stacco", "squat"];
+const PT_SHORT = { panca: "Panca", stacco: "Stacco", squat: "Squat" };
+
+// Indice del prossimo esercizio in base all'ultimo registrato con Denis
+function ptNextIndex() {
+  const lifts = [...(state.ptLifts || [])].sort((a, b) => a.date.localeCompare(b.date));
+  if (!lifts.length) return 0;                 // mai fatto → si parte dalla Panca
+  const last = lifts[lifts.length - 1];
+  let lastIdx = -1;
+  PT_SEQUENCE.forEach((k, i) => { if (last[k] != null) lastIdx = i; });
+  if (lastIdx < 0) return 0;
+  return (lastIdx + 1) % PT_SEQUENCE.length;
+}
 
 function renderPT() {
   const card = $("pt-card");
