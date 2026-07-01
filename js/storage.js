@@ -193,11 +193,14 @@ function isEmptyState(s) {
 
 function loadState() {
   try {
+    // Se un account cloud è attivo su questo dispositivo, non ripristinare
+    // mai il seed di Mike: lo stato "verità" arriva dal cloud (o è vuoto).
+    const noSeed = localStorage.getItem("gym_no_seed") === "1";
     const raw = localStorage.getItem(STORE_KEY);
-    if (!raw) return seedState();              // primo avvio assoluto
+    if (!raw) return noSeed ? applyMigrations(defaultState()) : seedState();
     const parsed = JSON.parse(raw);
     const merged = Object.assign(defaultState(), parsed);
-    if (isEmptyState(merged)) return seedState(); // aperta ma mai usata
+    if (isEmptyState(merged)) return noSeed ? merged : seedState(); // aperta ma mai usata
     return applyMigrations(merged);
   } catch (e) {
     console.warn("Stato corrotto, reset:", e);
