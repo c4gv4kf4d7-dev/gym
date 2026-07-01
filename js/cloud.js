@@ -18,11 +18,15 @@
 
   // Il salvataggio originale (solo localStorage)
   const _localSave = saveState;
+  const PENDING_KEY = "gym_pending";   // c'è una modifica locale non ancora sul cloud
 
   // Sovrascrive saveState globale: salva in locale + (se loggato) sincronizza
   saveState = function (s) {
     _localSave(s);
-    if (currentUser) schedulePush();
+    if (currentUser) {
+      localStorage.setItem(PENDING_KEY, "1");
+      schedulePush();
+    }
   };
 
   function hasData(d) {
@@ -37,7 +41,7 @@
   /* ---------- SYNC ---------- */
   function schedulePush() {
     clearTimeout(pushTimer);
-    pushTimer = setTimeout(pushCloud, 1500);
+    pushTimer = setTimeout(pushCloud, 700);
   }
 
   async function pushCloud() {
@@ -50,6 +54,7 @@
         updated_at: new Date().toISOString()
       });
       if (error) throw error;
+      localStorage.removeItem(PENDING_KEY);
       setSyncStatus("Sincronizzato ✓");
     } catch (e) {
       console.warn("[cloud] push fallito", e);
@@ -57,8 +62,22 @@
     }
   }
 
+  // Flush immediato quando l'app va in background o si chiude
+  function flushPending() {
+    if (currentUser && localStorage.getItem(PENDING_KEY) === "1") pushCloud();
+  }
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flushPending(); });
+  window.addEventListener("pagehide", flushPending);
+
   async function pullCloud() {
     if (!currentUser) return;
+    // Se ci sono modifiche locali non ancora sincronizzate, caricale sul cloud
+    // invece di sovrascriverle con dati più vecchi.
+    if (localStorage.getItem(PENDING_KEY) === "1") {
+      await pushCloud();
+      refreshUI();
+      return;
+    }
     setSyncStatus("Sincronizzo…");
     try {
       const { data, error } = await sb.from("user_states")
