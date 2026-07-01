@@ -1131,7 +1131,7 @@ function renderPT() {
     <div class="chart-title">🏋️ Super esercizi (PT)</div>
     <div class="chart-sub">Panca · Squat · Stacco — inserisci i kg sollevati, guarda la progressione nel tempo</div>
     <div class="pt-form">
-      <input type="date" id="pt-date" class="pt-date" value="${todayStr()}">
+      <div class="pt-daterow"><span class="pt-daterow-lbl">📅 Data seduta</span><input type="date" id="pt-date" class="pt-date" value="${todayStr()}"></div>
       <div class="pt-inputs">
         ${PT_MOVES.map(m => `<div class="pt-field"><label>${m.lbl} (kg)</label><input type="number" id="pt-${m.key}" inputmode="decimal" step="0.5" min="0" placeholder="—"></div>`).join("")}
       </div>

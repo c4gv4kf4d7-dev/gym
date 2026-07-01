@@ -593,7 +593,9 @@ input::placeholder { color: var(--faint); }
 
 /* SUPER ESERCIZI (PT) */
 .pt-form { margin: 6px 0 14px; }
-.pt-date { width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 11px 12px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,.04); color: #fff; font-size: 14px; font-family: inherit; }
+.pt-daterow { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.pt-daterow-lbl { font-size: 12px; font-weight: 700; color: rgba(245,240,255,.6); }
+.pt-date { flex: 0 0 auto; width: auto; max-width: 160px; box-sizing: border-box; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,.04); color: #fff; font-size: 13px; font-family: inherit; }
 .pt-inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
 .pt-field { display: flex; flex-direction: column; gap: 5px; }
 .pt-field label { font-size: 11px; color: rgba(245,240,255,.6); font-weight: 700; }
