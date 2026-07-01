@@ -152,7 +152,20 @@
     if (e) e.textContent = msg;
   }
 
+  function renderHeaderChip() {
+    const chip = document.getElementById("header-account");
+    if (!chip) return;
+    if (currentUser) {
+      chip.textContent = "👤 " + (currentUser.email || "").split("@")[0];
+      chip.classList.add("in");
+    } else {
+      chip.textContent = "Accedi";
+      chip.classList.remove("in");
+    }
+  }
+
   function renderAccountUI() {
+    renderHeaderChip();
     const el = document.getElementById("account-card");
     if (!el) return;
     if (currentUser) {
@@ -194,6 +207,12 @@
   window.cloudSignIn = signIn;
   window.cloudSignUp = signUp;
   window.cloudSignOut = signOut;
+  window.goAccount = function () {
+    const btn = document.querySelector('.nav-item[onclick*="obiettivi"]');
+    switchView("obiettivi", btn);
+    const card = document.getElementById("account-card");
+    if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 
   renderAccountUI();
 })();
