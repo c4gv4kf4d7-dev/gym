@@ -1479,15 +1479,20 @@ function renderProfile() {
   ].filter(Boolean);
   card.className = "goal-card profile-box";
   card.innerHTML = `
-    <div class="profile-center profile-compact">
-      <div class="profile-avatar-wrap">
-        <div class="profile-avatar-lg">${nick.charAt(0).toUpperCase()}</div>
-        <button class="profile-pencil" onclick="startOnboarding(true)" aria-label="Modifica profilo">✏️</button>
+    <div class="profile-row">
+      <div class="profile-left">
+        <div class="profile-avatar-wrap">
+          <div class="profile-avatar-lg">${nick.charAt(0).toUpperCase()}</div>
+          <button class="profile-pencil" onclick="startOnboarding(true)" aria-label="Modifica profilo">✏️</button>
+        </div>
+        <div class="profile-id">
+          <div class="profile-name">${nick}</div>
+          ${meta ? `<div class="profile-meta">${meta}</div>` : ""}
+        </div>
       </div>
-      <div class="profile-name">${nick} <span class="profile-meta-inline">${meta}</span></div>
-      ${chips.length ? `<div class="profile-chips profile-chips-c">${chips.map(c => `<span class="profile-chip">${c}</span>`).join("")}</div>` : ""}
-      ${p.limitations ? `<div class="profile-lim">⚠️ ${p.limitations}</div>` : ""}
-    </div>`;
+      ${chips.length ? `<div class="profile-chips-col">${chips.map(c => `<span class="profile-chip">${c}</span>`).join("")}</div>` : ""}
+    </div>
+    ${p.limitations ? `<div class="profile-lim">⚠️ ${p.limitations}</div>` : ""}`;
 }
 
 function renderGoals() {
