@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Allenamento">
 <title>Allenamento</title>
-<link rel="stylesheet" href="css/styles.css?v=20260703d">
+<link rel="stylesheet" href="css/styles.css?v=20260703e">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
@@ -116,15 +116,16 @@
     <button class="comp-toggle" onclick="toggleCompForm()">＋ Aggiungi misurazione</button>
     <div class="comp-form" id="comp-form" style="display:none">
       <div class="comp-fields">
-        <div class="goal-field"><div class="goal-field-lbl">Peso (kg)</div><input type="number" id="c-weight" step="0.01" inputmode="decimal"></div>
-        <div class="goal-field"><div class="goal-field-lbl">Grasso (%)</div><input type="number" id="c-fat" step="0.1" inputmode="decimal"></div>
-        <div class="goal-field"><div class="goal-field-lbl">Massa musc. (kg)</div><input type="number" id="c-muscle" step="0.01" inputmode="decimal"></div>
-        <div class="goal-field"><div class="goal-field-lbl">Massa ossea (kg)</div><input type="number" id="c-bone" step="0.01" inputmode="decimal"></div>
-        <div class="goal-field"><div class="goal-field-lbl">Acqua (%)</div><input type="number" id="c-water" step="0.1" inputmode="decimal"></div>
-        <div class="goal-field"><div class="goal-field-lbl">BMR (kcal)</div><input type="number" id="c-bmr" inputmode="numeric"></div>
+        <div class="goal-field"><div class="goal-field-lbl">Peso (kg)</div><input type="text" id="c-weight" step="0.01" inputmode="decimal"></div>
+        <div class="goal-field"><div class="goal-field-lbl">Grasso (%)</div><input type="text" id="c-fat" step="0.1" inputmode="decimal"></div>
+        <div class="goal-field"><div class="goal-field-lbl">Massa musc. (kg)</div><input type="text" id="c-muscle" step="0.01" inputmode="decimal"></div>
+        <div class="goal-field"><div class="goal-field-lbl">Massa ossea (kg)</div><input type="text" id="c-bone" step="0.01" inputmode="decimal"></div>
+        <div class="goal-field"><div class="goal-field-lbl">Acqua (%)</div><input type="text" id="c-water" step="0.1" inputmode="decimal"></div>
+        <div class="goal-field"><div class="goal-field-lbl">BMR (kcal)</div><input type="text" id="c-bmr" inputmode="numeric"></div>
       </div>
       <button class="btn-secondary" onclick="saveComposition()">Salva misurazione</button>
     </div>
+    <div id="comp-history"></div>
   </div>
 
   <div class="section-label">📈 Andamento nel tempo</div>
@@ -196,14 +197,14 @@
 <div class="toast" id="toast"></div>
 
 <script>if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js").catch(function(){}); }</script>
-<script src="js/data.js?v=20260703d"></script>
-<script src="js/exercise-media.js?v=20260703d"></script>
-<script src="js/cues.js?v=20260703d"></script>
-<script src="js/storage.js?v=20260703d"></script>
-<script src="js/app.js?v=20260703d"></script>
-<script src="js/setup.js?v=20260703d"></script>
+<script src="js/data.js?v=20260703e"></script>
+<script src="js/exercise-media.js?v=20260703e"></script>
+<script src="js/cues.js?v=20260703e"></script>
+<script src="js/storage.js?v=20260703e"></script>
+<script src="js/app.js?v=20260703e"></script>
+<script src="js/setup.js?v=20260703e"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/cloud-config.js?v=20260703d"></script>
-<script src="js/cloud.js?v=20260703d"></script>
+<script src="js/cloud-config.js?v=20260703e"></script>
+<script src="js/cloud.js?v=20260703e"></script>
 </body>
 </html>

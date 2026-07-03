@@ -1594,6 +1594,52 @@ function renderComposition() {
       <div class="comp-lbl">${m.lbl}</div>${delta}
     </div>`;
   }).join("");
+  renderMeasureHistory();
+}
+
+/* Storico misurazioni: unisce pesate semplici e misurazioni bilancia,
+   una riga per data, eliminabile. */
+function measureRows() {
+  const dates = new Set();
+  (state.bodyweight || []).forEach(b => dates.add(b.date));
+  (state.composition || []).forEach(c => dates.add(c.date));
+  return [...dates].sort((a, b) => b.localeCompare(a)).map(d => {
+    const bw = (state.bodyweight || []).find(b => b.date === d);
+    const c = (state.composition || []).find(x => x.date === d);
+    const parts = [];
+    const w = (c && c.weight != null) ? c.weight : (bw ? bw.v : null);
+    if (w != null) parts.push(`<b>${w}</b> kg`);
+    if (c && c.bodyFat != null) parts.push(`${c.bodyFat}% grasso`);
+    if (c && c.skeletalMuscle != null) parts.push(`${c.skeletalMuscle} kg musc.`);
+    return { date: d, txt: parts.join(" · ") || "—" };
+  });
+}
+
+let measHistOpen = false;
+function toggleMeasureHistory() { measHistOpen = !measHistOpen; renderMeasureHistory(); }
+
+function renderMeasureHistory() {
+  const host = $("comp-history");
+  if (!host) return;
+  const rows = measureRows();
+  if (!rows.length) { host.innerHTML = ""; return; }
+  host.innerHTML = `
+    <button class="comp-hist-toggle" onclick="toggleMeasureHistory()">🗂 Storico misurazioni (${rows.length}) ${measHistOpen ? "▴" : "▾"}</button>
+    ${measHistOpen ? `<div class="comp-hist-list">${rows.map(r => `
+      <div class="pt-row">
+        <span class="pt-row-date">${fmtShort(r.date)}</span>
+        <span class="pt-row-vals">${r.txt}</span>
+        <button class="pt-del" onclick="deleteMeasurement('${r.date}')">✕</button>
+      </div>`).join("")}</div>` : ""}`;
+}
+
+function deleteMeasurement(date) {
+  if (!confirm("Eliminare la misurazione del " + fmtShort(date) + "?")) return;
+  state.bodyweight = (state.bodyweight || []).filter(b => b.date !== date);
+  state.composition = (state.composition || []).filter(c => c.date !== date);
+  saveState(state);
+  toast("🗑 Misurazione eliminata");
+  renderGoals();
 }
 
 function renderCompChart() {
@@ -1619,8 +1665,9 @@ function renderCompChart() {
     else projTxt = `⏸ Il peso al momento è fermo: con un ritmo di +0,25 kg/settimana arriveresti a ${target} kg in ~${Math.ceil((target - cur) / 0.25)} settimane.`;
   }
 
+  const start = state.goals ? state.goals.startWeight : null;
   const metrics = [
-    { key: "weight", lbl: "Peso", unit: " kg", suffix: "", color: "#FF2D95", upGood: true, series: bwSeries.map(b => ({ d: b.date, v: b.v })), target, extra: projTxt },
+    { key: "weight", lbl: "Peso", unit: " kg", suffix: "", color: "#FF2D95", upGood: true, series: bwSeries.map(b => ({ d: b.date, v: b.v })), target, start, noVal: true, extra: projTxt },
     { key: "skeletalMuscle", lbl: "Massa muscolare", unit: " kg", suffix: "", color: "#2BD576", upGood: true, series: comp.filter(c => c.skeletalMuscle != null).map(c => ({ d: c.date, v: c.skeletalMuscle })) },
     { key: "bodyFat", lbl: "Grasso corporeo", unit: "", suffix: "%", color: "#FFB454", upGood: false, series: comp.filter(c => c.bodyFat != null).map(c => ({ d: c.date, v: c.bodyFat })) }
   ];
@@ -1637,12 +1684,13 @@ function renderCompChart() {
         badge = `<span class="spark-d ${good ? 'up' : 'down'}">${d > 0 ? '▲' : '▼'} ${Math.abs(d)}${m.suffix}</span>`;
       }
     }
+    const goalLbl = m.target != null ? ` <span class="spark-target">${m.start != null ? m.start + " → " : ""}${m.target} kg</span>` : "";
     return `<div class="spark-row">
       <div class="spark-head">
-        <span class="spark-lbl" style="color:${m.color}">${m.lbl}${m.target != null ? ` <span class="spark-target">obiettivo ${m.target} kg</span>` : ""}</span>
-        <span class="spark-val">${latest != null ? latest + m.suffix + m.unit : '—'} ${badge}</span>
+        <span class="spark-lbl" style="color:${m.color}">${m.lbl}${goalLbl}</span>
+        ${m.noVal ? `<button class="spark-gear" onclick="editWeightGoals()">⚙️</button>` : `<span class="spark-val">${latest != null ? latest + m.suffix + m.unit : '—'} ${badge}</span>`}
       </div>
-      <div class="spark-wrap${m.key === "weight" ? " spark-tall" : ""}"><canvas id="spark-${m.key}"></canvas></div>
+      <div class="spark-wrap"><canvas id="spark-${m.key}"></canvas></div>
       ${m.extra ? `<div class="spark-proj">${m.extra}</div>` : ""}
     </div>`;
   }).join("");
@@ -1653,7 +1701,7 @@ function renderCompChart() {
     const data = m.series.map(p => p.v);
     let mn = Math.min(...data), mx = Math.max(...data);
     if (m.target != null) { mn = Math.min(mn, m.target); mx = Math.max(mx, m.target); }
-    const pad = Math.max((mx - mn) * 0.15, 0.4);
+    const pad = m.target != null ? Math.max((mx - mn) * 0.15, 0.4) : Math.max((mx - mn) * 0.6, Math.abs(mn) * 0.004, 0.25);
     const datasets = [{ data, borderColor: m.color, backgroundColor: m.color + "22", pointRadius: 3, pointBackgroundColor: m.color, borderWidth: 2.5, tension: .3, fill: true, spanGaps: true }];
     if (m.target != null) datasets.push({ data: labels.map(() => m.target), borderColor: "rgba(255,255,255,.55)", borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, fill: false });
     charts.sparks.push(new Chart($("spark-" + m.key).getContext("2d"), {
@@ -1661,14 +1709,26 @@ function renderCompChart() {
       data: { labels, datasets },
       options: {
         plugins: { legend: { display: false } },
-        scales: {
-          y: { min: mn - pad, max: mx + pad, display: m.key === "weight", grid: { color: "rgba(255,255,255,.06)" }, ticks: { font: { size: 10 }, callback: v => v + " kg" } },
-          x: { display: false }
-        },
+        scales: { y: { min: mn - pad, max: mx + pad, display: false }, x: { display: false } },
         responsive: true, maintainAspectRatio: false
       }
     }));
   });
+}
+
+// Partenza e obiettivo peso, modificabili dal ⚙️ accanto al trend
+function editWeightGoals() {
+  const pnum = (v) => { if (v == null) return undefined; const n = parseFloat(String(v).replace(",", ".")); return isNaN(n) ? null : n; };
+  const st = prompt("Peso di PARTENZA (kg) — da dove sei partito:", state.goals.startWeight != null ? state.goals.startWeight : "");
+  if (st === null) return;                       // annullato
+  const tg = prompt("Peso OBIETTIVO (kg):", state.goals.targetWeight != null ? state.goals.targetWeight : "");
+  if (tg === null) return;
+  const s2 = pnum(st), t2 = pnum(tg);
+  state.goals.startWeight = (st.trim() === "" ? null : s2);
+  state.goals.targetWeight = (tg.trim() === "" ? null : t2);
+  saveState(state);
+  toast("🎯 Obiettivo aggiornato");
+  renderGoals();
 }
 
 function toggleCompForm() {
@@ -1677,7 +1737,7 @@ function toggleCompForm() {
 }
 
 function saveComposition() {
-  const num = (id) => { const e = $(id); if (!e) return null; const v = parseFloat(e.value); return isNaN(v) ? null : v; };
+  const num = (id) => { const e = $(id); if (!e) return null; const v = parseFloat(String(e.value).replace(",", ".")); return isNaN(v) ? null : v; };
   const entry = {
     date: todayStr(),
     weight: num("c-weight"),
