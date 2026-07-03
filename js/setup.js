@@ -136,6 +136,7 @@
     const s = STEPS[obStep];
     overlay().innerHTML = `
       <div class="ob-box">
+        <button class="ob-close" onclick="closeSetup()" aria-label="Chiudi">✕</button>
         <div class="ob-progress">${STEPS.map((_, i) => `<span class="${i <= obStep ? "on" : ""}"></span>`).join("")}</div>
         <div class="ob-title">${s.title}</div>
         <div class="ob-body">${s.html()}</div>
@@ -174,16 +175,98 @@
   }
 
   window.startOnboarding = function (prefill) {
-    if (prefill && state.profile) ob = {
-      name: state.profile.name, age: state.profile.age, sex: state.profile.sex,
-      height: state.profile.height, weight: (state.bodyweight || []).length ? state.bodyweight[state.bodyweight.length - 1].v : null,
-      goal: state.profile.goal, level: state.profile.level, daysPerWeek: state.profile.daysPerWeek,
-      limitations: state.profile.limitations, equipment: state.profile.equipment
-    };
-    else ob = {};
+    if (prefill && state.profile && state.profile.onboarded) { renderEditForm(); return; }
+    ob = {};
     obStep = 0;
     overlay().classList.add("show");
     renderStep();
+  };
+
+  /* ---------- MODIFICA PROFILO (form unico, niente wizard) ---------- */
+  function renderEditForm() {
+    const p = state.profile || {};
+    const sel = (opts, cur) => opts.map(([v, l]) => `<option value="${v}" ${cur === v ? "selected" : ""}>${l}</option>`).join("");
+    overlay().classList.add("show");
+    overlay().innerHTML = `
+      <div class="ob-box ob-wide">
+        <button class="ob-close" onclick="closeSetup()" aria-label="Chiudi">✕</button>
+        <div class="ob-title">Modifica profilo ✏️</div>
+        <div class="ob-body ob-scroll">
+          <div class="ob-grid">
+            <div class="ob-field"><label>Nome / nick</label><input class="ob-input" id="ed-name" maxlength="20" value="${p.name || ""}"></div>
+            <div class="ob-field"><label>Età</label><input class="ob-input" id="ed-age" type="number" inputmode="numeric" value="${p.age || ""}"></div>
+            <div class="ob-field"><label>Sesso</label><select class="ob-input" id="ed-sex">${sel([["M","M"],["F","F"]], p.sex)}</select></div>
+            <div class="ob-field"><label>Altezza (cm)</label><input class="ob-input" id="ed-h" type="number" inputmode="numeric" value="${p.height || ""}"></div>
+            <div class="ob-field"><label>Obiettivo</label><select class="ob-input" id="ed-goal">${sel([["massa","💪 Massa"],["dimagrimento","🔥 Dimagrimento"],["forza","🏋️ Forza"],["benessere","🌿 Benessere"]], p.goal)}</select></div>
+            <div class="ob-field"><label>Livello</label><select class="ob-input" id="ed-level">${sel([["principiante","Principiante"],["intermedio","Intermedio"],["avanzato","Avanzato"]], p.level)}</select></div>
+            <div class="ob-field"><label>Giorni/settimana</label><select class="ob-input" id="ed-days">${sel([[2,"2"],[3,"3"],[4,"4"],[5,"5"],[6,"6"]], p.daysPerWeek)}</select></div>
+            <div class="ob-field"><label>Attrezzatura</label><select class="ob-input" id="ed-equip">${sel([["palestra","Palestra completa"],["base","Manubri/base"],["corpo","Corpo libero"]], p.equipment)}</select></div>
+          </div>
+          <div class="ob-field" style="margin-top:12px"><label>Limitazioni fisiche</label><input class="ob-input" id="ed-lim" value="${p.limitations || ""}"></div>
+          <div class="ob-grid" style="margin-top:12px">
+            <div class="ob-field"><label>🔥 Obiettivo kcal/giorno</label><input class="ob-input" id="ed-kcal" type="number" inputmode="numeric" value="${(state.nutriGoal && state.nutriGoal.kcal) || ""}" placeholder="auto"></div>
+            <div class="ob-field"><label>💪 Obiettivo proteine (g)</label><input class="ob-input" id="ed-prot" type="number" inputmode="numeric" value="${(state.nutriGoal && state.nutriGoal.protein) || ""}"></div>
+          </div>
+        </div>
+        <div class="ob-err" id="ob-err"></div>
+        <div class="ob-nav">
+          <button class="btn-outline" onclick="closeSetup()">Annulla</button>
+          <button class="btn-save" onclick="saveProfileEdit()">Salva</button>
+        </div>
+      </div>`;
+  }
+
+  window.saveProfileEdit = function () {
+    const name = val("ed-name");
+    if (!name) { document.getElementById("ob-err").textContent = "Il nome non può essere vuoto"; return; }
+    Object.assign(state.profile, {
+      name, nick: name,
+      age: num("ed-age") || state.profile.age,
+      sex: val("ed-sex"),
+      height: num("ed-h") || state.profile.height,
+      goal: val("ed-goal"), level: val("ed-level"),
+      daysPerWeek: +val("ed-days") || state.profile.daysPerWeek,
+      equipment: val("ed-equip"),
+      limitations: val("ed-lim")
+    });
+    state.nutriGoal = state.nutriGoal || {};
+    state.nutriGoal.kcal = num("ed-kcal");           // vuoto = stima automatica
+    state.nutriGoal.protein = num("ed-prot") || state.nutriGoal.protein || 150;
+    saveState(state);
+    toast("✅ Profilo aggiornato");
+    closeSetup();
+    if (typeof renderGoals === "function") renderGoals();
+  };
+
+  /* ---------- BENVENUTO (app aperta da sloggati) ---------- */
+  window.showWelcome = function () {
+    if (sessionStorage.getItem("welcomeShown")) return;
+    sessionStorage.setItem("welcomeShown", "1");
+    overlay().classList.add("show");
+    overlay().innerHTML = `
+      <div class="ob-box">
+        <div class="ob-title">Ciao! 👋</div>
+        <div class="ob-body">
+          <p class="ob-lead">Il tuo personal trainer digitale: schede, progressi e nutrizione, tutto su misura.</p>
+          <div class="ob-choices">
+            <button class="ob-choice" onclick="welcomeGo('new')"><span class="ob-choice-emoji">🌱</span><span class="ob-choice-txt"><b>Sono nuovo</b><small>Crea il tuo account e costruiamo la tua app in 2 minuti</small></span></button>
+            <button class="ob-choice" onclick="welcomeGo('login')"><span class="ob-choice-emoji">🔑</span><span class="ob-choice-txt"><b>Ho già un account</b><small>Accedi e ritrova i tuoi dati</small></span></button>
+          </div>
+        </div>
+        <div class="ob-nav"><button class="btn-outline" style="flex:1" onclick="closeSetup()">Dai solo un'occhiata</button></div>
+      </div>`;
+  };
+  window.welcomeGo = function (mode) {
+    overlay().classList.remove("show"); overlay().innerHTML = "";
+    if (typeof goAccount === "function") goAccount();
+    setTimeout(() => {
+      const msg = document.getElementById("acct-msg");
+      if (msg) msg.textContent = mode === "new"
+        ? "Scrivi email e una password (min 6 caratteri), poi tocca Registrati."
+        : "Inserisci le credenziali e tocca Accedi.";
+      const em = document.getElementById("acct-email");
+      if (em) em.focus();
+    }, 350);
   };
 
   // Avvio automatico: loggato ma profilo non ancora configurato
@@ -202,18 +285,29 @@
 
   /* ---------- SCELTA MODALITÀ SCHEDA ---------- */
   function showBuilderChooser(fromOnboarding) {
+    const mine = state.myWorkouts || [];
     overlay().classList.add("show");
     overlay().innerHTML = `
       <div class="ob-box">
-        <div class="ob-title">${fromOnboarding ? `Perfetto ${state.profile.name}! Ora la tua scheda 📋` : "Nuova scheda 📋"}</div>
+        <button class="ob-close" onclick="closeSetup()" aria-label="Chiudi">✕</button>
+        <div class="ob-title">${fromOnboarding ? `Perfetto ${state.profile.name}! Ora la tua scheda 📋` : "Le tue schede 📋"}</div>
         <div class="ob-body">
+          ${(!fromOnboarding && mine.length) ? `
+            <div class="myw-list">${mine.map(w => `
+              <div class="myw-row">
+                <span class="myw-dot" style="background:${w.color}"></span>
+                <span class="myw-name">${w.emoji} ${w.name}</span>
+                <span class="myw-sub">${(w.exercises || []).length} es.</span>
+                <button class="myw-del" onclick="deleteMyWorkout('${w.id}');showBuilderChooser(false)">✕</button>
+              </div>`).join("")}</div>
+            <div class="ob-group-lbl">Aggiungine una nuova</div>` : ""}
           <div class="ob-choices">
             <button class="ob-choice" onclick="setupPreset()"><span class="ob-choice-emoji">⚡️</span><span class="ob-choice-txt"><b>Scheda pronta</b><small>Consigliata per il tuo obiettivo e livello — parti subito</small></span></button>
             <button class="ob-choice" onclick="setupManual()"><span class="ob-choice-emoji">🧩</span><span class="ob-choice-txt"><b>Costruiscila tu</b><small>Scegli gli esercizi, l'app analizza l'equilibrio della scheda</small></span></button>
             <button class="ob-choice" onclick="setupImport()"><span class="ob-choice-emoji">📄</span><span class="ob-choice-txt"><b>Importa dal PT</b><small>Hai una scheda su carta o PDF? La convertiamo con l'AI</small></span></button>
           </div>
         </div>
-        <div class="ob-nav"><button class="btn-outline" onclick="closeSetup()">${fromOnboarding ? "Più tardi" : "Annulla"}</button><span></span></div>
+        <div class="ob-nav"><button class="btn-outline" onclick="closeSetup()">${fromOnboarding ? "Più tardi" : "Chiudi"}</button><span></span></div>
       </div>`;
   }
   window.showBuilderChooser = showBuilderChooser;

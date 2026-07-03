@@ -152,6 +152,7 @@
   sb.auth.onAuthStateChange((_event, session) => {
     currentUser = session ? session.user : null;
     if (currentUser) pullCloud();
+    else if (_event === "INITIAL_SESSION" && window.showWelcome) window.showWelcome();
     renderAccountUI();
   });
 
@@ -212,15 +213,8 @@
             '<div class="acct-status" id="sync-status">Connesso</div>' +
           '</div>' +
         '</div>' +
-        '<div class="acct-field-lbl">Nickname (mostrato in alto)</div>' +
-        '<div class="acct-nick">' +
-          '<input id="acct-nick-input" class="acct-input" maxlength="18" placeholder="Es. il tuo nome">' +
-          '<button class="btn-outline acct-nick-btn" onclick="cloudSaveNick()">Salva</button>' +
-        '</div>' +
         '<div class="acct-email-sub">Account: ' + (currentUser.email || "") + '</div>' +
         '<button class="btn-secondary" onclick="cloudSignOut()">Esci</button>';
-      const ni = document.getElementById("acct-nick-input");
-      if (ni) ni.value = currentNick();
     } else {
       el.innerHTML =
         '<div class="acct-intro">Accedi per sincronizzare i tuoi dati e ritrovarli su ogni dispositivo.</div>' +
@@ -250,14 +244,6 @@
   window.cloudSignIn = signIn;
   window.cloudSignUp = signUp;
   window.cloudSignOut = signOut;
-  window.cloudSaveNick = function () {
-    const v = val("acct-nick-input");
-    state.profile = state.profile || {};
-    state.profile.nick = v;
-    saveState(state);            // salva in locale + push su cloud
-    renderAccountUI();
-    if (typeof toast === "function") toast(v ? "Nick salvato ✓" : "Nick rimosso");
-  };
   window.goAccount = function () {
     const btn = document.querySelector('.nav-item[onclick*="obiettivi"]');
     switchView("obiettivi", btn);

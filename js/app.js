@@ -209,11 +209,47 @@ const BADGES = [
     desc: "Sei a metà del percorso verso il tuo peso obiettivo. La vetta è vicina." },
   { id: "gain5",   icon: "💥", name: "+5 kg di massa",        test: () => massGain() >= 5,
     desc: "+5 kg di massa dall'inizio. Trasformazione in pieno corso." },
-  { id: "allschede",icon: "🧭", name: "Esploratore",          test: () => distinctWorkouts() >= 4,
-    desc: "Hai provato tutte e 4 le schede (Full Body, Gambe, Spinta, Tirata). Allenamento completo." },
-  { id: "goal",    icon: "👑", name: "Obiettivo raggiunto!",  test: () => { const c = currentBW(), t = state.goals.targetWeight; return c != null && t != null && c >= t; },
+  { id: "allschede",icon: "🧭", name: "Esploratore",          test: () => distinctWorkouts() >= 3,
+    desc: "Hai provato almeno 3 schede diverse. Allenamento completo, zero monotonia." },
+  { id: "ptfirst", icon: "🧑‍🏫", name: "Battesimo del ferro",  test: () => (state.ptLifts || []).length >= 1,
+    desc: "Prima seduta coi super esercizi registrata: panca, squat o stacco. Benvenuto tra i grandi." },
+  { id: "clean10", icon: "✨", name: "Tecnica pulita",        test: () => cleanCount() >= 10,
+    desc: "10 esercizi chiusi con serie \"pulite\". La forma prima del peso: così si costruisce." },
+  { id: "grinder", icon: "🦾", name: "Mai mollare",           test: () => hardCount() >= 5,
+    desc: "5 esercizi portati a termine anche quando erano durissimi. Il carattere si vede lì." },
+  { id: "meals7",  icon: "🍽️", name: "Settimana a tavola",    test: () => mealDayStreak() >= 7,
+    desc: "7 giorni di fila coi pasti registrati. La massa si costruisce in cucina." },
+  { id: "builder", icon: "🧩", name: "Architetto",            test: () => (state.myWorkouts || []).length >= 1,
+    desc: "Hai creato la tua prima scheda personalizzata. Questa app ora è davvero tua." },
+  { id: "weigh4",  icon: "⚖️", name: "Bilancia fedele",       test: () => weighWeeks() >= 4,
+    desc: "Peso registrato in 4 settimane diverse. Senza dati non c'è progresso misurabile." },
+  { id: "goal",    icon: "👑", name: "Obiettivo raggiunto!",  test: () => { const c = currentBW(), t = state.goals.targetWeight, s = state.goals.startWeight; return c != null && t != null && (s == null || t >= s ? c >= t : c <= t); },
     desc: "Hai raggiunto il tuo peso obiettivo. Campione. Ora si punta più in alto." }
 ];
+
+// Esercizi valutati "pulite" / "dure" in tutte le sessioni
+function cleanCount() {
+  let n = 0;
+  state.sessions.forEach(s => Object.values(s.exercises || {}).forEach(e => { if (e.quality === "clean") n++; }));
+  return n;
+}
+function hardCount() {
+  let n = 0;
+  state.sessions.forEach(s => Object.values(s.exercises || {}).forEach(e => { if (e.quality === "hard") n++; }));
+  return n;
+}
+// Giorni consecutivi (fino a oggi o ieri) con pasti registrati
+function mealDayStreak() {
+  let n = 0;
+  const d = new Date();
+  if (!mealsFor(todayStr()).length) d.setDate(d.getDate() - 1);   // oggi può essere in corso
+  while (mealsFor(d.toISOString().split("T")[0]).length) { n++; d.setDate(d.getDate() - 1); }
+  return n;
+}
+// Settimane diverse con almeno una pesata
+function weighWeeks() {
+  return new Set((state.bodyweight || []).map(b => weekStart(b.date))).size;
+}
 function earnedBadgeIds() { return BADGES.filter(b => b.test()).map(b => b.id); }
 
 // Esercizio nell'ultima sessione (prima di oggi): { date, sets, quality }
@@ -298,7 +334,8 @@ function renderWorkoutChips() {
             style="${w.id === currentWorkoutId ? `background:${w.color};border-color:${w.color}` : ''}"
             onclick="selectWorkout('${w.id}')">
       <span class="wchip-emoji">${w.emoji}</span>${w.name}
-    </button>`).join("");
+    </button>`).join("") +
+    `<button class="wchip wchip-add" onclick="showBuilderChooser(false)" title="Nuova scheda">＋</button>`;
 }
 
 function selectWorkout(id) {
@@ -1281,12 +1318,32 @@ function renderVolumeChart() {
   });
 }
 
+/* Progressione esercizio: non conta solo il peso, ma COME l'hai fatto.
+   Ogni punto = una sessione; il colore è il semaforo di fatica:
+   verde = pulite, giallo = dure, rosso = non completate. */
+const QUAL_COLOR = { clean: "#10B981", hard: "#F59E0B", fail: "#FF4D6D" };
+const QUAL_LABEL = { clean: "✅ Pulite", hard: "⚠️ Dure", fail: "❌ Non completate" };
+const QUAL_RANK = { fail: 0, hard: 1, clean: 2 };
+
+function exVerdict(pts) {
+  if (pts.length < 2) return "Registra un'altra sessione per vedere la tendenza.";
+  const a = pts[pts.length - 2], b = pts[pts.length - 1];
+  const qa = QUAL_RANK[a.q] ?? 1, qb = QUAL_RANK[b.q] ?? 1;
+  if (b.v > a.v && qb >= 1) return `📈 Sei salito da ${a.v} a ${b.v} kg reggendo il colpo. Progresso vero.`;
+  if (b.v > a.v && qb === 0) return `⚠️ Peso salito a ${b.v} kg ma non completato: consolida prima di risalire.`;
+  if (b.v === a.v && qb > qa) return `📈 Stesso peso (${b.v} kg) ma fatto meglio: è progresso anche questo. Prossimo step: salire.`;
+  if (b.v === a.v && qb === 2) return `💪 ${b.v} kg fatti puliti: sei pronto ad aumentare.`;
+  if (b.v === a.v && qb < qa) return `😮‍💨 Stesso peso ma più fatica dell'altra volta: giornata storta, capita. Riprova uguale.`;
+  if (b.v < a.v) return `🔄 Hai scaricato a ${b.v} kg: a volte un passo indietro serve per farne due avanti.`;
+  return `Continua così: costanza batte intensità.`;
+}
+
 function renderExChart() {
   const k = $("ex-select").value;
   const ctx = $("ex-chart").getContext("2d");
   if (charts.ex) charts.ex.destroy();
-  const lbl = $("ex-1rm");
-  if (!k) { if (lbl) lbl.textContent = "—"; return; }
+  const lbl = $("ex-1rm"), verd = $("ex-verdict");
+  if (!k) { if (lbl) lbl.textContent = "—"; if (verd) verd.textContent = ""; return; }
   const pts = [...state.sessions]
     .filter(s => exSets(s, k).length)
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -1294,25 +1351,27 @@ function renderExChart() {
       const sets = exSets(s, k);
       const maxW = Math.max(...sets.map(x => x.w));
       const topSet = sets.find(x => x.w === maxW);
-      return { d: fmtShort(s.date), v: maxW, sets: sets.length, reps: topSet ? topSet.r : null };
+      return { d: fmtShort(s.date), v: maxW, sets: sets.length, reps: topSet ? topSet.r : null, q: s.exercises[k].quality };
     });
-  if (!pts.length) { if (lbl) lbl.textContent = "—"; return; }
+  if (!pts.length) { if (lbl) lbl.textContent = "—"; if (verd) verd.textContent = ""; return; }
   const vals = pts.map(p => p.v);
   const maxV = Math.max(...vals), minV = Math.min(...vals);
   const maxIdx = vals.lastIndexOf(maxV);
   if (lbl) lbl.textContent = `max ${maxV} kg`;
+  if (verd) verd.textContent = exVerdict(pts);
   charts.ex = new Chart(ctx, {
     type: "line",
     data: {
       labels: pts.map(p => p.d),
       datasets: [{
         data: vals,
-        borderColor: "#FF2D95",
-        backgroundColor: "rgba(255,45,149,.18)",
+        borderColor: "rgba(255,255,255,.35)",
         borderWidth: 2,
-        pointRadius: pts.map((_, i) => i === maxIdx ? 6 : 4),
-        pointBackgroundColor: pts.map((_, i) => i === maxIdx ? "#F59E0B" : "#FF2D95"),
-        fill: true, tension: .3
+        pointRadius: pts.map((_, i) => i === maxIdx ? 7 : 5),
+        pointBackgroundColor: pts.map(p => QUAL_COLOR[p.q] || "#9CA3AF"),
+        pointBorderColor: "rgba(0,0,0,.4)",
+        pointBorderWidth: 1,
+        fill: false, tension: .3
       }]
     },
     options: {
@@ -1323,7 +1382,10 @@ function renderExChart() {
           callbacks: {
             title: (items) => pts[items[0].dataIndex].d,
             label: (item) => `Peso max: ${pts[item.dataIndex].v} kg`,
-            afterLabel: (item) => { const p = pts[item.dataIndex]; return `Serie: ${p.sets}${p.reps ? ` × ${p.reps} rip` : ""}`; }
+            afterLabel: (item) => {
+              const p = pts[item.dataIndex];
+              return `${QUAL_LABEL[p.q] || "— non valutato"}\nSerie: ${p.sets}${p.reps ? ` × ${p.reps} rip` : ""}`;
+            }
           }
         }
       },
@@ -1369,39 +1431,23 @@ function renderProfile() {
   const card = $("profile-card");
   if (!p.name && !p.height && !p.birthday) { card.innerHTML = ""; return; }
   const age = p.age || computeAge(p.birthday);
+  const nick = p.nick || p.name || "?";
+  const meta = [age != null ? age + " anni" : null, p.height ? p.height + " cm" : null].filter(Boolean).join(" · ");
   const chips = [
     p.goal ? GOAL_LABELS[p.goal] : null,
     p.level ? p.level.charAt(0).toUpperCase() + p.level.slice(1) : null,
-    p.daysPerWeek ? p.daysPerWeek + " gg/sett" : null
+    p.daysPerWeek ? p.daysPerWeek + " gg/settimana" : null
   ].filter(Boolean);
   card.className = "goal-card profile-box";
   card.innerHTML = `
-    <div class="profile-top">
-      <div class="profile-avatar">${(p.name || "?").charAt(0).toUpperCase()}</div>
-      <div style="flex:1;min-width:0">
-        <div class="profile-name">${p.name || "—"}</div>
-        <div class="profile-meta">${age != null ? age + " anni" : ""}${p.height ? " · " + p.height + " cm" : ""}${p.sex ? " · " + p.sex : ""}</div>
-      </div>
-      <button class="profile-edit" onclick="startOnboarding(true)" title="Modifica profilo">✏️</button>
-    </div>
-    ${chips.length ? `<div class="profile-chips">${chips.map(c => `<span class="profile-chip">${c}</span>`).join("")}</div>` : ""}
-    ${p.limitations ? `<div class="profile-lim">⚠️ ${p.limitations}</div>` : ""}`;
-}
-
-function renderMyWorkouts() {
-  const host = $("myworkouts-card");
-  if (!host) return;
-  const mine = state.myWorkouts || [];
-  host.innerHTML = `
-    ${mine.length
-      ? mine.map(w => `<div class="myw-row">
-          <span class="myw-dot" style="background:${w.color}"></span>
-          <span class="myw-name">${w.emoji} ${w.name}</span>
-          <span class="myw-sub">${(w.exercises || []).length} es.</span>
-          <button class="myw-del" onclick="deleteMyWorkout('${w.id}')">✕</button>
-        </div>`).join("")
-      : `<div class="empty-mini">Stai usando le schede di default. Creane una tutta tua!</div>`}
-    <button class="btn-secondary" style="margin-top:10px" onclick="showBuilderChooser(false)">➕ Nuova scheda</button>`;
+    <div class="profile-center">
+      <div class="profile-avatar profile-avatar-lg">${nick.charAt(0).toUpperCase()}</div>
+      <div class="profile-name">${nick}</div>
+      ${meta ? `<div class="profile-meta">${meta}</div>` : ""}
+      ${chips.length ? `<div class="profile-chips profile-chips-c">${chips.map(c => `<span class="profile-chip">${c}</span>`).join("")}</div>` : ""}
+      ${p.limitations ? `<div class="profile-lim">⚠️ ${p.limitations}</div>` : ""}
+      <button class="profile-edit-link" onclick="startOnboarding(true)">Modifica profilo</button>
+    </div>`;
 }
 
 function renderGoals() {
@@ -1410,30 +1456,32 @@ function renderGoals() {
   const g = state.goals;
 
   renderProfile();
-  renderMyWorkouts();
   renderComposition();
   renderCompChart();
 
+  // PESO — valore = ultima misurazione registrata (pesata o bilancia smart)
   const lastBW = bw.length ? bw[bw.length - 1] : null;
-  $("g-current").innerHTML = lastBW ? `${lastBW.v} kg <span class="goal-current-date">· ${fmtShort(lastBW.date)}</span>` : "—";
+  $("g-current").textContent = lastBW ? `${lastBW.v} kg` : "—";
+  $("g-current-sub").textContent = lastBW ? `Ultima misurazione · ${fmtShort(lastBW.date)}` : "Nessuna misurazione: registra il primo peso";
   $("g-start-input").value = g.startWeight != null ? g.startWeight : "";
   $("g-target-input").value = g.targetWeight != null ? g.targetWeight : "";
   $("g-note").value = g.note || "";
 
-  // progress verso obiettivo
+  // Una sola riga di avanzamento: barra + frase sintetica
   const wrap = $("goal-progress");
   if (g.startWeight != null && g.targetWeight != null && cur != null) {
     const total = g.targetWeight - g.startWeight;
     const done = cur - g.startWeight;
     const pct = total !== 0 ? Math.max(0, Math.min(100, Math.round((done / total) * 100))) : 0;
+    const p = weightProjection();
+    const eta = (p && p.date && p.date > todayStr()) ? ` · al ritmo attuale ci arrivi a ${fmtShort(p.date)}` : "";
     wrap.innerHTML = `
       <div class="progress-top">
-        <span class="progress-label">Da ${g.startWeight} → ${g.targetWeight} kg</span>
+        <span class="progress-label">Obiettivo ${g.targetWeight} kg</span>
         <span class="progress-count">${pct}%</span>
       </div>
       <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:#8B5CF6"></div></div>
-      <div class="goal-delta">${done >= 0 ? '+' : ''}${done.toFixed(1)} kg dall'inizio · mancano ${(g.targetWeight - cur).toFixed(1)} kg${g.targetDate ? ` · entro ${fmtLong(g.targetDate)}` : ''}</div>
-      ${projectionHTML()}`;
+      <div class="goal-delta">${done >= 0 ? '+' : ''}${done.toFixed(1)} kg da quando hai iniziato · mancano ${Math.abs(g.targetWeight - cur).toFixed(1)} kg${eta}</div>`;
     wrap.style.display = "block";
   } else {
     wrap.style.display = "none";
@@ -1441,6 +1489,13 @@ function renderGoals() {
 
   renderNutrition();
   renderBadges();
+}
+
+function toggleGoalForm() {
+  const f = $("goal-form");
+  const open = f.style.display !== "none";
+  f.style.display = open ? "none" : "block";
+  $("goal-toggle").textContent = open ? "Modifica obiettivo ▾" : "Chiudi ▴";
 }
 
 function projectionHTML() {

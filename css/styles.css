@@ -729,3 +729,27 @@ input::placeholder { color: var(--faint); }
   .setup-overlay { align-items: center; }
   .comp-fields, .ob-grid { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* Profilo centrato */
+.profile-center { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 6px 0 2px; }
+.profile-avatar-lg { width: 74px; height: 74px; border-radius: 50%; background: var(--grad); display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 800; color: #fff; box-shadow: 0 10px 30px -8px var(--magenta); margin-bottom: 4px; }
+.profile-chips-c { justify-content: center; margin-top: 8px; }
+.profile-edit-link { margin-top: 12px; background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 18px; padding: 8px 18px; font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+/* Peso lineare */
+.goal-inline { margin-top: 14px; margin-bottom: 0; padding: 12px 14px; }
+.goal-edit-toggle { width: 100%; margin-top: 12px; background: transparent; border: none; color: var(--muted); font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit; padding: 6px; }
+#goal-form { margin-top: 10px; }
+
+/* Verdict progressione */
+.ex-verdict { font-size: 12.5px; line-height: 1.45; color: var(--text); background: rgba(255,255,255,.05); border: 1px solid var(--border); border-radius: 10px; padding: 9px 11px; margin-top: 10px; }
+.ex-verdict:empty { display: none; }
+
+/* Chip nuova scheda */
+.wchip-add { font-size: 16px; font-weight: 800; padding: 9px 13px; color: var(--pink); }
+
+/* Chiusura overlay setup */
+.ob-box { position: relative; }
+.ob-close { position: absolute; top: 14px; right: 14px; background: rgba(255,255,255,.1); border: 1px solid var(--border); color: #fff; border-radius: 10px; width: 30px; height: 30px; font-size: 13px; cursor: pointer; z-index: 2; }
+.myw-list { margin-bottom: 6px; }
+select.ob-input { appearance: none; -webkit-appearance: none; }
