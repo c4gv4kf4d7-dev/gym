@@ -406,7 +406,7 @@ input::placeholder { color: var(--faint); }
 .hist-notes { font-size: 12px; color: rgba(244,238,255,.75); background: rgba(255,255,255,.04); border-radius: 10px; padding: 8px 10px; margin-top: 8px; line-height: 1.5; }
 
 /* BOTTOM NAV */
-.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(12,7,22,.72); backdrop-filter: blur(26px) saturate(160%); -webkit-backdrop-filter: blur(26px) saturate(160%); border-top: 1px solid var(--border); display: flex; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(12,7,22,.72); backdrop-filter: blur(26px) saturate(160%); -webkit-backdrop-filter: blur(26px) saturate(160%); border-top: 1px solid var(--border); display: flex; z-index: 200; padding-bottom: env(safe-area-inset-bottom); -webkit-transform: translateZ(0); transform: translateZ(0); will-change: transform; }
 .nav-item { position: relative; flex: 1; background: none; border: none; padding: 11px 0 9px; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; color: rgba(244,238,255,.34); font-family: inherit; transition: color .2s; }
 .nav-item.active { color: var(--pink); }
 .nav-item.active::before { content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 26px; height: 3px; border-radius: 0 0 4px 4px; background: var(--grad); box-shadow: 0 2px 10px var(--magenta); }
@@ -623,3 +623,28 @@ input::placeholder { color: var(--faint); }
 .meal-goal-hint { font-size: 11px; color: rgba(245,240,255,.4); margin-top: 12px; text-align: center; }
 .meal-card { display: flex; align-items: center; justify-content: space-between; }
 .meal-card-meta { font-size: 14px; color: var(--text); font-weight: 600; }
+
+/* PROMEMORIA PESO (lunedì) */
+.weigh-banner { display: flex; align-items: center; gap: 10px; background: linear-gradient(135deg, rgba(168,85,247,.28), rgba(91,141,239,.24)); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; margin-bottom: 14px; box-shadow: var(--sheen); }
+.wb-txt { flex: 1; font-size: 13px; font-weight: 700; line-height: 1.35; }
+.wb-x { background: rgba(255,255,255,.14); border: none; color: #fff; border-radius: 8px; width: 28px; height: 28px; font-size: 13px; cursor: pointer; flex-shrink: 0; }
+
+/* PESO ATTUALE — data misurazione */
+.goal-current-date { font-size: 14px; font-weight: 700; color: var(--muted); }
+
+/* STORICO — selettore mese + card espandibili */
+.hist-months { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 12px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.hist-months::-webkit-scrollbar { display: none; }
+.hist-month-tab { flex-shrink: 0; background: var(--card); border: 1px solid var(--border); color: var(--muted); border-radius: 18px; padding: 7px 14px; font-size: 12px; font-weight: 800; cursor: pointer; font-family: inherit; }
+.hist-month-tab.active { color: #fff; background: var(--grad); border-color: transparent; box-shadow: 0 4px 14px -4px var(--magenta); }
+.hist-card { border-radius: 16px; padding: 14px; margin-bottom: 10px; cursor: pointer; }
+.hist-chev { margin-left: auto; color: var(--muted); font-size: 12px; transition: transform .2s; }
+.hist-card.open .hist-chev { transform: rotate(180deg); }
+.hist-detail { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
+.hist-card.open .hist-detail { max-height: 600px; margin-top: 10px; }
+.hist-ex { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px solid var(--border); font-size: 13px; }
+.hist-ex-name { color: var(--text); }
+.hist-ex-sets { color: var(--muted); font-weight: 700; white-space: nowrap; }
+
+/* PASTI — riepilogo giorni obiettivo */
+.meal-hit { font-size: 12px; font-weight: 700; color: rgba(245,240,255,.75); margin-top: 8px; text-align: center; }

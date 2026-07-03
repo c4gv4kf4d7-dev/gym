@@ -28,6 +28,48 @@ const SCHEDULABLE = () => WORKOUTS.concat(typeof PT_WORKOUT !== "undefined" ? [P
 // Colore del cerchietto esercizio per tipo di attrezzo
 const TYPE_COLOR = { machine: "#5B8DEF", dumbbell: "#2BD576", cable: "#FF8A5B", body: "#A855F7", barbell: "#EF4444" };
 
+// Naviga alla tab Calendario (dal tocco sulla data in header)
+function goCalendar() {
+  switchView("calendario", document.querySelector('.nav-item[onclick*="calendario"]'));
+}
+
+// Regressione lineare semplice → valori della trend line
+function linReg(vals) {
+  const n = vals.length;
+  if (n < 2) return null;
+  const xs = vals.map((_, i) => i);
+  const sx = xs.reduce((a, b) => a + b, 0);
+  const sy = vals.reduce((a, b) => a + b, 0);
+  const sxx = xs.reduce((a, b) => a + b * b, 0);
+  const sxy = xs.reduce((a, _, i) => a + xs[i] * vals[i], 0);
+  const denom = n * sxx - sx * sx;
+  if (denom === 0) return null;
+  const slope = (n * sxy - sx * sy) / denom;
+  const inter = (sy - slope * sx) / n;
+  return xs.map(x => +(inter + slope * x).toFixed(1));
+}
+
+// Lunedì della settimana corrente (chiave per il promemoria peso)
+function mondayKey() {
+  const d = new Date();
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d.toISOString().split("T")[0];
+}
+function renderWeighBanner() {
+  const host = $("weigh-banner");
+  if (!host) return;
+  const isMonday = new Date().getDay() === 1;
+  const dismissed = localStorage.getItem("weighReminder") === mondayKey();
+  host.innerHTML = (isMonday && !dismissed)
+    ? `<div class="weigh-banner"><span class="wb-txt">📏 Lunedì del peso! Ricordati di registrare il tuo peso questa mattina.</span><button class="wb-x" onclick="dismissWeighBanner()" aria-label="Chiudi">✕</button></div>`
+    : "";
+}
+function dismissWeighBanner() {
+  localStorage.setItem("weighReminder", mondayKey());
+  const host = $("weigh-banner");
+  if (host) host.innerHTML = "";
+}
+
 // Sets [{w,r}] di un esercizio in una sessione
 function exSets(s, exKey) {
   return (s.exercises && s.exercises[exKey] && s.exercises[exKey].sets) || [];
@@ -953,7 +995,7 @@ function renderCalendar() {
     html += `
       <div class="cal-cell ${isToday ? 'today' : ''} ${sched ? 'has' : ''}" onclick="openDay('${ds}')">
         <span class="cal-num">${d}</span>
-        ${w ? `<span class="cal-dot${sched.pt ? ' cal-pt' : ''}" style="background:${sched.pt ? '#A855F7' : w.color}">${sched.done ? '✓' : (sched.pt ? '🧑‍🏫' : w.emoji)}</span>` : ''}
+        ${w ? `<span class="cal-dot" style="background:${sched.done ? '#10B981' : '#9CA3AF'};color:${sched.done ? '#fff' : '#1a1a1a'}">${sched.done ? '✓' : (sched.pt ? '🧑‍🏫' : w.emoji)}</span>` : ''}
       </div>`;
   }
   $("cal-grid").innerHTML = html;
@@ -1095,7 +1137,6 @@ function renderProgress() {
   renderVolumeChart();
   renderExChart();
   renderPT();
-  renderBWChart();
   renderHistory();
 }
 
@@ -1214,11 +1255,16 @@ function renderVolumeChart() {
   const ctx = $("vol-chart").getContext("2d");
   if (charts.vol) charts.vol.destroy();
   if (!s.length) return;
+  const vols = s.map(sessionVolume);
+  const trend = linReg(vols);
   charts.vol = new Chart(ctx, {
     type: "bar",
     data: {
       labels: s.map(x => fmtShort(x.date)),
-      datasets: [{ data: s.map(sessionVolume), backgroundColor: "rgba(255,45,149,.8)", borderRadius: 6 }]
+      datasets: [
+        { type: "bar", data: vols, backgroundColor: "rgba(255,45,149,.8)", borderRadius: 6, order: 2 },
+        ...(trend ? [{ type: "line", label: "Tendenza", data: trend, borderColor: "#FF6B6B", borderWidth: 2, pointRadius: 3, pointBackgroundColor: "#FF6B6B", fill: false, tension: 0, order: 1 }] : [])
+      ]
     },
     options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: "rgba(255,255,255,.08)" } }, x: { grid: { display: false } } }, responsive: true }
   });
@@ -1233,31 +1279,62 @@ function renderExChart() {
   const pts = [...state.sessions]
     .filter(s => exSets(s, k).length)
     .sort((a, b) => a.date.localeCompare(b.date))
-    .map(s => ({ d: fmtShort(s.date), v: +session1RM(s, k).toFixed(1) }));
+    .map(s => {
+      const sets = exSets(s, k);
+      const maxW = Math.max(...sets.map(x => x.w));
+      const topSet = sets.find(x => x.w === maxW);
+      return { d: fmtShort(s.date), v: maxW, sets: sets.length, reps: topSet ? topSet.r : null };
+    });
   if (!pts.length) { if (lbl) lbl.textContent = "—"; return; }
-  if (lbl) lbl.textContent = `oggi ~${pts[pts.length - 1].v} kg`;
+  const vals = pts.map(p => p.v);
+  const maxV = Math.max(...vals), minV = Math.min(...vals);
+  const maxIdx = vals.lastIndexOf(maxV);
+  if (lbl) lbl.textContent = `max ${maxV} kg`;
   charts.ex = new Chart(ctx, {
     type: "line",
     data: {
       labels: pts.map(p => p.d),
-      datasets: [{ data: pts.map(p => p.v), borderColor: "#FF2D95", backgroundColor: "rgba(255,45,149,.18)", borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#FF2D95", fill: true, tension: .3 }]
+      datasets: [{
+        data: vals,
+        borderColor: "#FF2D95",
+        backgroundColor: "rgba(255,45,149,.18)",
+        borderWidth: 2,
+        pointRadius: pts.map((_, i) => i === maxIdx ? 6 : 4),
+        pointBackgroundColor: pts.map((_, i) => i === maxIdx ? "#F59E0B" : "#FF2D95"),
+        fill: true, tension: .3
+      }]
     },
-    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false, grid: { color: "rgba(255,255,255,.08)" } }, x: { grid: { display: false } } }, responsive: true }
-  });
-}
-
-function renderBWChart() {
-  const bw = state.bodyweight;
-  const ctx = $("bw-chart").getContext("2d");
-  if (charts.bw) charts.bw.destroy();
-  if (!bw.length) return;
-  charts.bw = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: bw.map(b => fmtShort(b.date)),
-      datasets: [{ data: bw.map(b => b.v), borderColor: "#A855F7", backgroundColor: "rgba(168,85,247,.18)", borderWidth: 2, pointRadius: 4, pointBackgroundColor: "#A855F7", fill: true, tension: .3 }]
+    options: {
+      layout: { padding: { top: 18 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => pts[items[0].dataIndex].d,
+            label: (item) => `Peso max: ${pts[item.dataIndex].v} kg`,
+            afterLabel: (item) => { const p = pts[item.dataIndex]; return `Serie: ${p.sets}${p.reps ? ` × ${p.reps} rip` : ""}`; }
+          }
+        }
+      },
+      scales: {
+        y: { beginAtZero: false, suggestedMin: Math.max(0, minV - 5), grid: { color: "rgba(255,255,255,.08)" } },
+        x: { grid: { display: false } }
+      },
+      responsive: true
     },
-    options: { plugins: { legend: { display: false } }, scales: { y: { grid: { color: "rgba(255,255,255,.08)" } }, x: { grid: { display: false } } }, responsive: true }
+    plugins: [{
+      id: "prBadge",
+      afterDatasetsDraw(chart) {
+        const pt = chart.getDatasetMeta(0).data[maxIdx];
+        if (!pt) return;
+        const c = chart.ctx;
+        c.save();
+        c.font = "15px -apple-system, sans-serif";
+        c.textAlign = "center";
+        c.fillText("🏆", pt.x, pt.y - 12);
+        c.restore();
+      }
+    }]
   });
 }
 
@@ -1299,7 +1376,8 @@ function renderGoals() {
   renderComposition();
   renderCompChart();
 
-  $("g-current").textContent = cur != null ? cur + " kg" : "—";
+  const lastBW = bw.length ? bw[bw.length - 1] : null;
+  $("g-current").innerHTML = lastBW ? `${lastBW.v} kg <span class="goal-current-date">· ${fmtShort(lastBW.date)}</span>` : "—";
   $("g-start-input").value = g.startWeight != null ? g.startWeight : "";
   $("g-target-input").value = g.targetWeight != null ? g.targetWeight : "";
   $("g-note").value = g.note || "";
@@ -1325,14 +1403,6 @@ function renderGoals() {
 
   renderNutrition();
   renderBadges();
-
-  // lista PR
-  const allKeys = new Set();
-  state.sessions.forEach(x => Object.keys(x.exercises || {}).forEach(k => allKeys.add(k)));
-  const prs = [...allKeys].map(k => ({ name: EXERCISES[k].name, v: bestPR(k) })).filter(p => p.v > 0).sort((a, b) => b.v - a.v);
-  $("pr-list").innerHTML = prs.length
-    ? prs.map(p => `<div class="pr-row"><span class="pr-medal">🏆</span><span class="pr-name">${p.name}</span><span class="pr-val">${p.v} kg</span></div>`).join("")
-    : `<div class="empty-mini">Registra qualche sessione per vedere i tuoi record qui.</div>`;
 }
 
 function projectionHTML() {
@@ -1549,11 +1619,39 @@ function saveComposition() {
 }
 
 /* ---------- STORICO SESSIONI ---------- */
+let histMonth = null;   // "YYYY-MM" mese selezionato nello storico
+const monthKey = (dateStr) => dateStr.slice(0, 7);
+function monthLabel(mk) {
+  const [y, m] = mk.split("-");
+  const s = new Date(+y, +m - 1, 1).toLocaleDateString("it-IT", { month: "short", year: "2-digit" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+function selectHistMonth(mk) { histMonth = mk; renderHistory(); }
+
 function renderHistory() {
   const list = $("history-list");
-  const s = [...state.sessions].sort((a, b) => b.date.localeCompare(a.date));
-  if (!s.length) { list.innerHTML = `<div class="empty-mini">Nessuna sessione registrata.</div>`; return; }
-  list.innerHTML = s.map(sess => {
+  const monthsHost = $("hist-months");
+  const sessions = [...state.sessions].sort((a, b) => b.date.localeCompare(a.date));
+
+  // mesi con sessioni + mese corrente sempre presente
+  const curMonth = todayStr().slice(0, 7);
+  const months = [...new Set(sessions.map(s => monthKey(s.date)))];
+  if (!months.includes(curMonth)) months.push(curMonth);
+  months.sort((a, b) => b.localeCompare(a));
+  if (!histMonth || !months.includes(histMonth)) histMonth = months.includes(curMonth) ? curMonth : months[0];
+
+  if (monthsHost) {
+    monthsHost.innerHTML = months.map(mk =>
+      `<button class="hist-month-tab ${mk === histMonth ? 'active' : ''}" onclick="selectHistMonth('${mk}')">${monthLabel(mk)}</button>`).join("");
+  }
+
+  const monthSessions = sessions.filter(s => monthKey(s.date) === histMonth);
+  if (!monthSessions.length) {
+    list.innerHTML = `<div class="empty-mini">Nessuna sessione in questo mese. Ogni allenamento conta — il prossimo è a un passo! 💪</div>`;
+    return;
+  }
+
+  list.innerHTML = monthSessions.map(sess => {
     const w = getWorkout(sess.workoutId);
     const nEx = Object.keys(sess.exercises || {}).length;
     const meta = [
@@ -1562,14 +1660,19 @@ function renderHistory() {
       sess.duration ? `${sess.duration} min` : null,
       sess.calories ? `${sess.calories} kcal` : null
     ].filter(Boolean).join(" · ");
-    return `<div class="hist-card">
+    const rows = Object.keys(sess.exercises || {}).map(k => {
+      const sets = sess.exercises[k].sets;
+      return `<div class="hist-ex"><span class="hist-ex-name">${EXERCISES[k] ? EXERCISES[k].name : k}</span><span class="hist-ex-sets">${sets.map(x => `${x.w}×${x.r}`).join(' · ')}</span></div>`;
+    }).join("");
+    return `<div class="hist-card" onclick="this.classList.toggle('open')">
       <div class="hist-top">
         <span class="hist-dot" style="background:${w ? w.color : '#999'}"></span>
         <span class="hist-name">${w ? w.emoji + ' ' + w.name : 'Sessione'}</span>
         <span class="hist-date">${fmtShort(sess.date)}</span>
+        <span class="hist-chev">▾</span>
       </div>
       <div class="hist-meta">${meta}</div>
-      ${sess.notes ? `<div class="hist-notes">📝 ${sess.notes}</div>` : ''}
+      <div class="hist-detail">${rows}${sess.notes ? `<div class="hist-notes">📝 ${sess.notes}</div>` : ''}</div>
     </div>`;
   }).join("");
 }
@@ -1713,30 +1816,40 @@ function renderMealTrend() {
     return;
   }
 
-  const avgK = Math.round(kcals.reduce((a, b) => a + b, 0) / loggedDays);
-  const avgP = Math.round(prots.reduce((a, b) => a + b, 0) / loggedDays);
+  const kT = kcalTarget(), pT = proteinTarget();
   const labels = days.map(d => new Date(d + "T00:00:00").toLocaleDateString("it-IT", { weekday: "short" }));
+  const loggedIdx = days.map((d, i) => mealsFor(d).length ? i : -1).filter(i => i >= 0);
+  const kHit = loggedIdx.filter(i => kcals[i] >= kT).length;
+  const pHit = loggedIdx.filter(i => prots[i] >= pT).length;
 
   host.innerHTML = `
-    <div class="meal-avg">Media giornaliera (${loggedDays} ${loggedDays === 1 ? "giorno" : "giorni"} registrat${loggedDays === 1 ? "o" : "i"}): <strong style="color:#FF6B6B">${avgK} kcal</strong> · <strong style="color:${proteinColor(avgP)}">${avgP}g proteine</strong></div>
     <div class="spark-row">
-      <div class="spark-head"><span class="spark-lbl" style="color:#FF6B6B">Calorie</span><span class="spark-val">${avgK} kcal/die</span></div>
-      <div class="spark-wrap" style="height:90px"><canvas id="meal-k-chart"></canvas></div>
+      <div class="spark-head"><span class="spark-lbl" style="color:#FF6B6B">Calorie</span><span class="spark-val">obiettivo ${kT} kcal</span></div>
+      <div class="spark-wrap" style="height:100px"><canvas id="meal-k-chart"></canvas></div>
+      <div class="meal-hit">✅ ${kHit}/${loggedDays} giorni obiettivo calorie raggiunto</div>
     </div>
     <div class="spark-row">
-      <div class="spark-head"><span class="spark-lbl" style="color:#2BD576">Proteine</span><span class="spark-val">obiettivo ${proteinTarget()}g</span></div>
-      <div class="spark-wrap" style="height:90px"><canvas id="meal-p-chart"></canvas></div>
+      <div class="spark-head"><span class="spark-lbl" style="color:#2BD576">Proteine</span><span class="spark-val">obiettivo ${pT} g</span></div>
+      <div class="spark-wrap" style="height:100px"><canvas id="meal-p-chart"></canvas></div>
+      <div class="meal-hit">✅ ${pHit}/${loggedDays} giorni obiettivo proteine raggiunto</div>
     </div>`;
 
-  charts.mealK = new Chart($("meal-k-chart").getContext("2d"), {
+  charts.mealK = mealBarChart("meal-k-chart", labels, kcals, kT);
+  charts.mealP = mealBarChart("meal-p-chart", labels, prots, pT);
+}
+
+// Barre andamento: verde se ≥ obiettivo, coral se sotto + linea obiettivo tratteggiata
+function mealBarChart(canvasId, labels, vals, target) {
+  return new Chart($(canvasId).getContext("2d"), {
     type: "bar",
-    data: { labels, datasets: [{ data: kcals, backgroundColor: "rgba(255,107,107,.8)", borderRadius: 5 }] },
-    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: "rgba(255,255,255,.08)" } }, x: { grid: { display: false } } }, responsive: true, maintainAspectRatio: false }
-  });
-  charts.mealP = new Chart($("meal-p-chart").getContext("2d"), {
-    type: "bar",
-    data: { labels, datasets: [{ data: prots, backgroundColor: prots.map(p => proteinColor(p) + "cc"), borderRadius: 5 }] },
-    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, suggestedMax: Math.max(proteinTarget(), ...prots), grid: { color: "rgba(255,255,255,.08)" } }, x: { grid: { display: false } } }, responsive: true, maintainAspectRatio: false }
+    data: {
+      labels,
+      datasets: [
+        { data: vals, backgroundColor: vals.map(v => (v > 0 && v >= target) ? "#10B981" : "#FF6B6B"), borderRadius: 5, order: 2 },
+        { type: "line", data: labels.map(() => target), borderColor: "rgba(255,255,255,.55)", borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0, fill: false, order: 1 }
+      ]
+    },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, suggestedMax: Math.max(target, ...vals) * 1.1, grid: { color: "rgba(255,255,255,.08)" } }, x: { grid: { display: false } } }, responsive: true, maintainAspectRatio: false }
   });
 }
 
@@ -1799,5 +1912,6 @@ if (window.Chart) {
   Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, sans-serif";
 }
 setDate();
+renderWeighBanner();
 renderWorkoutChips();
 renderWorkout();
