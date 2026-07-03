@@ -14,6 +14,8 @@
 
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   let currentUser = null;
+  let currentToken = null;   // access token per il flush keepalive
+  let cloudHadData = false;  // il cloud aveva dati all'ultimo pull (anti-wipe)
   let pushTimer = null;
 
   // Il salvataggio originale (solo localStorage)
@@ -46,6 +48,15 @@
 
   async function pushCloud() {
     if (!currentUser) return;
+    // ANTI-WIPE: mai sovrascrivere un cloud pieno con uno stato locale vuoto
+    // (es. localStorage azzerato da Safari): in quel caso si fa pull, non push.
+    if (cloudHadData && !hasData(state)) {
+      console.warn("[cloud] push bloccato: stato locale vuoto ma il cloud ha dati");
+      localStorage.removeItem(PENDING_KEY);
+      setSyncStatus("Recupero i dati dal cloud…");
+      pullCloud();
+      return;
+    }
     setSyncStatus("Sincronizzo…");
     try {
       const { error } = await sb.from("user_states").upsert({
@@ -54,17 +65,39 @@
         updated_at: new Date().toISOString()
       });
       if (error) throw error;
+      if (hasData(state)) cloudHadData = true;
       localStorage.removeItem(PENDING_KEY);
       setSyncStatus("Sincronizzato ✓");
+      // Cronologia versioni (assicurazione sui dati): best-effort, se la
+      // tabella non esiste ancora l'errore viene ignorato.
+      sb.from("state_history").insert({ user_id: currentUser.id, data: state })
+        .then(() => {}, () => {});
     } catch (e) {
       console.warn("[cloud] push fallito", e);
       setSyncStatus("Offline — salvato in locale");
     }
   }
 
-  // Flush immediato quando l'app va in background o si chiude
+  // Flush immediato quando l'app va in background o si chiude.
+  // Usa fetch keepalive: sopravvive alla chiusura della pagina (le fetch
+  // normali su pagehide vengono spesso uccise da iOS prima di partire).
   function flushPending() {
-    if (currentUser && localStorage.getItem(PENDING_KEY) === "1") pushCloud();
+    if (!currentUser || localStorage.getItem(PENDING_KEY) !== "1") return;
+    if (cloudHadData && !hasData(state)) return;   // stessa guardia anti-wipe
+    if (!currentToken) { pushCloud(); return; }
+    try {
+      fetch(SUPABASE_URL + "/rest/v1/user_states?on_conflict=user_id", {
+        method: "POST",
+        keepalive: true,
+        headers: {
+          "apikey": SUPABASE_ANON_KEY,
+          "Authorization": "Bearer " + currentToken,
+          "Content-Type": "application/json",
+          "Prefer": "resolution=merge-duplicates"
+        },
+        body: JSON.stringify({ user_id: currentUser.id, data: state, updated_at: new Date().toISOString() })
+      }).then(r => { if (r.ok) localStorage.removeItem(PENDING_KEY); }).catch(() => {});
+    } catch (e) { pushCloud(); }
   }
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flushPending(); });
   window.addEventListener("pagehide", flushPending);
@@ -86,6 +119,7 @@
 
       if (data && hasData(data.data)) {
         // Il cloud ha dati → sono la verità
+        cloudHadData = true;
         state = applyMigrations(Object.assign(defaultState(), data.data));
         _localSave(state);
         refreshUI();
@@ -151,7 +185,10 @@
 
   sb.auth.onAuthStateChange((_event, session) => {
     currentUser = session ? session.user : null;
-    if (currentUser) pullCloud();
+    currentToken = session ? session.access_token : null;
+    if (!currentUser) cloudHadData = false;
+    if (currentUser && (_event === "INITIAL_SESSION" || _event === "SIGNED_IN")) pullCloud();
+    else if (currentUser) { /* TOKEN_REFRESHED ecc.: niente pull, solo token aggiornato */ }
     else if (_event === "INITIAL_SESSION" && window.showWelcome) window.showWelcome();
     renderAccountUI();
   });

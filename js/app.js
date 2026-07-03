@@ -11,7 +11,10 @@ let selectedQuality = {};         // qualità scelta per esercizio nella session
 
 /* ---------- UTIL ---------- */
 const $ = (id) => document.getElementById(id);
-const todayStr = () => new Date().toISOString().split("T")[0];
+// Data LOCALE in formato YYYY-MM-DD (mai usare toISOString per le date: e' UTC
+// e a cavallo della mezzanotte italiana sposterebbe tutto al giorno sbagliato)
+const localDate = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+const todayStr = () => localDate(new Date());
 const fmtShort = (str) => {
   const d = new Date(str + "T00:00:00");
   return d.toLocaleDateString("it-IT", { day: "numeric", month: "short" });
@@ -62,7 +65,7 @@ function linReg(vals) {
 function mondayKey() {
   const d = new Date();
   d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-  return d.toISOString().split("T")[0];
+  return localDate(d);
 }
 function renderWeighBanner() {
   const host = $("weigh-banner");
@@ -113,16 +116,16 @@ function currentBW() { const bw = state.bodyweight; return bw.length ? bw[bw.len
 function weekStart(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
   d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-  return d.toISOString().split("T")[0];
+  return localDate(d);
 }
 // Streak: settimane consecutive (fino ad ora) con almeno un allenamento
 function weekStreak() {
   const weeks = new Set(state.sessions.map(s => weekStart(s.date)));
   let probe = new Date(); probe.setDate(probe.getDate() - ((probe.getDay() + 6) % 7));
-  let key = probe.toISOString().split("T")[0];
-  if (!weeks.has(key)) { probe.setDate(probe.getDate() - 7); key = probe.toISOString().split("T")[0]; }
+  let key = localDate(probe);
+  if (!weeks.has(key)) { probe.setDate(probe.getDate() - 7); key = localDate(probe); }
   let n = 0;
-  while (weeks.has(key)) { n++; probe.setDate(probe.getDate() - 7); key = probe.toISOString().split("T")[0]; }
+  while (weeks.has(key)) { n++; probe.setDate(probe.getDate() - 7); key = localDate(probe); }
   return n;
 }
 
@@ -190,7 +193,7 @@ function weightProjection() {
   const weeksLeft = (g.targetWeight - last.v) / ratePerWeek;
   if (weeksLeft <= 0) return { ratePerWeek, date: last.date };
   const eta = new Date(last.date); eta.setDate(eta.getDate() + Math.round(weeksLeft * 7));
-  return { ratePerWeek, date: eta.toISOString().split("T")[0] };
+  return { ratePerWeek, date: localDate(eta) };
 }
 
 // Numero di PR registrati (esercizi con un massimale)
@@ -282,7 +285,7 @@ function mealDayStreak() {
   let n = 0;
   const d = new Date();
   if (!mealsFor(todayStr()).length) d.setDate(d.getDate() - 1);   // oggi può essere in corso
-  while (mealsFor(d.toISOString().split("T")[0]).length) { n++; d.setDate(d.getDate() - 1); }
+  while (mealsFor(localDate(d)).length) { n++; d.setDate(d.getDate() - 1); }
   return n;
 }
 // Settimane diverse con almeno una pesata
@@ -1089,7 +1092,7 @@ function renderCalendar() {
 
   // prossimi allenamenti programmati
   const limit = new Date(); limit.setDate(limit.getDate() + 21);
-  const limitStr = limit.toISOString().split("T")[0];
+  const limitStr = localDate(limit);
   const upcoming = Object.entries(state.schedule)
     .filter(([d]) => d >= todayStr() && d <= limitStr)
     .sort((a, b) => a[0].localeCompare(b[0]));
@@ -1203,7 +1206,7 @@ function closeModal() { $("modal").classList.remove("show"); }
 function renderProgress() {
   const s = state.sessions;
   // stat cards
-  const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString().split("T")[0];
+  const weekAgo = localDate(new Date(Date.now() - 7 * 864e5));
   const thisWeek = s.filter(x => x.date >= weekAgo).length;
   let prCount = 0;
   const allKeys = new Set(); s.forEach(x => Object.keys(x.exercises || {}).forEach(k => allKeys.add(k)));
@@ -1965,7 +1968,7 @@ function renderMealTrend() {
   const days = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i);
-    days.push(d.toISOString().split("T")[0]);
+    days.push(localDate(d));
   }
   const kcals = days.map(d => dayTotals(d).kcal);
   const prots = days.map(d => dayTotals(d).protein);

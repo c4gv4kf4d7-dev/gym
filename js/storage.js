@@ -65,7 +65,8 @@ function exportJSON(state) {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  const stamp = new Date().toISOString().split("T")[0];
+  const d = new Date();
+  const stamp = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   a.href = url;
   a.download = `allenamento-backup-${stamp}.json`;
   document.body.appendChild(a);

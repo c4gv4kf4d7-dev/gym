@@ -30,7 +30,7 @@
       html: () => `
         <p class="ob-lead">Costruiamo la <b>tua</b> app in un paio di minuti: profilo, obiettivi e scheda su misura.</p>
         <input class="ob-input" id="ob-name" placeholder="Come ti chiami?" maxlength="20" value="${ob.name || ""}">`,
-      save: () => { ob.name = val("ob-name"); return ob.name ? null : "Dimmi almeno il nome 🙂"; }
+      save: () => { ob.name = clean(val("ob-name")); return ob.name ? null : "Dimmi almeno il nome 🙂"; }
     },
     {
       id: "body", title: "Chi sei 📏",
@@ -90,7 +90,7 @@
             <button data-v="corpo" class="${ob.equipment === "corpo" ? "sel" : ""}">Corpo libero</button>
           </div></div>`,
       mount: () => segInit("ob-equip", v => ob.equipment = v),
-      save: () => { ob.limitations = val("ob-lim"); return ob.equipment ? null : "Scegli l'attrezzatura"; }
+      save: () => { ob.limitations = clean(val("ob-lim")); return ob.equipment ? null : "Scegli l'attrezzatura"; }
     },
     {
       id: "targets", title: "I tuoi target 🍽️",
@@ -127,6 +127,8 @@
       b.classList.add("sel"); cb(b.dataset.v);
     });
   }
+  // Rimuove i caratteri HTML pericolosi dai testi che finiscono in innerHTML
+  const clean = (x) => String(x == null ? "" : x).replace(/[<>&"]/g, "").trim();
   const val = (id) => { const e = document.getElementById(id); return e ? e.value.trim() : ""; };
   const num = (id) => { const v = parseFloat(val(id)); return isNaN(v) ? null : v; };
 
@@ -224,7 +226,7 @@
   }
 
   window.saveProfileEdit = function () {
-    const name = val("ed-name");
+    const name = clean(val("ed-name"));
     if (!name) { document.getElementById("ob-err").textContent = "Il nome non può essere vuoto"; return; }
     Object.assign(state.profile, {
       name, nick: name,
@@ -234,7 +236,7 @@
       goal: val("ed-goal"), level: val("ed-level"),
       daysPerWeek: +val("ed-days") || state.profile.daysPerWeek,
       equipment: val("ed-equip"),
-      limitations: val("ed-lim")
+      limitations: clean(val("ed-lim"))
     });
     state.goals = state.goals || {};
     state.goals.startWeight = num("ed-start");
@@ -488,11 +490,12 @@ Regole: "gruppo" ∈ petto|schiena|gambe|spalle|braccia|core. "attrezzo" ∈ bil
         const keys = g.esercizi.map((e, ei) => {
           if (!e.nome) throw new Error("Esercizio senza nome");
           // riusa un esercizio della libreria se il nome coincide
+          e.nome = clean(e.nome); e.gruppo = clean(e.gruppo).toLowerCase(); e.attrezzo = clean(e.attrezzo).toLowerCase();
           const found = Object.entries(EXERCISES).find(([, x]) => x.name.toLowerCase() === String(e.nome).toLowerCase());
           if (found) return found[0];
           const key = "cx_" + String(e.nome).toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 24) + "_" + gi + ei;
           state.customExercises[key] = {
-            name: String(e.nome),
+            name: e.nome,
             muscle: e.gruppo ? (e.gruppo.charAt(0).toUpperCase() + e.gruppo.slice(1)) : "—",
             secondary: "—",
             type: TOOL_MAP[e.attrezzo] || "machine",
@@ -506,9 +509,9 @@ Regole: "gruppo" ∈ petto|schiena|gambe|spalle|braccia|core. "attrezzo" ∈ bil
         });
         newWorkouts.push({
           id: "my_" + Date.now() + "_" + gi,
-          name: g.nome || `${data.nome || "Scheda PT"} ${gi + 1}`,
+          name: clean(g.nome) || `${clean(data.nome) || "Scheda PT"} ${gi + 1}`,
           emoji: "📄", color: colors[gi % colors.length],
-          sub: `${keys.length} esercizi`, focus: data.nome || "Scheda del PT",
+          sub: `${keys.length} esercizi`, focus: clean(data.nome) || "Scheda del PT",
           exercises: keys, custom: true
         });
       });
