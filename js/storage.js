@@ -24,7 +24,7 @@ const defaultState = () => ({
   composition: [],     // { date, weight, bodyFat, skeletalMuscle, boneMass, bodyWater, bmr, metabolicAge }
   meals: {},           // "YYYY-MM-DD": [ { id, text, kcal, protein, t:"HH:MM" } ]
   ptLifts: [],         // sedute con Denis: { date, panca, squat, stacco } — kg dei 3 esercizi
-  nutriGoal: { kcal: null, protein: 150 },  // obiettivi nutrizionali editabili (kcal null = usa stima)
+  nutriGoal: { kcal: null, protein: null },  // null = usa i target adattivi del coach nutrizione
   myWorkouts: [],      // schede personali dell'utente (se vuoto → schede di default)
   customExercises: {}, // esercizi importati/creati dall'utente (stessa forma di EXERCISES)
   badges: [],          // id dei traguardi sbloccati

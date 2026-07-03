@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Allenamento">
 <title>Allenamento</title>
-<link rel="stylesheet" href="css/styles.css?v=20260703c">
+<link rel="stylesheet" href="css/styles.css?v=20260703d">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
@@ -106,27 +106,7 @@
   <div class="section-label">☁️ Account &amp; sincronizzazione</div>
   <div class="goal-card" id="account-card"></div>
 
-  <div class="section-label">⚖️ Peso</div>
-  <div class="goal-card">
-    <div class="goal-current" id="g-current">—</div>
-    <div class="goal-current-lbl" id="g-current-sub">Ultima misurazione</div>
-    <div class="bw-row">
-      <input class="bw-input" type="number" id="bw-input" placeholder="peso di oggi, es. 62.5" step="0.1" inputmode="decimal">
-      <button class="bw-btn" onclick="saveBW()">Salva</button>
-    </div>
-    <div class="progress-wrap goal-inline" id="goal-progress" style="display:none"></div>
-    <button class="goal-edit-toggle" id="goal-toggle" onclick="toggleGoalForm()">Modifica obiettivo ▾</button>
-    <div id="goal-form" style="display:none">
-      <div class="goal-fields">
-        <div class="goal-field"><div class="goal-field-lbl">Peso di partenza (kg)</div><input type="number" id="g-start-input" step="0.1" inputmode="decimal"></div>
-        <div class="goal-field"><div class="goal-field-lbl">Peso obiettivo (kg)</div><input type="number" id="g-target-input" step="0.1" inputmode="decimal"></div>
-      </div>
-      <textarea class="goal-note" id="g-note" placeholder="Motivazione, scadenza… (opzionale)"></textarea>
-      <button class="btn-secondary" onclick="saveGoals()">Salva obiettivo</button>
-    </div>
-  </div>
-
-  <div class="section-label">🍽️ Coach nutrizione (massa)</div>
+  <div class="section-label">🍽️ Coach nutrizione</div>
   <div class="goal-card" id="nutrition-card"></div>
 
   <div class="section-label">📊 Composizione corporea</div>
@@ -142,7 +122,6 @@
         <div class="goal-field"><div class="goal-field-lbl">Massa ossea (kg)</div><input type="number" id="c-bone" step="0.01" inputmode="decimal"></div>
         <div class="goal-field"><div class="goal-field-lbl">Acqua (%)</div><input type="number" id="c-water" step="0.1" inputmode="decimal"></div>
         <div class="goal-field"><div class="goal-field-lbl">BMR (kcal)</div><input type="number" id="c-bmr" inputmode="numeric"></div>
-        <div class="goal-field"><div class="goal-field-lbl">Età metabolica</div><input type="number" id="c-metage" inputmode="numeric"></div>
       </div>
       <button class="btn-secondary" onclick="saveComposition()">Salva misurazione</button>
     </div>
@@ -217,14 +196,14 @@
 <div class="toast" id="toast"></div>
 
 <script>if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js").catch(function(){}); }</script>
-<script src="js/data.js?v=20260703c"></script>
-<script src="js/exercise-media.js?v=20260703c"></script>
-<script src="js/cues.js?v=20260703c"></script>
-<script src="js/storage.js?v=20260703c"></script>
-<script src="js/app.js?v=20260703c"></script>
-<script src="js/setup.js?v=20260703c"></script>
+<script src="js/data.js?v=20260703d"></script>
+<script src="js/exercise-media.js?v=20260703d"></script>
+<script src="js/cues.js?v=20260703d"></script>
+<script src="js/storage.js?v=20260703d"></script>
+<script src="js/app.js?v=20260703d"></script>
+<script src="js/setup.js?v=20260703d"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/cloud-config.js?v=20260703c"></script>
-<script src="js/cloud.js?v=20260703c"></script>
+<script src="js/cloud-config.js?v=20260703d"></script>
+<script src="js/cloud.js?v=20260703d"></script>
 </body>
 </html>

@@ -127,16 +127,55 @@ function weekStreak() {
 }
 
 // Target nutrizionali per la massa (da BMR + peso)
+// Ritmo di variazione peso (kg/settimana) sulle pesate delle ultime 4 settimane
+function recentWeeklyRate() {
+  const bw = state.bodyweight || [];
+  if (bw.length < 2) return null;
+  const last = bw[bw.length - 1];
+  const cutoff = new Date(last.date + "T00:00:00"); cutoff.setDate(cutoff.getDate() - 28);
+  const win = bw.filter(b => new Date(b.date + "T00:00:00") >= cutoff);
+  if (win.length < 2) return null;
+  const days = (new Date(last.date) - new Date(win[0].date)) / 864e5;
+  if (days <= 0) return null;
+  return +(((last.v - win[0].v) / days) * 7).toFixed(2);
+}
+
+/* Coach nutrizione ADATTIVO: si ricalcola a ogni pesata.
+   Base = BMR (bilancia smart se disponibile, altrimenti Mifflin-St Jeor dal
+   profilo) × attività (giorni/settimana) + aggiustamento per obiettivo,
+   corretto in base al ritmo reale delle ultime 4 settimane. */
 function nutritionTargets() {
-  const comp = state.composition;
-  const bmr = (comp.length && comp[comp.length - 1].bmr) || 1489;
-  const bw = currentBW() || state.goals.startWeight || 60;
-  const tdee = Math.round(bmr * 1.5);          // ~3 allenamenti/settimana, attività moderata
-  const bulk = Math.round((tdee + 350) / 10) * 10;  // surplus per massa pulita
-  const protein = Math.round(bw * 1.9);        // g/die
-  const fat = Math.round(bw * 0.9);            // g/die
-  const carbs = Math.max(0, Math.round((bulk - protein * 4 - fat * 9) / 4));
-  return { bmr, bw, tdee, bulk, protein, fat, carbs };
+  const p = state.profile || {};
+  const bw = currentBW() || state.goals.startWeight || 70;
+  const comp = state.composition || [];
+  let bmr = comp.length ? comp[comp.length - 1].bmr : null;
+  if (!bmr) bmr = (p.height && p.age)
+    ? Math.round(10 * bw + 6.25 * p.height - 5 * p.age + (p.sex === "F" ? -161 : 5))
+    : Math.round(22 * bw);
+  const days = p.daysPerWeek || 3;
+  const act = days >= 5 ? 1.65 : days >= 3 ? 1.5 : 1.35;
+  const tdee = Math.round(bmr * act);
+  const goal = p.goal || "massa";
+  let adj = ({ massa: 300, dimagrimento: -400, forza: 150, benessere: 0 })[goal];
+  if (adj == null) adj = 300;
+
+  // Adattamento settimanale sul ritmo reale
+  let adaptNote = "";
+  const rate = recentWeeklyRate();
+  if (rate != null) {
+    if (goal === "massa" && rate < 0.1) { adj += 150; adaptNote = "il peso è fermo → surplus alzato di 150 kcal questa settimana"; }
+    else if (goal === "massa" && rate > 0.5) { adj -= 100; adaptNote = "stai salendo veloce (" + rate + " kg/sett) → surplus ridotto per una massa più pulita"; }
+    else if (goal === "dimagrimento" && rate > -0.1) { adj -= 150; adaptNote = "il peso è fermo → deficit aumentato di 150 kcal"; }
+    else if (goal === "dimagrimento" && rate < -1) { adj += 150; adaptNote = "stai scendendo troppo in fretta → deficit ammorbidito"; }
+    else if (goal === "massa") adaptNote = "ritmo attuale " + (rate > 0 ? "+" : "") + rate + " kg/settimana: sei nella zona giusta";
+  }
+
+  const kcal = Math.round((tdee + adj) / 10) * 10;
+  const gkg = ({ massa: 1.9, dimagrimento: 2.0, forza: 1.8, benessere: 1.4 })[goal] || 1.9;
+  const protein = Math.round(bw * gkg);
+  const fat = Math.round(bw * 0.9);
+  const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
+  return { bmr, bw, tdee, bulk: kcal, kcal, protein, fat, carbs, goal, adj, gkg, rate, adaptNote };
 }
 
 // Proiezione raggiungimento peso obiettivo (richiede ≥2 misurazioni)
@@ -1440,62 +1479,23 @@ function renderProfile() {
   ].filter(Boolean);
   card.className = "goal-card profile-box";
   card.innerHTML = `
-    <div class="profile-center">
-      <div class="profile-avatar profile-avatar-lg">${nick.charAt(0).toUpperCase()}</div>
-      <div class="profile-name">${nick}</div>
-      ${meta ? `<div class="profile-meta">${meta}</div>` : ""}
+    <div class="profile-center profile-compact">
+      <div class="profile-avatar-wrap">
+        <div class="profile-avatar-lg">${nick.charAt(0).toUpperCase()}</div>
+        <button class="profile-pencil" onclick="startOnboarding(true)" aria-label="Modifica profilo">✏️</button>
+      </div>
+      <div class="profile-name">${nick} <span class="profile-meta-inline">${meta}</span></div>
       ${chips.length ? `<div class="profile-chips profile-chips-c">${chips.map(c => `<span class="profile-chip">${c}</span>`).join("")}</div>` : ""}
       ${p.limitations ? `<div class="profile-lim">⚠️ ${p.limitations}</div>` : ""}
-      <button class="profile-edit-link" onclick="startOnboarding(true)">Modifica profilo</button>
     </div>`;
 }
 
 function renderGoals() {
-  const bw = state.bodyweight;
-  const cur = bw.length ? bw[bw.length - 1].v : null;
-  const g = state.goals;
-
   renderProfile();
   renderComposition();
   renderCompChart();
-
-  // PESO — valore = ultima misurazione registrata (pesata o bilancia smart)
-  const lastBW = bw.length ? bw[bw.length - 1] : null;
-  $("g-current").textContent = lastBW ? `${lastBW.v} kg` : "—";
-  $("g-current-sub").textContent = lastBW ? `Ultima misurazione · ${fmtShort(lastBW.date)}` : "Nessuna misurazione: registra il primo peso";
-  $("g-start-input").value = g.startWeight != null ? g.startWeight : "";
-  $("g-target-input").value = g.targetWeight != null ? g.targetWeight : "";
-  $("g-note").value = g.note || "";
-
-  // Una sola riga di avanzamento: barra + frase sintetica
-  const wrap = $("goal-progress");
-  if (g.startWeight != null && g.targetWeight != null && cur != null) {
-    const total = g.targetWeight - g.startWeight;
-    const done = cur - g.startWeight;
-    const pct = total !== 0 ? Math.max(0, Math.min(100, Math.round((done / total) * 100))) : 0;
-    const p = weightProjection();
-    const eta = (p && p.date && p.date > todayStr()) ? ` · al ritmo attuale ci arrivi a ${fmtShort(p.date)}` : "";
-    wrap.innerHTML = `
-      <div class="progress-top">
-        <span class="progress-label">Obiettivo ${g.targetWeight} kg</span>
-        <span class="progress-count">${pct}%</span>
-      </div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:#8B5CF6"></div></div>
-      <div class="goal-delta">${done >= 0 ? '+' : ''}${done.toFixed(1)} kg da quando hai iniziato · mancano ${Math.abs(g.targetWeight - cur).toFixed(1)} kg${eta}</div>`;
-    wrap.style.display = "block";
-  } else {
-    wrap.style.display = "none";
-  }
-
   renderNutrition();
   renderBadges();
-}
-
-function toggleGoalForm() {
-  const f = $("goal-form");
-  const open = f.style.display !== "none";
-  f.style.display = open ? "none" : "block";
-  $("goal-toggle").textContent = open ? "Modifica obiettivo ▾" : "Chiudi ▴";
 }
 
 function projectionHTML() {
@@ -1542,52 +1542,32 @@ function showBadge(id) {
 
 function renderNutrition() {
   const n = nutritionTargets();
+  const head = ({
+    massa: "Per costruire massa", dimagrimento: "Per dimagrire mantenendo il muscolo",
+    forza: "Per crescere di forza", benessere: "Per il tuo benessere"
+  })[n.goal] || "I tuoi target";
+  const surplus = n.kcal - n.tdee;
   $("nutrition-card").innerHTML = `
-    <div class="nutri-head">Per costruire massa partendo da <strong>${n.bw} kg</strong> (BMR ${n.bmr} kcal):</div>
+    <div class="nutri-head">${head} — peso attuale <strong>${n.bw} kg</strong> (BMR ${n.bmr} kcal):</div>
     <div class="nutri-grid">
-      <div class="nutri-cell"><div class="nutri-num" style="color:#FF6B6B">${n.bulk}</div><div class="nutri-lbl">kcal / giorno</div></div>
+      <div class="nutri-cell"><div class="nutri-num" style="color:#FF6B6B">${n.kcal}</div><div class="nutri-lbl">kcal / giorno</div></div>
       <div class="nutri-cell"><div class="nutri-num" style="color:#10B981">${n.protein}g</div><div class="nutri-lbl">Proteine</div></div>
       <div class="nutri-cell"><div class="nutri-num" style="color:#F59E0B">${n.carbs}g</div><div class="nutri-lbl">Carboidrati</div></div>
       <div class="nutri-cell"><div class="nutri-num" style="color:#0EA5E9">${n.fat}g</div><div class="nutri-lbl">Grassi</div></div>
     </div>
-    <div class="nutri-note">Mantenimento stimato ~${n.tdee} kcal · per crescere punta a <strong>+${n.bulk - n.tdee} kcal</strong> di surplus. Le proteine (~1.9 g/kg) sono la priorità per il muscolo. Pesa ogni settimana e, se il peso non sale, aggiungi 100-150 kcal.</div>`;
+    ${n.adaptNote ? `<div class="nutri-adapt">🔄 Adattamento: ${n.adaptNote}.</div>` : ""}
+    <div class="nutri-note">Mantenimento stimato ~${n.tdee} kcal (${surplus >= 0 ? "+" : ""}${surplus} kcal rispetto al mantenimento). Questi valori <strong>si aggiornano da soli a ogni pesata</strong> e sono l'obiettivo di default nella sezione Pasti (lì puoi comunque forzarli a mano).</div>`;
 }
 
-function saveBW() {
-  const v = parseFloat($("bw-input").value);
-  if (!v || v < 30 || v > 250) { toast("Inserisci un peso valido (30–250 kg)"); return; }
-  const today = todayStr();
-  const existing = state.bodyweight.find(b => b.date === today);
-  if (existing) existing.v = v;
-  else state.bodyweight.push({ date: today, v });
-  state.bodyweight.sort((a, b) => a.date.localeCompare(b.date));
-  // se non c'è ancora un peso di partenza, impostalo
-  if (state.goals.startWeight == null) state.goals.startWeight = v;
-  saveState(state);
-  $("bw-input").value = "";
-  toast("⚖️ Peso registrato!");
-  renderGoals();
-}
-
-function saveGoals() {
-  const start = parseFloat($("g-start-input").value);
-  const target = parseFloat($("g-target-input").value);
-  state.goals.startWeight = isNaN(start) ? null : start;
-  state.goals.targetWeight = isNaN(target) ? null : target;
-  state.goals.note = $("g-note").value.trim();
-  saveState(state);
-  toast("🎯 Obiettivo aggiornato!");
-  renderGoals();
-}
 
 /* ---------- COMPOSIZIONE CORPOREA ---------- */
 const COMP_METRICS = [
+  { key: "weight",         lbl: "Peso",           unit: "kg",  color: "#FF2D95" },
   { key: "bodyFat",        lbl: "Grasso corp.",   unit: "%",   color: "#FF6B6B" },
   { key: "skeletalMuscle", lbl: "Massa musc.",    unit: "kg",  color: "#10B981" },
   { key: "boneMass",       lbl: "Massa ossea",    unit: "kg",  color: "#6b7280" },
   { key: "bodyWater",      lbl: "Acqua corp.",    unit: "%",   color: "#0EA5E9" },
-  { key: "bmr",            lbl: "BMR",            unit: "kcal",color: "#F59E0B" },
-  { key: "metabolicAge",   lbl: "Età metabolica", unit: "anni",color: "#8B5CF6" }
+  { key: "bmr",            lbl: "BMR",            unit: "kcal",color: "#F59E0B" }
 ];
 
 function renderComposition() {
@@ -1618,23 +1598,35 @@ function renderComposition() {
 
 function renderCompChart() {
   const comp = (state.composition || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+  const bwSeries = (state.bodyweight || []).slice().sort((a, b) => a.date.localeCompare(b.date));
   const host = $("comp-trend");
   if (charts.sparks) charts.sparks.forEach(c => c.destroy());
   charts.sparks = [];
-  if (!comp.length) {
+  if (!comp.length && !bwSeries.length) {
     host.innerHTML = `<div class="empty-mini">Aggiungi qualche misurazione per vedere il trend.</div>`;
     return;
   }
-  // ogni metrica ha la SUA scala → si vede la variazione anche se piccola
+
+  /* PESO: usa tutte le pesate (non solo la bilancia smart), mostra la linea
+     dell'obiettivo e la proiezione di arrivo al ritmo attuale. */
+  const target = state.goals ? state.goals.targetWeight : null;
+  const proj = weightProjection();
+  let projTxt = "";
+  if (target != null && bwSeries.length) {
+    const cur = bwSeries[bwSeries.length - 1].v;
+    if (cur >= target) projTxt = `👑 Obiettivo ${target} kg raggiunto!`;
+    else if (proj && proj.date && proj.date > todayStr()) projTxt = `📈 Al ritmo attuale raggiungi i <b>${target} kg</b> intorno al <b>${fmtLong(proj.date)}</b>.`;
+    else projTxt = `⏸ Il peso al momento è fermo: con un ritmo di +0,25 kg/settimana arriveresti a ${target} kg in ~${Math.ceil((target - cur) / 0.25)} settimane.`;
+  }
+
   const metrics = [
-    { key: "weight", lbl: "Peso", unit: " kg", suffix: "", color: "#FF2D95", upGood: true },
-    { key: "skeletalMuscle", lbl: "Massa muscolare", unit: " kg", suffix: "", color: "#2BD576", upGood: true },
-    { key: "bodyFat", lbl: "Grasso corporeo", unit: "", suffix: "%", color: "#FFB454", upGood: false }
+    { key: "weight", lbl: "Peso", unit: " kg", suffix: "", color: "#FF2D95", upGood: true, series: bwSeries.map(b => ({ d: b.date, v: b.v })), target, extra: projTxt },
+    { key: "skeletalMuscle", lbl: "Massa muscolare", unit: " kg", suffix: "", color: "#2BD576", upGood: true, series: comp.filter(c => c.skeletalMuscle != null).map(c => ({ d: c.date, v: c.skeletalMuscle })) },
+    { key: "bodyFat", lbl: "Grasso corporeo", unit: "", suffix: "%", color: "#FFB454", upGood: false, series: comp.filter(c => c.bodyFat != null).map(c => ({ d: c.date, v: c.bodyFat })) }
   ];
-  const labels = comp.map(c => fmtShort(c.date));
 
   host.innerHTML = metrics.map(m => {
-    const vals = comp.map(c => c[m.key]).filter(v => v != null);
+    const vals = m.series.map(p => p.v);
     const latest = vals.length ? vals[vals.length - 1] : null;
     let badge = "";
     if (vals.length >= 2) {
@@ -1647,25 +1639,32 @@ function renderCompChart() {
     }
     return `<div class="spark-row">
       <div class="spark-head">
-        <span class="spark-lbl" style="color:${m.color}">${m.lbl}</span>
+        <span class="spark-lbl" style="color:${m.color}">${m.lbl}${m.target != null ? ` <span class="spark-target">obiettivo ${m.target} kg</span>` : ""}</span>
         <span class="spark-val">${latest != null ? latest + m.suffix + m.unit : '—'} ${badge}</span>
       </div>
-      <div class="spark-wrap"><canvas id="spark-${m.key}"></canvas></div>
+      <div class="spark-wrap${m.key === "weight" ? " spark-tall" : ""}"><canvas id="spark-${m.key}"></canvas></div>
+      ${m.extra ? `<div class="spark-proj">${m.extra}</div>` : ""}
     </div>`;
   }).join("");
 
   metrics.forEach(m => {
-    const data = comp.map(c => c[m.key] ?? null);
-    const nums = data.filter(v => v != null);
-    if (!nums.length) return;
-    const mn = Math.min(...nums), mx = Math.max(...nums);
-    const pad = Math.max((mx - mn) * 0.6, Math.abs(mn) * 0.004, 0.25);   // margine per non schiacciare la linea
+    if (!m.series.length) return;
+    const labels = m.series.map(p => fmtShort(p.d));
+    const data = m.series.map(p => p.v);
+    let mn = Math.min(...data), mx = Math.max(...data);
+    if (m.target != null) { mn = Math.min(mn, m.target); mx = Math.max(mx, m.target); }
+    const pad = Math.max((mx - mn) * 0.15, 0.4);
+    const datasets = [{ data, borderColor: m.color, backgroundColor: m.color + "22", pointRadius: 3, pointBackgroundColor: m.color, borderWidth: 2.5, tension: .3, fill: true, spanGaps: true }];
+    if (m.target != null) datasets.push({ data: labels.map(() => m.target), borderColor: "rgba(255,255,255,.55)", borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, fill: false });
     charts.sparks.push(new Chart($("spark-" + m.key).getContext("2d"), {
       type: "line",
-      data: { labels, datasets: [{ data, borderColor: m.color, backgroundColor: m.color + "22", pointRadius: 3, pointBackgroundColor: m.color, borderWidth: 2.5, tension: .3, fill: true, spanGaps: true }] },
+      data: { labels, datasets },
       options: {
         plugins: { legend: { display: false } },
-        scales: { y: { min: mn - pad, max: mx + pad, display: false }, x: { display: false } },
+        scales: {
+          y: { min: mn - pad, max: mx + pad, display: m.key === "weight", grid: { color: "rgba(255,255,255,.06)" }, ticks: { font: { size: 10 }, callback: v => v + " kg" } },
+          x: { display: false }
+        },
         responsive: true, maintainAspectRatio: false
       }
     }));
@@ -1678,7 +1677,7 @@ function toggleCompForm() {
 }
 
 function saveComposition() {
-  const num = (id) => { const v = parseFloat($(id).value); return isNaN(v) ? null : v; };
+  const num = (id) => { const e = $(id); if (!e) return null; const v = parseFloat(e.value); return isNaN(v) ? null : v; };
   const entry = {
     date: todayStr(),
     weight: num("c-weight"),
@@ -1705,7 +1704,7 @@ function saveComposition() {
     state.bodyweight.sort((a, b) => a.date.localeCompare(b.date));
   }
   saveState(state);
-  ["c-weight", "c-fat", "c-muscle", "c-bone", "c-water", "c-bmr", "c-metage"].forEach(id => $(id).value = "");
+  ["c-weight", "c-fat", "c-muscle", "c-bone", "c-water", "c-bmr"].forEach(id => { const e = $(id); if (e) e.value = ""; });
   toggleCompForm();
   toast("📊 Misurazione salvata!");
   renderGoals();
@@ -1775,9 +1774,10 @@ function renderHistory() {
    ============================================================ */
 const PROTEIN_TARGET = 150;   // g/die — default proteine (fallback)
 
-// Obiettivi giornalieri (editabili dall'utente; kcal null = stima automatica)
-function kcalTarget() { return (state.nutriGoal && state.nutriGoal.kcal) || nutritionTargets().bulk; }
-function proteinTarget() { return (state.nutriGoal && state.nutriGoal.protein) || PROTEIN_TARGET; }
+// Obiettivi giornalieri: di default quelli del coach nutrizione (adattivi);
+// se l'utente li forza a mano (nutriGoal), vincono i suoi.
+function kcalTarget() { return (state.nutriGoal && state.nutriGoal.kcal) || nutritionTargets().kcal; }
+function proteinTarget() { return (state.nutriGoal && state.nutriGoal.protein) || nutritionTargets().protein || PROTEIN_TARGET; }
 
 function mealsFor(date) { return (state.meals && state.meals[date]) || []; }
 
@@ -1830,23 +1830,25 @@ function renderMealSummary() {
 }
 
 function editKcalTarget() {
-  const v = prompt("Obiettivo calorie giornaliere (kcal):", kcalTarget());
+  const v = prompt("Obiettivo calorie giornaliere (kcal).\nLascia vuoto per tornare al valore automatico del coach:", kcalTarget());
   if (v === null) return;
   const n = parseInt(v);
   state.nutriGoal = state.nutriGoal || {};
   state.nutriGoal.kcal = (isNaN(n) || n <= 0) ? null : n;
   saveState(state);
   renderMeals();
+  toast(state.nutriGoal.kcal ? "Obiettivo kcal impostato a mano" : "Obiettivo kcal: automatico (coach)");
 }
 
 function editProteinTarget() {
-  const v = prompt("Obiettivo proteine giornaliere (g):", proteinTarget());
+  const v = prompt("Obiettivo proteine giornaliere (g).\nLascia vuoto per tornare al valore automatico del coach:", proteinTarget());
   if (v === null) return;
   const n = parseInt(v);
   state.nutriGoal = state.nutriGoal || {};
-  state.nutriGoal.protein = (isNaN(n) || n <= 0) ? PROTEIN_TARGET : n;
+  state.nutriGoal.protein = (isNaN(n) || n <= 0) ? null : n;
   saveState(state);
   renderMeals();
+  toast(state.nutriGoal.protein ? "Obiettivo proteine impostato a mano" : "Obiettivo proteine: automatico (coach)");
 }
 
 function renderMealList() {

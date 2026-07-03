@@ -206,15 +206,14 @@
     if (!el) return;
     if (currentUser) {
       el.innerHTML =
-        '<div class="acct-row">' +
-          '<span class="acct-badge">☁️</span>' +
+        '<div class="acct-line">' +
+          '<span class="acct-badge-sm">☁️</span>' +
           '<div class="acct-info">' +
-            '<div class="acct-email">👤 ' + displayName() + '</div>' +
-            '<div class="acct-status" id="sync-status">Connesso</div>' +
+            '<div class="acct-status" id="sync-status">Sincronizzato ✓</div>' +
+            '<div class="acct-email-sub">' + (currentUser.email || "") + '</div>' +
           '</div>' +
-        '</div>' +
-        '<div class="acct-email-sub">Account: ' + (currentUser.email || "") + '</div>' +
-        '<button class="btn-secondary" onclick="cloudSignOut()">Esci</button>';
+          '<button class="acct-exit" onclick="cloudSignOut()">Esci</button>' +
+        '</div>';
     } else {
       el.innerHTML =
         '<div class="acct-intro">Accedi per sincronizzare i tuoi dati e ritrovarli su ogni dispositivo.</div>' +

@@ -165,7 +165,10 @@
       limitations: ob.limitations || "", equipment: ob.equipment,
       onboarded: true
     });
-    state.nutriGoal = { kcal: ob.kcal, protein: ob.protein };
+    state.nutriGoal = {
+      kcal: (ob.kcal === ob._t.kcal) ? null : ob.kcal,        // null = coach adattivo
+      protein: (ob.protein === ob._t.protein) ? null : ob.protein
+    };
     // Registra il peso come prima misurazione SOLO se non ce ne sono già:
     // chi ha uno storico non deve vederselo sovrascritto dall'onboarding.
     state.bodyweight = state.bodyweight || [];
@@ -205,9 +208,12 @@
           </div>
           <div class="ob-field" style="margin-top:12px"><label>Limitazioni fisiche</label><input class="ob-input" id="ed-lim" value="${p.limitations || ""}"></div>
           <div class="ob-grid" style="margin-top:12px">
-            <div class="ob-field"><label>🔥 Obiettivo kcal/giorno</label><input class="ob-input" id="ed-kcal" type="number" inputmode="numeric" value="${(state.nutriGoal && state.nutriGoal.kcal) || ""}" placeholder="auto"></div>
-            <div class="ob-field"><label>💪 Obiettivo proteine (g)</label><input class="ob-input" id="ed-prot" type="number" inputmode="numeric" value="${(state.nutriGoal && state.nutriGoal.protein) || ""}"></div>
+            <div class="ob-field"><label>⚖️ Peso di partenza (kg)</label><input class="ob-input" id="ed-start" type="number" inputmode="decimal" step="0.1" value="${(state.goals && state.goals.startWeight) || ""}"></div>
+            <div class="ob-field"><label>🎯 Peso obiettivo (kg)</label><input class="ob-input" id="ed-target" type="number" inputmode="decimal" step="0.1" value="${(state.goals && state.goals.targetWeight) || ""}"></div>
+            <div class="ob-field"><label>🔥 Kcal/giorno</label><input class="ob-input" id="ed-kcal" type="number" inputmode="numeric" value="${(state.nutriGoal && state.nutriGoal.kcal) || ""}" placeholder="auto (coach)"></div>
+            <div class="ob-field"><label>💪 Proteine (g)</label><input class="ob-input" id="ed-prot" type="number" inputmode="numeric" value="${(state.nutriGoal && state.nutriGoal.protein) || ""}" placeholder="auto (coach)"></div>
           </div>
+          <div class="ob-lead" style="margin-top:8px;font-size:12px">Kcal e proteine vuote = le calcola e aggiorna il coach nutrizione a ogni pesata.</div>
         </div>
         <div class="ob-err" id="ob-err"></div>
         <div class="ob-nav">
@@ -230,9 +236,12 @@
       equipment: val("ed-equip"),
       limitations: val("ed-lim")
     });
+    state.goals = state.goals || {};
+    state.goals.startWeight = num("ed-start");
+    state.goals.targetWeight = num("ed-target");
     state.nutriGoal = state.nutriGoal || {};
-    state.nutriGoal.kcal = num("ed-kcal");           // vuoto = stima automatica
-    state.nutriGoal.protein = num("ed-prot") || state.nutriGoal.protein || 150;
+    state.nutriGoal.kcal = num("ed-kcal");           // vuoto = coach adattivo
+    state.nutriGoal.protein = num("ed-prot");        // vuoto = coach adattivo
     saveState(state);
     toast("✅ Profilo aggiornato");
     closeSetup();

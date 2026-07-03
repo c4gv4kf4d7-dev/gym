@@ -753,3 +753,28 @@ input::placeholder { color: var(--faint); }
 .ob-close { position: absolute; top: 14px; right: 14px; background: rgba(255,255,255,.1); border: 1px solid var(--border); color: #fff; border-radius: 10px; width: 30px; height: 30px; font-size: 13px; cursor: pointer; z-index: 2; }
 .myw-list { margin-bottom: 6px; }
 select.ob-input { appearance: none; -webkit-appearance: none; }
+
+/* Profilo compatto */
+.profile-compact { gap: 4px; padding: 2px 0; }
+.profile-avatar-wrap { position: relative; margin-bottom: 6px; }
+.profile-compact .profile-avatar-lg { width: 58px; height: 58px; font-size: 25px; margin-bottom: 0; }
+.profile-pencil { position: absolute; right: -8px; bottom: -4px; width: 27px; height: 27px; border-radius: 50%; background: #1d1433; border: 1px solid var(--border); font-size: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,.4); }
+.profile-meta-inline { font-size: 13px; font-weight: 600; color: var(--muted); }
+.profile-compact .profile-chips { margin-top: 6px; }
+.profile-compact .profile-chip { font-size: 11px; padding: 5px 10px; }
+
+/* Account su una riga */
+.acct-line { display: flex; align-items: center; gap: 11px; }
+.acct-badge-sm { font-size: 20px; flex-shrink: 0; }
+.acct-line .acct-info { flex: 1; min-width: 0; }
+.acct-line .acct-status { font-size: 13.5px; font-weight: 800; color: rgba(160,255,190,.9); }
+.acct-line .acct-email-sub { margin: 1px 0 0; font-size: 11.5px; }
+.acct-exit { flex-shrink: 0; background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 16px; padding: 7px 15px; font-size: 12.5px; font-weight: 800; cursor: pointer; font-family: inherit; }
+
+/* Trend peso con obiettivo */
+.spark-tall { height: 130px !important; }
+.spark-target { font-size: 10.5px; font-weight: 700; color: rgba(245,240,255,.45); margin-left: 6px; }
+.spark-proj { font-size: 12px; color: var(--text); background: rgba(168,85,247,.14); border: 1px solid var(--border); border-radius: 10px; padding: 8px 11px; margin-top: 8px; line-height: 1.4; }
+
+/* Nota adattamento coach */
+.nutri-adapt { font-size: 12.5px; font-weight: 700; color: #C9A7FF; background: rgba(168,85,247,.14); border: 1px solid var(--border); border-radius: 10px; padding: 8px 11px; margin-top: 10px; }
