@@ -90,6 +90,7 @@
         _localSave(state);
         refreshUI();
         setSyncStatus("Sincronizzato ✓");
+        if (window.maybeStartOnboarding) window.maybeStartOnboarding();
       } else {
         // Primo accesso con questo account: nessun dato nel cloud
         firstLogin();
@@ -111,6 +112,7 @@
       if (upload) {
         pushCloud();
         setSyncStatus("Dati caricati ✓");
+        if (window.maybeStartOnboarding) window.maybeStartOnboarding();
         return;
       }
     }
@@ -120,6 +122,7 @@
     refreshUI();
     pushCloud();
     setSyncStatus("Account nuovo — parti da zero");
+    if (window.maybeStartOnboarding) window.maybeStartOnboarding();
   }
 
   /* ---------- AUTH ---------- */
@@ -183,8 +186,21 @@
     }
   }
 
+  // Modalità vetrina: invito ad accedere quando non loggati
+  function renderGuestBanner() {
+    const host = document.getElementById("guest-banner");
+    if (!host) return;
+    host.innerHTML = currentUser ? "" : `
+      <div class="guest-banner" onclick="goAccount()">
+        <div class="gb-emoji">🔓</div>
+        <div class="gb-txt"><b>Questa app può essere tua.</b><br>Accedi per sbloccare scheda personalizzata, obiettivi su misura e progressi sincronizzati.</div>
+        <div class="gb-cta">Accedi →</div>
+      </div>`;
+  }
+
   function renderAccountUI() {
     renderHeaderChip();
+    renderGuestBanner();
     const el = document.getElementById("account-card");
     if (!el) return;
     if (currentUser) {

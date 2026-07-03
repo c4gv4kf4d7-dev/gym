@@ -648,3 +648,84 @@ input::placeholder { color: var(--faint); }
 
 /* PASTI — riepilogo giorni obiettivo */
 .meal-hit { font-size: 12px; font-weight: 700; color: rgba(245,240,255,.75); margin-top: 8px; text-align: center; }
+
+/* ============ ONBOARDING / SETUP ============ */
+.setup-overlay { position: fixed; inset: 0; background: rgba(6,4,16,.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 400; display: none; align-items: flex-end; justify-content: center; }
+.setup-overlay.show { display: flex; }
+.ob-box { width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto; background: linear-gradient(180deg, #16102a, #0d0819); border: 1px solid var(--border); border-radius: 24px 24px 0 0; padding: 22px 20px calc(20px + env(safe-area-inset-bottom)); box-shadow: 0 -18px 60px -10px rgba(0,0,0,.7); }
+.ob-wide { max-width: 640px; }
+.ob-progress { display: flex; gap: 6px; margin-bottom: 16px; }
+.ob-progress span { flex: 1; height: 4px; border-radius: 2px; background: rgba(255,255,255,.12); }
+.ob-progress span.on { background: var(--grad); }
+.ob-title { font-size: 21px; font-weight: 800; margin-bottom: 14px; }
+.ob-count { font-size: 12px; font-weight: 700; color: var(--muted); margin-left: 8px; }
+.ob-lead { font-size: 14px; color: var(--muted); line-height: 1.5; margin-bottom: 14px; }
+.ob-input { width: 100%; box-sizing: border-box; padding: 13px 14px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,.05); color: #fff; font-size: 16px; font-family: inherit; }
+.ob-input:focus { border-color: var(--magenta); outline: none; }
+.ob-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ob-field label { display: block; font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+.ob-seg { display: flex; gap: 6px; }
+.ob-seg button { flex: 1; padding: 11px 6px; border-radius: 11px; border: 1px solid var(--border); background: rgba(255,255,255,.04); color: var(--muted); font-size: 13px; font-weight: 800; cursor: pointer; font-family: inherit; }
+.ob-seg button.sel { background: var(--grad); color: #fff; border-color: transparent; }
+.ob-choices { display: flex; flex-direction: column; gap: 10px; }
+.ob-choice { display: flex; align-items: center; gap: 13px; text-align: left; padding: 14px; border-radius: 15px; border: 1.5px solid var(--border); background: rgba(255,255,255,.04); color: #fff; cursor: pointer; font-family: inherit; }
+.ob-choice.sel { border-color: var(--magenta); background: rgba(255,45,149,.12); box-shadow: 0 0 18px -6px var(--magenta); }
+.ob-choice-emoji { font-size: 26px; flex-shrink: 0; }
+.ob-choice-txt b { display: block; font-size: 15px; }
+.ob-choice-txt small { font-size: 12px; color: var(--muted); line-height: 1.35; display: block; margin-top: 2px; }
+.ob-err { min-height: 18px; font-size: 12.5px; color: #FF8FA8; margin-top: 8px; }
+.ob-nav { display: flex; gap: 10px; justify-content: space-between; margin-top: 8px; }
+.ob-nav .btn-save, .ob-nav .btn-outline { flex: 1; margin: 0; }
+.ob-scroll { max-height: 55vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-right: 2px; }
+.ob-group-lbl { font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 14px 0 8px; }
+.ob-exgrid { display: flex; flex-wrap: wrap; gap: 7px; }
+.ob-ex { padding: 9px 13px; border-radius: 18px; border: 1px solid var(--border); background: rgba(255,255,255,.04); color: var(--muted); font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+.ob-ex.sel { background: var(--grad); color: #fff; border-color: transparent; }
+.ob-analysis { margin-top: 16px; display: flex; flex-direction: column; gap: 7px; }
+.ob-tip { font-size: 12.5px; line-height: 1.4; background: rgba(255,255,255,.05); border: 1px solid var(--border); border-radius: 10px; padding: 9px 11px; }
+.ob-json { width: 100%; box-sizing: border-box; height: 130px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,.05); color: #fff; font-size: 12px; font-family: ui-monospace, Menlo, monospace; padding: 11px; resize: vertical; }
+
+/* Banner ospite (vetrina) */
+.guest-banner { display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, rgba(124,58,237,.4), rgba(255,45,149,.32)); border: 1px solid var(--border); border-radius: 16px; padding: 14px; margin-bottom: 14px; cursor: pointer; box-shadow: var(--shadow), var(--sheen); }
+.gb-emoji { font-size: 26px; }
+.gb-txt { flex: 1; font-size: 13px; line-height: 1.4; }
+.gb-cta { font-size: 13px; font-weight: 800; color: #fff; white-space: nowrap; }
+
+/* Profilo arricchito */
+.profile-edit { background: rgba(255,255,255,.1); border: 1px solid var(--border); border-radius: 10px; width: 36px; height: 36px; font-size: 15px; cursor: pointer; flex-shrink: 0; }
+.profile-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.profile-chip { font-size: 12px; font-weight: 700; padding: 6px 11px; border-radius: 16px; background: rgba(255,255,255,.07); border: 1px solid var(--border); }
+.profile-lim { margin-top: 10px; font-size: 12.5px; color: #FFD9A0; background: rgba(255,180,84,.12); border: 1px solid var(--border); border-radius: 10px; padding: 8px 11px; }
+
+/* Le mie schede */
+.myw-row { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--border); }
+.myw-row:last-of-type { border-bottom: none; }
+.myw-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.myw-name { flex: 1; font-size: 14px; font-weight: 700; }
+.myw-sub { font-size: 12px; color: var(--muted); }
+.myw-del { background: transparent; border: none; color: rgba(255,120,120,.8); font-size: 14px; cursor: pointer; padding: 2px 6px; }
+
+/* ============ RESPONSIVE ============ */
+/* iPhone Pro Max e phablet */
+@media (min-width: 415px) {
+  .section { padding: 18px 20px 36px; }
+  .hero-title { font-size: 28px; }
+  .stat-num { font-size: 28px; }
+}
+/* Tablet / desktop: nav laterale, contenuto largo */
+@media (min-width: 900px) {
+  body { padding-bottom: 24px; }
+  .bottom-nav { top: 0; bottom: 0; left: 0; right: auto; width: 210px; flex-direction: column; justify-content: flex-start; gap: 4px; padding: 24px 12px; border-top: none; border-right: 1px solid var(--border); }
+  .nav-item { flex: 0 0 auto; flex-direction: row; justify-content: flex-start; gap: 12px; padding: 13px 14px; border-radius: 12px; width: 100%; }
+  .nav-item.active { background: rgba(255,45,149,.12); }
+  .nav-item.active::before { display: none; }
+  .nav-ico { font-size: 20px; }
+  .nav-lbl { font-size: 14px; }
+  .header { padding-left: 234px; }
+  .section { margin-left: 210px; max-width: none; padding: 26px 40px 40px; }
+  .section > *, .section .goal-card, .section .chart-card { max-width: 860px; }
+  .stats-grid.stats-4 { max-width: 860px; }
+  .ob-box { border-radius: 24px; align-self: center; }
+  .setup-overlay { align-items: center; }
+  .comp-fields, .ob-grid { grid-template-columns: repeat(3, 1fr); }
+}

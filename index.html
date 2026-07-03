@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Allenamento">
 <title>Allenamento</title>
-<link rel="stylesheet" href="css/styles.css?v=20260702a">
+<link rel="stylesheet" href="css/styles.css?v=20260703a">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
@@ -25,6 +25,7 @@
 
 <!-- ============ WORKOUT ============ -->
 <div class="section active" id="section-workout">
+  <div id="guest-banner"></div>
   <div id="weigh-banner"></div>
   <div class="workout-chips" id="workout-chips"></div>
   <div class="workout-hero" id="workout-hero"></div>
@@ -103,6 +104,9 @@
 
   <div class="section-label">☁️ Account &amp; sincronizzazione</div>
   <div class="goal-card" id="account-card"></div>
+
+  <div class="section-label">📋 La mia scheda</div>
+  <div class="goal-card" id="myworkouts-card"></div>
 
   <div class="goal-card">
     <div class="goal-current" id="g-current">—</div>
@@ -188,7 +192,7 @@
   <button class="nav-item active" onclick="switchView('workout', this)"><span class="nav-ico">🏋️</span><span class="nav-lbl">Allena</span></button>
   <button class="nav-item" onclick="switchView('calendario', this)"><span class="nav-ico">📅</span><span class="nav-lbl">Calendario</span></button>
   <button class="nav-item" onclick="switchView('progressi', this)"><span class="nav-ico">📈</span><span class="nav-lbl">Progressi</span></button>
-  <button class="nav-item" onclick="switchView('obiettivi', this)"><span class="nav-ico">🎯</span><span class="nav-lbl">Obiettivi</span></button>
+  <button class="nav-item" onclick="switchView('obiettivi', this)"><span class="nav-ico">👤</span><span class="nav-lbl">Profilo</span></button>
   <button class="nav-item" onclick="switchView('pasti', this)"><span class="nav-ico">🍽️</span><span class="nav-lbl">Pasti</span></button>
 </nav>
 
@@ -203,6 +207,9 @@
   </div>
 </div>
 
+<!-- ============ SETUP / ONBOARDING OVERLAY ============ -->
+<div class="setup-overlay" id="setup-overlay"></div>
+
 <!-- ============ GUIDED OVERLAY ============ -->
 <div class="guided-overlay" id="guided"></div>
 
@@ -212,13 +219,14 @@
 <div class="toast" id="toast"></div>
 
 <script>if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js").catch(function(){}); }</script>
-<script src="js/data.js?v=20260702a"></script>
-<script src="js/exercise-media.js?v=20260702a"></script>
-<script src="js/cues.js?v=20260702a"></script>
-<script src="js/storage.js?v=20260702a"></script>
-<script src="js/app.js?v=20260702a"></script>
+<script src="js/data.js?v=20260703a"></script>
+<script src="js/exercise-media.js?v=20260703a"></script>
+<script src="js/cues.js?v=20260703a"></script>
+<script src="js/storage.js?v=20260703a"></script>
+<script src="js/app.js?v=20260703a"></script>
+<script src="js/setup.js?v=20260703a"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/cloud-config.js?v=20260702a"></script>
-<script src="js/cloud.js?v=20260702a"></script>
+<script src="js/cloud-config.js?v=20260703a"></script>
+<script src="js/cloud.js?v=20260703a"></script>
 </body>
 </html>

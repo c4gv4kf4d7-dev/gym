@@ -20,10 +20,19 @@ const fmtLong = (str) => {
   const d = new Date(str + "T00:00:00");
   return d.toLocaleDateString("it-IT", { day: "numeric", month: "long", year: "numeric" });
 };
-const getWorkout = (id) => WORKOUTS.find(w => w.id === id)
+// Schede dell'utente se ne ha create, altrimenti quelle di default
+const ALL_WORKOUTS = () => (state.myWorkouts && state.myWorkouts.length) ? state.myWorkouts : WORKOUTS;
+const getWorkout = (id) => ALL_WORKOUTS().find(w => w.id === id)
+  || WORKOUTS.find(w => w.id === id)
+  || (state.myWorkouts || []).find(w => w.id === id)
   || (typeof PT_WORKOUT !== "undefined" && PT_WORKOUT.id === id ? PT_WORKOUT : undefined);
-// Tutte le schede assegnabili nel calendario (3 Full Body + PT)
-const SCHEDULABLE = () => WORKOUTS.concat(typeof PT_WORKOUT !== "undefined" ? [PT_WORKOUT] : []);
+// Tutte le schede assegnabili nel calendario (schede utente/default + PT)
+const SCHEDULABLE = () => ALL_WORKOUTS().concat(typeof PT_WORKOUT !== "undefined" ? [PT_WORKOUT] : []);
+
+// Unisce gli esercizi personalizzati dell'utente alla libreria globale
+function mergeCustomExercises() {
+  if (state.customExercises) Object.assign(EXERCISES, state.customExercises);
+}
 
 // Colore del cerchietto esercizio per tipo di attrezzo
 const TYPE_COLOR = { machine: "#5B8DEF", dumbbell: "#2BD576", cable: "#FF8A5B", body: "#A855F7", barbell: "#EF4444" };
@@ -282,7 +291,9 @@ function switchView(view, btn) {
    VISTA WORKOUT
    ============================================================ */
 function renderWorkoutChips() {
-  $("workout-chips").innerHTML = WORKOUTS.map(w => `
+  mergeCustomExercises();
+  if (!ALL_WORKOUTS().some(w => w.id === currentWorkoutId)) currentWorkoutId = ALL_WORKOUTS()[0].id;
+  $("workout-chips").innerHTML = ALL_WORKOUTS().map(w => `
     <button class="wchip ${w.id === currentWorkoutId ? 'active' : ''}"
             style="${w.id === currentWorkoutId ? `background:${w.color};border-color:${w.color}` : ''}"
             onclick="selectWorkout('${w.id}')">
@@ -1351,20 +1362,46 @@ function computeAge(birthday) {
   return age;
 }
 
+const GOAL_LABELS = { massa: "💪 Massa", dimagrimento: "🔥 Dimagrimento", forza: "🏋️ Forza", benessere: "🌿 Benessere" };
+
 function renderProfile() {
   const p = state.profile || {};
   const card = $("profile-card");
   if (!p.name && !p.height && !p.birthday) { card.innerHTML = ""; return; }
-  const age = computeAge(p.birthday);
+  const age = p.age || computeAge(p.birthday);
+  const chips = [
+    p.goal ? GOAL_LABELS[p.goal] : null,
+    p.level ? p.level.charAt(0).toUpperCase() + p.level.slice(1) : null,
+    p.daysPerWeek ? p.daysPerWeek + " gg/sett" : null
+  ].filter(Boolean);
   card.className = "goal-card profile-box";
   card.innerHTML = `
     <div class="profile-top">
       <div class="profile-avatar">${(p.name || "?").charAt(0).toUpperCase()}</div>
-      <div>
+      <div style="flex:1;min-width:0">
         <div class="profile-name">${p.name || "—"}</div>
-        <div class="profile-meta">${age != null ? age + " anni" : ""}${p.height ? " · " + p.height + " cm" : ""}</div>
+        <div class="profile-meta">${age != null ? age + " anni" : ""}${p.height ? " · " + p.height + " cm" : ""}${p.sex ? " · " + p.sex : ""}</div>
       </div>
-    </div>`;
+      <button class="profile-edit" onclick="startOnboarding(true)" title="Modifica profilo">✏️</button>
+    </div>
+    ${chips.length ? `<div class="profile-chips">${chips.map(c => `<span class="profile-chip">${c}</span>`).join("")}</div>` : ""}
+    ${p.limitations ? `<div class="profile-lim">⚠️ ${p.limitations}</div>` : ""}`;
+}
+
+function renderMyWorkouts() {
+  const host = $("myworkouts-card");
+  if (!host) return;
+  const mine = state.myWorkouts || [];
+  host.innerHTML = `
+    ${mine.length
+      ? mine.map(w => `<div class="myw-row">
+          <span class="myw-dot" style="background:${w.color}"></span>
+          <span class="myw-name">${w.emoji} ${w.name}</span>
+          <span class="myw-sub">${(w.exercises || []).length} es.</span>
+          <button class="myw-del" onclick="deleteMyWorkout('${w.id}')">✕</button>
+        </div>`).join("")
+      : `<div class="empty-mini">Stai usando le schede di default. Creane una tutta tua!</div>`}
+    <button class="btn-secondary" style="margin-top:10px" onclick="showBuilderChooser(false)">➕ Nuova scheda</button>`;
 }
 
 function renderGoals() {
@@ -1373,6 +1410,7 @@ function renderGoals() {
   const g = state.goals;
 
   renderProfile();
+  renderMyWorkouts();
   renderComposition();
   renderCompChart();
 
