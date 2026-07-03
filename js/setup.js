@@ -166,9 +166,10 @@
       onboarded: true
     });
     state.nutriGoal = { kcal: ob.kcal, protein: ob.protein };
-    const today = todayStr();
+    // Registra il peso come prima misurazione SOLO se non ce ne sono già:
+    // chi ha uno storico non deve vederselo sovrascritto dall'onboarding.
     state.bodyweight = state.bodyweight || [];
-    if (!state.bodyweight.some(b => b.date === today)) state.bodyweight.push({ date: today, v: ob.weight });
+    if (!state.bodyweight.length) state.bodyweight.push({ date: todayStr(), v: ob.weight });
     if (state.goals && state.goals.startWeight == null) state.goals.startWeight = ob.weight;
     saveState(state);
     showBuilderChooser(true);
