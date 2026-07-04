@@ -199,6 +199,12 @@
   function setSyncStatus(msg) {
     const e = document.getElementById("sync-status");
     if (e) e.textContent = msg;
+    // pallino di stato sul chip in alto: verde = ok, giallo = in corso/offline
+    const chip = document.getElementById("header-account");
+    if (chip && currentUser) {
+      chip.classList.remove("sync-ok", "sync-warn");
+      chip.classList.add(msg.indexOf("✓") >= 0 ? "sync-ok" : "sync-warn");
+    }
   }
   function setAuthMsg(msg) {
     const e = document.getElementById("acct-msg");

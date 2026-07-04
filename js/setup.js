@@ -526,10 +526,15 @@ Regole: "gruppo" ∈ petto|schiena|gambe|spalle|braccia|core. "attrezzo" ∈ bil
 
   /* ---------- GESTIONE SCHEDE (dal Profilo) ---------- */
   window.deleteMyWorkout = function (id) {
-    if (!confirm("Eliminare questa scheda? Le sessioni già registrate restano.")) return;
+    const removed = (state.myWorkouts || []).find(w => w.id === id);
     state.myWorkouts = (state.myWorkouts || []).filter(w => w.id !== id);
     saveState(state);
-    if (typeof renderGoals === "function") renderGoals();
     if (typeof renderWorkoutChips === "function") { renderWorkoutChips(); renderWorkout(); }
+    if (typeof toastUndo === "function") toastUndo("🗑 Scheda eliminata.", function () {
+      if (removed) state.myWorkouts.push(removed);
+      saveState(state);
+      renderWorkoutChips(); renderWorkout();
+      if (typeof showBuilderChooser === "function") showBuilderChooser(false);
+    });
   };
 })();

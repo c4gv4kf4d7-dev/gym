@@ -796,3 +796,41 @@ select.ob-input { appearance: none; -webkit-appearance: none; }
 .profile-row .profile-avatar-lg { width: 52px; height: 52px; font-size: 22px; margin-bottom: 0; }
 .profile-row .profile-pencil { width: 24px; height: 24px; font-size: 11px; right: -6px; bottom: -3px; }
 .profile-row + .profile-lim { margin-top: 10px; }
+
+/* Guided: motivazione + stepper + note finali */
+.g-mot { font-size: 14px; font-weight: 700; line-height: 1.45; background: linear-gradient(135deg, rgba(124,58,237,.32), rgba(255,45,149,.26)); border: 1px solid var(--border); border-radius: 13px; padding: 12px 14px; margin: 10px 0 4px; max-width: 340px; }
+.g-step { display: flex; align-items: center; gap: 6px; }
+.g-pm { width: 42px; height: 46px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,.08); color: #fff; font-size: 20px; font-weight: 800; cursor: pointer; flex-shrink: 0; }
+.g-step input { width: 74px; }
+.g-notes { width: 100%; max-width: 340px; box-sizing: border-box; margin-top: 14px; height: 74px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,.05); color: #fff; font-size: 13px; padding: 10px; resize: none; font-family: inherit; }
+
+/* Inserimento manuale nella card esercizio */
+.m-row { align-items: flex-end; gap: 8px; }
+.m-field { flex: 1; text-align: center; }
+.m-in { width: 100%; box-sizing: border-box; text-align: center; padding: 10px 4px; border-radius: 11px; border: 1px solid var(--border); background: rgba(255,255,255,.05); color: #fff; font-size: 16px; font-weight: 800; font-family: inherit; }
+.m-in:focus { border-color: var(--magenta); outline: none; }
+.m-in:disabled { opacity: .45; }
+.m-qual { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+.mq { width: 30px; height: 26px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,.04); font-size: 12px; cursor: pointer; opacity: .45; padding: 0; }
+.mq.on { opacity: 1; background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.4); }
+
+/* Storico: accordion mensile */
+.hist-month { margin-bottom: 10px; border-radius: 16px; background: var(--card); border: 1px solid var(--border); overflow: hidden; }
+.hist-month-head { width: 100%; display: flex; align-items: center; gap: 10px; background: transparent; border: none; color: #fff; padding: 14px 16px; font-family: inherit; cursor: pointer; }
+.hm-name { font-size: 15px; font-weight: 800; }
+.hm-count { flex: 1; text-align: right; font-size: 12px; color: var(--muted); font-weight: 700; }
+.hist-month-body { padding: 0 10px 10px; }
+.hist-month-body .hist-card { margin-bottom: 8px; }
+
+/* Toast con Annulla */
+.toast-undo { margin-left: 10px; background: rgba(255,255,255,.16); border: 1px solid var(--border); color: #fff; border-radius: 10px; padding: 6px 12px; font-size: 12.5px; font-weight: 800; cursor: pointer; font-family: inherit; }
+
+/* Pallino stato sync sul chip account */
+.acct-chip.in { position: relative; padding-right: 20px; }
+.acct-chip.sync-ok::after, .acct-chip.sync-warn::after { content: ""; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 7px; height: 7px; border-radius: 50%; }
+.acct-chip.sync-ok::after { background: #10B981; box-shadow: 0 0 6px #10B981; }
+.acct-chip.sync-warn::after { background: #F59E0B; box-shadow: 0 0 6px #F59E0B; }
+
+/* Selettore giorno pasti */
+.meal-pick { display: inline-flex; align-items: center; gap: 4px; position: relative; overflow: hidden; }
+.meal-pick input[type="date"] { position: absolute; inset: 0; opacity: 0; width: 100%; }

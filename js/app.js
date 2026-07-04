@@ -40,6 +40,31 @@ function mergeCustomExercises() {
 // Colore del cerchietto esercizio per tipo di attrezzo
 const TYPE_COLOR = { machine: "#5B8DEF", dumbbell: "#2BD576", cable: "#FF8A5B", body: "#A855F7", barbell: "#EF4444" };
 
+// Prossima data in calendario (non ancora fatta), opzionale per scheda
+function nextScheduledFor(workoutId) {
+  const t = todayStr();
+  return Object.entries(state.schedule || {})
+    .filter(([d, sc]) => d >= t && !sc.done && (!workoutId || sc.workoutId === workoutId))
+    .sort((a, b) => a[0].localeCompare(b[0]))[0] || null;
+}
+// "oggi" / "domani" / "tra N giorni"
+function whenLabel(ds) {
+  const diff = Math.round((new Date(ds + "T00:00:00") - new Date(todayStr() + "T00:00:00")) / 864e5);
+  if (diff <= 0) return "oggi";
+  if (diff === 1) return "domani";
+  return "tra " + diff + " giorni";
+}
+// All'apertura seleziona la scheda del prossimo allenamento in calendario
+let workoutManuallyChosen = false;
+function pickDefaultWorkout() {
+  if (workoutManuallyChosen) return;
+  const nxt = nextScheduledFor(null);
+  if (nxt && !nxt[1].pt) {
+    const w = ALL_WORKOUTS().find(x => x.id === nxt[1].workoutId);
+    if (w) currentWorkoutId = w.id;
+  }
+}
+
 // Naviga alla tab Calendario (dal tocco sulla data in header)
 function goCalendar() {
   switchView("calendario", document.querySelector('.nav-item[onclick*="calendario"]'));
@@ -370,6 +395,7 @@ function switchView(view, btn) {
    ============================================================ */
 function renderWorkoutChips() {
   mergeCustomExercises();
+  pickDefaultWorkout();
   if (!ALL_WORKOUTS().some(w => w.id === currentWorkoutId)) currentWorkoutId = ALL_WORKOUTS()[0].id;
   $("workout-chips").innerHTML = ALL_WORKOUTS().map(w => `
     <button class="wchip ${w.id === currentWorkoutId ? 'active' : ''}"
@@ -381,6 +407,7 @@ function renderWorkoutChips() {
 }
 
 function selectWorkout(id) {
+  workoutManuallyChosen = true;
   currentWorkoutId = id;
   renderWorkoutChips();
   renderWorkout();
@@ -394,8 +421,10 @@ function renderWorkout() {
   // HERO
   $("workout-hero").style.background = `linear-gradient(150deg, ${w.color} 0%, #2A1B4A 95%)`;
   $("workout-hero").style.boxShadow = `0 10px 40px -8px ${w.color}66, inset 0 1px 0 rgba(255,255,255,.18)`;
+  const nx = nextScheduledFor(w.id);
+  const whenTxt = nx ? `📅 In programma ${whenLabel(nx[0])}` : "Non in calendario";
   $("workout-hero").innerHTML = `
-    <div class="hero-label">Scheda del giorno</div>
+    <div class="hero-label">${whenTxt}</div>
     <div class="hero-title">${w.name} ${w.emoji}</div>
     <div class="hero-sub">${w.focus}</div>
     <div class="hero-stats">
@@ -444,13 +473,19 @@ function renderWorkout() {
             <div class="muscle-secondary">Secondari: ${ex.secondary}</div>
           </div>
         </div>
-        <div class="sets-row">
-          <div class="set-pill"><div class="set-pill-num">${ex.sets}</div><div class="set-pill-lbl">Serie</div></div>
-          <div class="set-pill"><div class="set-pill-num">${repsNum}</div><div class="set-pill-lbl">${ex.time ? 'Durata' : 'Rip.'}</div></div>
-          ${ex.time
-            ? `<div class="set-pill"><div class="set-pill-num">${ex.rest}</div><div class="set-pill-lbl">Riposo</div></div>`
-            : `<div class="set-pill"><div class="set-pill-num">${sug && sug.lastW != null ? sug.lastW : '—'}</div><div class="set-pill-lbl">Kg ultima</div></div>`}
+        <div class="sets-row m-row" data-ex="${ex.key}">
+          <div class="m-field"><input class="m-in" id="m-sets-${ex.key}" type="number" inputmode="numeric" min="1" max="10" value="${today ? Object.keys(today.sets).length : ex.sets}" onchange="manualChanged('${ex.key}')"><div class="set-pill-lbl">Serie</div></div>
+          <div class="m-field"><input class="m-in" id="m-reps-${ex.key}" type="number" inputmode="numeric" min="1" max="50" value="${today && today.sets[0] ? today.sets[0].r : (ex.time ? '' : (sug ? sug.targetReps : ex.reps))}" ${ex.time ? 'disabled placeholder="—"' : ''} onchange="manualChanged('${ex.key}')"><div class="set-pill-lbl">${ex.time ? 'Durata' : 'Rip.'}</div></div>
+          <div class="m-field"><input class="m-in" id="m-w-${ex.key}" type="number" inputmode="decimal" step="0.5" min="0" max="500" value="${today && today.sets[0] ? today.sets[0].w : ''}" placeholder="${!ex.time && sug && sug.targetW != null ? sug.targetW : '—'}" ${ex.time ? 'disabled' : ''} onchange="manualChanged('${ex.key}')"><div class="set-pill-lbl">Kg</div></div>
+          ${ex.time ? '' : `<div class="m-qual" id="m-q-${ex.key}">
+            <button class="mq mq-clean ${qsel === 'clean' ? 'on' : ''}" onclick="manualQuality('${ex.key}','clean',this)" title="Pulito">🟢</button>
+            <button class="mq mq-hard ${qsel === 'hard' ? 'on' : ''}" onclick="manualQuality('${ex.key}','hard',this)" title="Tosta">🟡</button>
+            <button class="mq mq-fail ${qsel === 'fail' ? 'on' : ''}" onclick="manualQuality('${ex.key}','fail',this)" title="Non finita">🔴</button>
+          </div>`}
         </div>
+        ${ex.time ? '' : `<div class="last-time">📊 Ultima volta: ${sug.last
+          ? `<strong>${sug.lastW}kg</strong> · ${sug.lastSets}×${sug.lastR} ${lastQualIcon(ex.key)} <span class="lt-day">(${sug.day})</span>`
+          : '— nessuna sessione precedente'}</div>`}
         <div class="tip-box">
           <div class="tip-label">⚠️ Errore comune</div>
           <div class="tip-text">${ex.tip}</div>
@@ -460,49 +495,13 @@ function renderWorkout() {
           <summary>📋 Come si esegue</summary>
           <ol class="steps-list">${EXERCISE_STEPS[ex.key].map(st => `<li>${st}</li>`).join("")}</ol>
         </details>` : ''}
-        ${ex.time ? '' : `
-        <div class="prog-block">
-          <div class="last-time">📊 Ultima volta: ${sug.last
-            ? `<strong>${sug.lastW}kg</strong> · ${sug.lastSets}×${sug.lastR} <span class="lt-day">(${sug.day})</span>`
-            : '— nessuna sessione precedente'}</div>
-
-          <div class="sugg-box sugg-${sug.color}">
-            <div class="sugg-text"><span class="sugg-label">Oggi:</span> ${sug.todayHtml}</div>
-          </div>
-
-          <div class="weight-label">I tuoi dati di oggi</div>
-          <div class="set-log">
-            ${[0, 1, 2].map(s => `
-              <div class="set-log-row">
-                <span class="set-log-n">Serie ${s + 1}</span>
-                <input class="setw" type="number" inputmode="decimal" data-ex="${ex.key}" data-set="${s}"
-                       value="${valW(s)}" placeholder="${phW}" min="0" max="500" step="2.5" oninput="checkDone(${i})">
-                <span class="set-x">kg ×</span>
-                <input class="setr" type="number" inputmode="numeric" data-ex="${ex.key}" data-set="${s}"
-                       value="${valR(s)}" placeholder="${phR}" min="0" max="50" oninput="checkDone(${i})">
-                <span class="set-x">rip.</span>
-              </div>`).join("")}
-          </div>
-
-          <div class="weight-label">Com'è andata? (per il suggerimento della prossima volta)</div>
-          <div class="quality-row" data-ex="${ex.key}">
-            <button class="qbtn qbtn-clean ${qsel === 'clean' ? 'on' : ''}" onclick="setQuality('${ex.key}','clean',this)">Pulito</button>
-            <button class="qbtn qbtn-hard ${qsel === 'hard' ? 'on' : ''}" onclick="setQuality('${ex.key}','hard',this)">Tosta</button>
-            <button class="qbtn qbtn-fail ${qsel === 'fail' ? 'on' : ''}" onclick="setQuality('${ex.key}','fail',this)">Non finita</button>
-          </div>
-        </div>`}
         ${ex.time ? `<button class="plank-done" onclick="togglePlankDone(${i})">✓ Segna come fatto</button>` : ''}
       </div>`;
     cont.appendChild(card);
   });
 
-  $("log-notes").value = sess && sess.notes ? sess.notes : "";
-  $("log-duration").value = sess && sess.duration != null ? sess.duration : "";
-  $("log-calories").value = sess && sess.calories != null ? sess.calories : "";
   $("toggle-all").textContent = "Espandi tutto";
-
   renderGuidedResume();
-  updateProgress();
 }
 
 function toggleCard(i) { $(`ex-${i}`).classList.toggle("open"); }
@@ -514,31 +513,53 @@ function toggleAll() {
   $("toggle-all").textContent = anyClosed ? "Contrai tutto" : "Espandi tutto";
 }
 
-function setQuality(exKey, q, btn) {
-  selectedQuality[exKey] = (selectedQuality[exKey] === q) ? null : q;  // ritocco = deseleziona
-  btn.parentElement.querySelectorAll(".qbtn").forEach(b => b.classList.remove("on"));
-  if (selectedQuality[exKey]) btn.classList.add("on");
+// Semaforo dell'ultima volta (reminder di fatica nella card)
+function lastQualIcon(exKey) {
+  const last = lastExercise(exKey);
+  if (!last || !last.quality) return "";
+  return { clean: "🟢", hard: "🟡", fail: "🔴" }[last.quality] || "";
 }
 
-function checkDone(i) {
-  const card = $(`ex-${i}`);
-  const ws = card.querySelectorAll(".setw");
-  const filled = [...ws].filter(inp => inp.value.trim() !== "").length;
-  const num = $(`exnum-${i}`);
-  if (ws.length > 0 && filled === ws.length) {
-    num.style.background = "#2BD576";
-    num.textContent = "✓";
-  } else {
-    num.style.background = num.dataset.c || "";
-    num.textContent = i + 1;
+/* ---------- INSERIMENTO MANUALE (serie × rip @ kg + semaforo) ----------
+   Per chi non usa il guidato: modifichi i numeri in alto nella card e
+   l'app salva da sola la sessione di oggi. Il semaforo alimenta il
+   suggerimento della volta successiva, come nel guidato. */
+let manualTimers = {};
+
+function manualQuality(exKey, q, btn) {
+  selectedQuality[exKey] = (selectedQuality[exKey] === q) ? null : q;
+  btn.parentElement.querySelectorAll(".mq").forEach(b => b.classList.remove("on"));
+  if (selectedQuality[exKey]) btn.classList.add("on");
+  manualChanged(exKey);
+}
+
+function manualChanged(exKey) {
+  clearTimeout(manualTimers[exKey]);
+  manualTimers[exKey] = setTimeout(() => manualSave(exKey), 700);
+}
+
+function manualSave(exKey) {
+  const gv = (id) => { const e = $(id); return e ? parseFloat(String(e.value).replace(",", ".")) : NaN; };
+  const nSets = Math.max(1, Math.min(10, parseInt(gv("m-sets-" + exKey)) || (EXERCISES[exKey].sets || 3)));
+  const reps = Math.max(1, Math.min(50, parseInt(gv("m-reps-" + exKey)) || (EXERCISES[exKey].reps || 12)));
+  const w = gv("m-w-" + exKey);
+  if (isNaN(w) || w <= 0) return;              // niente kg → niente salvataggio
+  const sets = Array.from({ length: nSets }, () => ({ w, r: reps }));
+  upsertManualExercise(currentWorkoutId, exKey, sets, selectedQuality[exKey] || null);
+  toast("💾 " + EXERCISES[exKey].name + " salvato per oggi");
+}
+
+function upsertManualExercise(workoutId, exKey, sets, quality) {
+  let sess = todaySession(workoutId);
+  if (!sess) {
+    sess = { id: Date.now(), date: todayStr(), workoutId, exercises: {}, duration: null, calories: null, notes: "" };
+    state.sessions.push(sess);
   }
-  // PR highlight sul peso
-  ws.forEach(inp => {
-    const v = parseFloat(inp.value);
-    const pr = bestPR(inp.dataset.ex);
-    inp.classList.toggle("is-pr", !isNaN(v) && v > 0 && v >= pr && pr > 0);
-  });
-  updateProgress();
+  sess.exercises[exKey] = { sets, quality };
+  state.schedule[todayStr()] = { workoutId, done: true };
+  const before = state.badges || [];
+  state.badges = earnedBadgeIds();
+  saveState(state);
 }
 
 function togglePlankDone(i) {
@@ -547,50 +568,6 @@ function togglePlankDone(i) {
   const num = $(`exnum-${i}`);
   if (on) { num.style.background = "#2BD576"; num.textContent = "✓"; }
   else { num.style.background = num.dataset.c || ""; num.textContent = i + 1; }
-  updateProgress();
-}
-
-function updateProgress() {
-  const cards = document.querySelectorAll("#ex-cards .ex-card");
-  let done = 0, total = 0;
-  cards.forEach((card) => {
-    total++;
-    if (card.classList.contains("is-plank")) {
-      if (card.classList.contains("plank-on")) done++;
-    } else {
-      const ws = card.querySelectorAll(".setw");
-      if (ws.length && [...ws].every(inp => inp.value.trim() !== "")) done++;
-    }
-  });
-  $("prog-count").textContent = `${done} / ${total}`;
-  $("prog-bar").style.width = (total ? Math.round((done / total) * 100) : 0) + "%";
-}
-
-function saveSession() {
-  const w = getWorkout(currentWorkoutId);
-  const exercises = {};
-  let any = false;
-  w.exercises.forEach(k => {
-    if (EXERCISES[k].time) return;   // plank: niente peso/reps
-    const ws = [...document.querySelectorAll(`.setw[data-ex="${k}"]`)];
-    const rs = [...document.querySelectorAll(`.setr[data-ex="${k}"]`)];
-    const sets = [];
-    ws.forEach((inp, idx) => {
-      const wv = parseFloat(inp.value);
-      if (!isNaN(wv) && wv > 0) {
-        const rv = parseInt(rs[idx] ? rs[idx].value : "");
-        sets.push({ w: wv, r: isNaN(rv) ? (EXERCISES[k].reps || 12) : rv });
-        any = true;
-      }
-    });
-    if (sets.length) exercises[k] = { sets, quality: selectedQuality[k] || null };
-  });
-  if (!any) { toast("Inserisci almeno un peso prima di salvare 💪"); return; }
-
-  const notes = $("log-notes").value.trim();
-  const duration = parseInt($("log-duration").value) || null;
-  const calories = parseInt($("log-calories").value) || null;
-  commitSession(w.id, exercises, { duration, calories, notes });
 }
 
 // Salva (o aggiorna) la sessione di oggi e mostra il riepilogo
@@ -731,6 +708,17 @@ const G_MOTTOS = [
   "Quasi fatto, dai il meglio anche qui ⚡",
   "Stai costruendo il tuo fisico, serie dopo serie 🛠️"
 ];
+
+// Messaggio motivazionale per esercizio, calibrato sull'ultima volta
+function guidedMotivation(key) {
+  const last = lastExercise(key);
+  if (!last) return "🆕 Prima volta qui: trova il tuo peso, tecnica prima di tutto.";
+  const q = last.quality;
+  if (q === "clean") return "✅ L'ultima volta: tutto pulito. Oggi si spinge — è il giorno giusto per salire.";
+  if (q === "hard") return "⚠️ L'ultima volta le hai sudate tutte. Oggi consolidiamo: stesso carico, chiudile da padrone.";
+  if (q === "fail") return "❌ L'ultima volta non l'hai chiuso. Oggi si arriva in fondo, costi quel che costi.";
+  return "📊 L'ultima volta non l'hai valutato: oggi chiudi le serie e dimmi com'è andata.";
+}
 
 function gMeta() { return EXERCISES[guided.keys[guided.exIndex]]; }
 function gKey() { return guided.keys[guided.exIndex]; }
@@ -901,6 +889,21 @@ function renderGuided() {
           </button>
         </div>
       </div>`;
+  } else if (guided.phase === "finish") {
+    const nEx = Object.keys(guided.data).filter(k => guided.data[k].sets.length).length;
+    body = `
+      <div class="g-body">
+        <div class="g-trans-lbl">Allenamento completato 🎉</div>
+        <div class="g-name">Grande lavoro!</div>
+        <div class="g-muscle">${nEx} esercizi registrati · due dati opzionali e chiudiamo</div>
+        <div class="g-inputs" style="margin-top:18px">
+          <div class="g-ig"><div class="g-ilbl">Durata (min)</div><input id="g-f-dur" type="number" inputmode="numeric" min="0" max="300" placeholder="—"></div>
+          <div class="g-ix">·</div>
+          <div class="g-ig"><div class="g-ilbl">Calorie</div><input id="g-f-cal" type="number" inputmode="numeric" min="0" max="3000" placeholder="—"></div>
+        </div>
+        <textarea class="g-notes" id="g-f-notes" placeholder="📝 Note sessione: energia, dolori, come ti sei sentito… (opzionale)"></textarea>
+        <button class="g-done" onclick="guidedCommit()">💾 Salva sessione</button>
+      </div>`;
   } else if (meta.time) {
     // plank: hold a tempo
     body = `
@@ -924,12 +927,16 @@ function renderGuided() {
         <img class="g-gif" src="assets/gifs/${key}.gif" onerror="this.style.display='none'">
         <div class="g-name">${meta.name}</div>
         <div class="g-muscle">${meta.muscle} · Serie ${Math.min(guided.setIndex + 1, totalSets)}/${totalSets}</div>
-        <div class="g-sugg sugg-${sug.color}"><span class="sugg-label">Oggi:</span> ${sug.todayHtml}</div>
+        ${guided.setIndex === 0 ? `<div class="g-mot">${guidedMotivation(key)}</div>` : `<div class="g-sugg sugg-${sug.color}"><span class="sugg-label">Oggi:</span> ${sug.todayHtml}</div>`}
         ${cuesHTML(key)}
         <div class="g-inputs">
-          <div class="g-ig"><div class="g-ilbl">Peso (kg)</div><input id="g-w" type="number" inputmode="decimal" value="${prevW}" min="0" max="500" step="2.5"></div>
+          <div class="g-ig"><div class="g-ilbl">Peso (kg)</div>
+            <div class="g-step"><button class="g-pm" onclick="gStep('g-w',-2.5)">−</button><input id="g-w" type="number" inputmode="decimal" value="${prevW}" min="0" max="500" step="2.5"><button class="g-pm" onclick="gStep('g-w',2.5)">＋</button></div>
+          </div>
           <div class="g-ix">×</div>
-          <div class="g-ig"><div class="g-ilbl">Ripetizioni</div><input id="g-r" type="number" inputmode="numeric" value="${prevR}" min="0" max="50"></div>
+          <div class="g-ig"><div class="g-ilbl">Ripetizioni</div>
+            <div class="g-step"><button class="g-pm" onclick="gStep('g-r',-1)">−</button><input id="g-r" type="number" inputmode="numeric" value="${prevR}" min="0" max="50"><button class="g-pm" onclick="gStep('g-r',1)">＋</button></div>
+          </div>
         </div>
         <button class="g-done" onclick="guidedCompleteSet()">✓ Serie completata</button>
         <button class="g-skip" onclick="skipCurrent()">⤼ Salta — macchina occupata</button>
@@ -937,6 +944,12 @@ function renderGuided() {
   }
   $("guided").innerHTML = top + body;
   saveGuided();
+}
+
+function gStep(id, delta) {
+  const e = $(id);
+  const v = parseFloat(String(e.value).replace(",", ".")) || 0;
+  e.value = Math.max(0, Math.round((v + delta) * 10) / 10);
 }
 
 function guidedCompleteSet() {
@@ -1050,15 +1063,24 @@ function guidedBack() {
 }
 
 function finishGuided() {
+  const any = Object.keys(guided.data).some(k => guided.data[k].sets.length);
+  if (!any) { clearGuided(); closeGuidedOverlay(); toast("Allenamento chiuso (nessun dato)"); return; }
+  guided.phase = "finish";
+  renderGuided();
+}
+
+function guidedCommit() {
   const exercises = {};
   Object.keys(guided.data).forEach(k => {
     if (guided.data[k].sets.length) exercises[k] = guided.data[k];
   });
+  const duration = parseInt($("g-f-dur").value) || null;
+  const calories = parseInt($("g-f-cal").value) || null;
+  const notes = $("g-f-notes").value.trim().replace(/[<>]/g, "");
   const wid = guided.workoutId;
   clearGuided();
   closeGuidedOverlay();
-  if (!Object.keys(exercises).length) { toast("Allenamento chiuso (nessun dato)"); return; }
-  commitSession(wid, exercises, { duration: null, calories: null, notes: "" });
+  commitSession(wid, exercises, { duration, calories, notes });
 }
 
 /* ============================================================
@@ -1177,7 +1199,25 @@ function sessionDetailHTML(s) {
     <div class="sd-meta">${meta.join(' &nbsp;·&nbsp; ')}</div>
     <div class="sd-list">${rows || '<div class="empty-mini">Nessun peso registrato.</div>'}</div>
     ${s.notes ? `<div class="sd-notes">📝 ${s.notes}</div>` : ''}
-    <button class="btn-save" style="margin-top:14px" onclick="closeModal();openRecap(${s.id})">📸 Riepilogo da salvare</button>`;
+    <button class="btn-save" style="margin-top:14px" onclick="closeModal();openRecap(${s.id})">📸 Riepilogo da salvare</button>
+    <button class="modal-clear" onclick="deleteSession(${s.id})">🗑 Elimina questa sessione</button>`;
+}
+
+function deleteSession(id) {
+  const sess = state.sessions.find(x => x.id === id);
+  if (!sess) return;
+  const schedEntry = state.schedule[sess.date];
+  state.sessions = state.sessions.filter(x => x.id !== id);
+  if (schedEntry && schedEntry.done && !state.sessions.some(x => x.date === sess.date)) {
+    state.schedule[sess.date] = Object.assign({}, schedEntry, { done: false });
+  }
+  saveState(state); closeModal(); renderCalendar();
+  toastUndo("🗑 Sessione del " + fmtShort(sess.date) + " eliminata.", () => {
+    state.sessions.push(sess);
+    state.sessions.sort((a, b) => a.date.localeCompare(b.date));
+    if (schedEntry) state.schedule[sess.date] = schedEntry;
+    saveState(state); renderCalendar();
+  });
 }
 
 function assignDay(ds, workoutId) {
@@ -1335,9 +1375,13 @@ function savePTLift() {
 }
 
 function deletePTLift(date) {
+  const removed = (state.ptLifts || []).find(l => l.date === date);
   state.ptLifts = (state.ptLifts || []).filter(l => l.date !== date);
-  saveState(state);
-  renderPT();
+  saveState(state); renderPT();
+  toastUndo("🗑 Seduta PT eliminata.", () => {
+    if (removed) { state.ptLifts.push(removed); state.ptLifts.sort((a, b) => a.date.localeCompare(b.date)); }
+    saveState(state); renderPT();
+  });
 }
 
 function renderVolumeChart() {
@@ -1370,11 +1414,20 @@ const QUAL_RANK = { fail: 0, hard: 1, clean: 2 };
 function exVerdict(pts) {
   if (pts.length < 2) return "Registra un'altra sessione per vedere la tendenza.";
   const a = pts[pts.length - 2], b = pts[pts.length - 1];
+  // contesto sul lungo periodo (3+ sessioni)
+  let extra = "";
+  if (pts.length >= 3) {
+    let cleanRun = 0;
+    for (let i = pts.length - 1; i >= 0 && pts[i].q === "clean"; i--) cleanRun++;
+    const first = pts[0].v, gain = +(b.v - first).toFixed(1);
+    if (cleanRun >= 3) extra = ` Sono ${cleanRun} sessioni pulite di fila: il tuo corpo è pronto per di più.`;
+    else if (gain > 0) extra = ` Dal primo giorno sei salito di ${gain} kg su questo esercizio.`;
+  }
   const qa = QUAL_RANK[a.q] ?? 1, qb = QUAL_RANK[b.q] ?? 1;
-  if (b.v > a.v && qb >= 1) return `📈 Sei salito da ${a.v} a ${b.v} kg reggendo il colpo. Progresso vero.`;
+  if (b.v > a.v && qb >= 1) return `📈 Sei salito da ${a.v} a ${b.v} kg reggendo il colpo. Progresso vero.${extra}`;
   if (b.v > a.v && qb === 0) return `⚠️ Peso salito a ${b.v} kg ma non completato: consolida prima di risalire.`;
-  if (b.v === a.v && qb > qa) return `📈 Stesso peso (${b.v} kg) ma fatto meglio: è progresso anche questo. Prossimo step: salire.`;
-  if (b.v === a.v && qb === 2) return `💪 ${b.v} kg fatti puliti: sei pronto ad aumentare.`;
+  if (b.v === a.v && qb > qa) return `📈 Stesso peso (${b.v} kg) ma fatto meglio: è progresso anche questo. Prossimo step: salire.${extra}`;
+  if (b.v === a.v && qb === 2) return `💪 ${b.v} kg fatti puliti: sei pronto ad aumentare.${extra}`;
   if (b.v === a.v && qb < qa) return `😮‍💨 Stesso peso ma più fatica dell'altra volta: giornata storta, capita. Riprova uguale.`;
   if (b.v < a.v) return `🔄 Hai scaricato a ${b.v} kg: a volte un passo indietro serve per farne due avanti.`;
   return `Continua così: costanza batte intensità.`;
@@ -1642,12 +1695,16 @@ function renderMeasureHistory() {
 }
 
 function deleteMeasurement(date) {
-  if (!confirm("Eliminare la misurazione del " + fmtShort(date) + "?")) return;
+  const bw = (state.bodyweight || []).find(b => b.date === date);
+  const c = (state.composition || []).find(x => x.date === date);
   state.bodyweight = (state.bodyweight || []).filter(b => b.date !== date);
-  state.composition = (state.composition || []).filter(c => c.date !== date);
-  saveState(state);
-  toast("🗑 Misurazione eliminata");
-  renderGoals();
+  state.composition = (state.composition || []).filter(x => x.date !== date);
+  saveState(state); renderGoals();
+  toastUndo("🗑 Misurazione del " + fmtShort(date) + " eliminata.", () => {
+    if (bw) { state.bodyweight.push(bw); state.bodyweight.sort((a, b) => a.date.localeCompare(b.date)); }
+    if (c) { state.composition.push(c); state.composition.sort((a, b) => a.date.localeCompare(b.date)); }
+    saveState(state); renderGoals();
+  });
 }
 
 function renderCompChart() {
@@ -1726,17 +1783,16 @@ function renderCompChart() {
 
 // Partenza e obiettivo peso, modificabili dal ⚙️ accanto al trend
 function editWeightGoals() {
-  const pnum = (v) => { if (v == null) return undefined; const n = parseFloat(String(v).replace(",", ".")); return isNaN(n) ? null : n; };
-  const st = prompt("Peso di PARTENZA (kg) — da dove sei partito:", state.goals.startWeight != null ? state.goals.startWeight : "");
-  if (st === null) return;                       // annullato
-  const tg = prompt("Peso OBIETTIVO (kg):", state.goals.targetWeight != null ? state.goals.targetWeight : "");
-  if (tg === null) return;
-  const s2 = pnum(st), t2 = pnum(tg);
-  state.goals.startWeight = (st.trim() === "" ? null : s2);
-  state.goals.targetWeight = (tg.trim() === "" ? null : t2);
-  saveState(state);
-  toast("🎯 Obiettivo aggiornato");
-  renderGoals();
+  sheetForm("🎯 Percorso peso",
+    sheetField("sh-start", "Peso di partenza (kg)", state.goals.startWeight, "es. 58,8") +
+    sheetField("sh-target", "Peso obiettivo (kg)", state.goals.targetWeight, "es. 70"),
+    "saveWeightGoals()");
+}
+function saveWeightGoals() {
+  state.goals.startWeight = sheetNum("sh-start");
+  state.goals.targetWeight = sheetNum("sh-target");
+  saveState(state); closeModal(); renderGoals();
+  toast("🎯 Percorso aggiornato");
 }
 
 function toggleCompForm() {
@@ -1779,60 +1835,62 @@ function saveComposition() {
 }
 
 /* ---------- STORICO SESSIONI ---------- */
-let histMonth = null;   // "YYYY-MM" mese selezionato nello storico
+let histMonth = null;   // mese aperto nello storico (null = tutti chiusi)
 const monthKey = (dateStr) => dateStr.slice(0, 7);
 function monthLabel(mk) {
   const [y, m] = mk.split("-");
-  const s = new Date(+y, +m - 1, 1).toLocaleDateString("it-IT", { month: "short", year: "2-digit" });
-  return s.charAt(0).toUpperCase() + s.slice(1);
+  let lbl = new Date(+y, +m - 1, 1).toLocaleDateString("it-IT", { month: "long" });
+  lbl = lbl.charAt(0).toUpperCase() + lbl.slice(1);
+  if (+y !== new Date().getFullYear()) lbl += " " + y;   // anno solo se diverso da quello corrente
+  return lbl;
 }
-function selectHistMonth(mk) { histMonth = mk; renderHistory(); }
+function toggleHistMonth(mk) { histMonth = (histMonth === mk) ? null : mk; renderHistory(); }
 
 function renderHistory() {
   const list = $("history-list");
   const monthsHost = $("hist-months");
+  if (monthsHost) monthsHost.innerHTML = "";
   const sessions = [...state.sessions].sort((a, b) => b.date.localeCompare(a.date));
-
-  // mesi con sessioni + mese corrente sempre presente
-  const curMonth = todayStr().slice(0, 7);
-  const months = [...new Set(sessions.map(s => monthKey(s.date)))];
-  if (!months.includes(curMonth)) months.push(curMonth);
-  months.sort((a, b) => b.localeCompare(a));
-  if (!histMonth || !months.includes(histMonth)) histMonth = months.includes(curMonth) ? curMonth : months[0];
-
-  if (monthsHost) {
-    monthsHost.innerHTML = months.map(mk =>
-      `<button class="hist-month-tab ${mk === histMonth ? 'active' : ''}" onclick="selectHistMonth('${mk}')">${monthLabel(mk)}</button>`).join("");
-  }
-
-  const monthSessions = sessions.filter(s => monthKey(s.date) === histMonth);
-  if (!monthSessions.length) {
-    list.innerHTML = `<div class="empty-mini">Nessuna sessione in questo mese. Ogni allenamento conta — il prossimo è a un passo! 💪</div>`;
+  if (!sessions.length) {
+    list.innerHTML = `<div class="empty-mini">Nessuna sessione registrata. La prima è la più importante! 💪</div>`;
     return;
   }
+  const months = [...new Set(sessions.map(s => monthKey(s.date)))].sort((a, b) => b.localeCompare(a));
 
-  list.innerHTML = monthSessions.map(sess => {
-    const w = getWorkout(sess.workoutId);
-    const nEx = Object.keys(sess.exercises || {}).length;
-    const meta = [
-      `${nEx} esercizi`,
-      `${Math.round(sessionVolume(sess))} kg vol.`,
-      sess.duration ? `${sess.duration} min` : null,
-      sess.calories ? `${sess.calories} kcal` : null
-    ].filter(Boolean).join(" · ");
-    const rows = Object.keys(sess.exercises || {}).map(k => {
-      const sets = sess.exercises[k].sets;
-      return `<div class="hist-ex"><span class="hist-ex-name">${EXERCISES[k] ? EXERCISES[k].name : k}</span><span class="hist-ex-sets">${sets.map(x => `${x.w}×${x.r}`).join(' · ')}</span></div>`;
+  list.innerHTML = months.map(mk => {
+    const monthSessions = sessions.filter(x => monthKey(x.date) === mk);
+    const open = histMonth === mk;
+    const rows = !open ? "" : monthSessions.map(sess => {
+      const w = getWorkout(sess.workoutId);
+      const nEx = Object.keys(sess.exercises || {}).length;
+      const meta = [
+        `${nEx} esercizi`,
+        `${Math.round(sessionVolume(sess))} kg vol.`,
+        sess.duration ? `${sess.duration} min` : null,
+        sess.calories ? `${sess.calories} kcal` : null
+      ].filter(Boolean).join(" · ");
+      const exRows = Object.keys(sess.exercises || {}).map(k => {
+        const sets = sess.exercises[k].sets;
+        return `<div class="hist-ex"><span class="hist-ex-name">${EXERCISES[k] ? EXERCISES[k].name : k}</span><span class="hist-ex-sets">${sets.map(x => `${x.w}×${x.r}`).join(' · ')}</span></div>`;
+      }).join("");
+      return `<div class="hist-card" onclick="event.stopPropagation();this.classList.toggle('open')">
+        <div class="hist-top">
+          <span class="hist-dot" style="background:${w ? w.color : '#999'}"></span>
+          <span class="hist-name">${w ? w.emoji + ' ' + w.name : 'Sessione'}</span>
+          <span class="hist-date">${fmtShort(sess.date)}</span>
+          <span class="hist-chev">▾</span>
+        </div>
+        <div class="hist-meta">${meta}</div>
+        <div class="hist-detail">${exRows}${sess.notes ? `<div class="hist-notes">📝 ${sess.notes}</div>` : ''}</div>
+      </div>`;
     }).join("");
-    return `<div class="hist-card" onclick="this.classList.toggle('open')">
-      <div class="hist-top">
-        <span class="hist-dot" style="background:${w ? w.color : '#999'}"></span>
-        <span class="hist-name">${w ? w.emoji + ' ' + w.name : 'Sessione'}</span>
-        <span class="hist-date">${fmtShort(sess.date)}</span>
-        <span class="hist-chev">▾</span>
-      </div>
-      <div class="hist-meta">${meta}</div>
-      <div class="hist-detail">${rows}${sess.notes ? `<div class="hist-notes">📝 ${sess.notes}</div>` : ''}</div>
+    return `<div class="hist-month ${open ? 'open' : ''}">
+      <button class="hist-month-head" onclick="toggleHistMonth('${mk}')">
+        <span class="hm-name">${monthLabel(mk)}</span>
+        <span class="hm-count">${monthSessions.length} ${monthSessions.length === 1 ? 'sessione' : 'sessioni'}</span>
+        <span class="hist-chev">${open ? '▴' : '▾'}</span>
+      </button>
+      ${open ? `<div class="hist-month-body">${rows}</div>` : ''}
     </div>`;
   }).join("");
 }
@@ -1867,14 +1925,48 @@ function escapeMeal(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
+let mealDay = null;   // giorno selezionato nei Pasti (default oggi)
+function mealDayStr() { return mealDay || todayStr(); }
+function mealDayLabel() {
+  const d = mealDayStr();
+  if (d === todayStr()) return "oggi";
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  if (d === localDate(y)) return "ieri";
+  return fmtShort(d);
+}
+function setMealDay(which) {
+  if (which === "today") mealDay = null;
+  else if (which === "yesterday") { const y = new Date(); y.setDate(y.getDate() - 1); mealDay = localDate(y); }
+  else if (which === "pick") {
+    const inp = $("meal-day-pick");
+    if (inp && inp.value) mealDay = inp.value;
+  }
+  renderMeals();
+}
+
+function renderMealDays() {
+  const host = $("meal-days");
+  if (!host) return;
+  const d = mealDayStr();
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  const isToday = d === todayStr(), isY = d === localDate(y);
+  host.innerHTML = `
+    <button class="hist-month-tab ${isToday ? 'active' : ''}" onclick="setMealDay('today')">Oggi</button>
+    <button class="hist-month-tab ${isY ? 'active' : ''}" onclick="setMealDay('yesterday')">Ieri</button>
+    <label class="hist-month-tab meal-pick ${(!isToday && !isY) ? 'active' : ''}">📅
+      <input type="date" id="meal-day-pick" value="${d}" max="${todayStr()}" onchange="setMealDay('pick')">
+    </label>`;
+}
+
 function renderMeals() {
+  renderMealDays();
   renderMealSummary();
   renderMealList();
   renderMealTrend();
 }
 
 function renderMealSummary() {
-  const t = dayTotals(todayStr());
+  const t = dayTotals(mealDayStr());
   const kT = kcalTarget(), pT = proteinTarget();
   const kPct = Math.min(100, Math.round((t.kcal / kT) * 100));
   const pPct = Math.min(100, Math.round((t.protein / pT) * 100));
@@ -1898,32 +1990,35 @@ function renderMealSummary() {
 }
 
 function editKcalTarget() {
-  const v = prompt("Obiettivo calorie giornaliere (kcal).\nLascia vuoto per tornare al valore automatico del coach:", kcalTarget());
-  if (v === null) return;
-  const n = parseInt(v);
+  sheetForm("🔥 Obiettivo calorie",
+    sheetField("sh-kcal", "kcal al giorno (vuoto = automatico dal coach)", (state.nutriGoal && state.nutriGoal.kcal) || "", "auto: " + nutritionTargets().kcal),
+    "saveKcalTarget()");
+}
+function saveKcalTarget() {
+  const n = sheetNum("sh-kcal");
   state.nutriGoal = state.nutriGoal || {};
-  state.nutriGoal.kcal = (isNaN(n) || n <= 0) ? null : n;
-  saveState(state);
-  renderMeals();
+  state.nutriGoal.kcal = (n && n > 0) ? Math.round(n) : null;
+  saveState(state); closeModal(); renderMeals();
   toast(state.nutriGoal.kcal ? "Obiettivo kcal impostato a mano" : "Obiettivo kcal: automatico (coach)");
 }
-
 function editProteinTarget() {
-  const v = prompt("Obiettivo proteine giornaliere (g).\nLascia vuoto per tornare al valore automatico del coach:", proteinTarget());
-  if (v === null) return;
-  const n = parseInt(v);
+  sheetForm("💪 Obiettivo proteine",
+    sheetField("sh-prot", "grammi al giorno (vuoto = automatico dal coach)", (state.nutriGoal && state.nutriGoal.protein) || "", "auto: " + nutritionTargets().protein),
+    "saveProteinTarget()");
+}
+function saveProteinTarget() {
+  const n = sheetNum("sh-prot");
   state.nutriGoal = state.nutriGoal || {};
-  state.nutriGoal.protein = (isNaN(n) || n <= 0) ? null : n;
-  saveState(state);
-  renderMeals();
+  state.nutriGoal.protein = (n && n > 0) ? Math.round(n) : null;
+  saveState(state); closeModal(); renderMeals();
   toast(state.nutriGoal.protein ? "Obiettivo proteine impostato a mano" : "Obiettivo proteine: automatico (coach)");
 }
 
 function renderMealList() {
-  const meals = [...mealsFor(todayStr())].sort((a, b) => (a.t || "").localeCompare(b.t || ""));
+  const meals = [...mealsFor(mealDayStr())].sort((a, b) => (a.t || "").localeCompare(b.t || ""));
   const el = $("meal-list");
   if (!meals.length) {
-    el.innerHTML = `<div class="empty-mini">Nessun pasto registrato oggi. Aggiungine uno qui sopra. 🍽️</div>`;
+    el.innerHTML = `<div class="empty-mini">Nessun pasto registrato ${mealDayLabel()}. Aggiungine uno qui sopra. 🍽️</div>`;
     return;
   }
   el.innerHTML = meals.map(m => `
@@ -1937,14 +2032,14 @@ function saveMeal() {
   const kcal = parseInt($("meal-kcal").value);
   const prot = parseInt($("meal-prot").value);
   if (isNaN(kcal) && isNaN(prot)) { toast("Inserisci kcal o proteine"); return; }
-  const day = todayStr();
+  const day = mealDayStr();
   state.meals = state.meals || {};
   state.meals[day] = state.meals[day] || [];
   state.meals[day].push({
     id: Date.now(),
     kcal: isNaN(kcal) ? 0 : Math.max(0, kcal),
     protein: isNaN(prot) ? 0 : Math.max(0, prot),
-    t: new Date().toTimeString().slice(0, 5)
+    t: (mealDayStr() === todayStr()) ? new Date().toTimeString().slice(0, 5) : null
   });
   saveState(state);
   $("meal-kcal").value = ""; $("meal-prot").value = "";
@@ -1953,11 +2048,15 @@ function saveMeal() {
 }
 
 function deleteMeal(id) {
-  const day = todayStr();
+  const day = mealDayStr();
   if (!state.meals || !state.meals[day]) return;
+  const removed = state.meals[day].find(m => m.id === id);
   state.meals[day] = state.meals[day].filter(m => m.id !== id);
-  saveState(state);
-  renderMeals();
+  saveState(state); renderMeals();
+  toastUndo("🗑 Pasto eliminato.", () => {
+    if (removed) { state.meals[day] = state.meals[day] || []; state.meals[day].push(removed); }
+    saveState(state); renderMeals();
+  });
 }
 
 function renderMealTrend() {
@@ -2056,10 +2155,43 @@ function doImport(input) {
   input.value = "";
 }
 
+/* ---------- SHEET (form nel modal, al posto dei prompt nativi) ---------- */
+function sheetForm(title, fieldsHTML, onSaveJs) {
+  $("modal-title").textContent = title;
+  $("modal-body").innerHTML = `
+    ${fieldsHTML}
+    <button class="btn-save" style="margin-top:14px" onclick="${onSaveJs}">Salva</button>`;
+  $("modal").classList.add("show");
+}
+const sheetField = (id, label, value, ph) =>
+  `<div class="goal-field" style="margin-bottom:10px"><div class="goal-field-lbl">${label}</div>
+   <input type="text" inputmode="decimal" id="${id}" value="${value != null ? value : ""}" placeholder="${ph || ""}"></div>`;
+function sheetNum(id) {
+  const e = $(id); if (!e) return null;
+  const v = parseFloat(String(e.value).replace(",", "."));
+  return isNaN(v) ? null : v;
+}
+
+/* ---------- TOAST CON ANNULLA (undo al posto dei confirm) ---------- */
+let undoFn = null;
+function toastUndo(msg, fn) {
+  undoFn = fn;
+  const t = $("toast");
+  t.innerHTML = `${msg} <button class="toast-undo" onclick="doUndo()">Annulla</button>`;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.classList.remove("show"); undoFn = null; }, 5000);
+}
+function doUndo() {
+  clearTimeout(toastTimer);
+  $("toast").classList.remove("show");
+  if (undoFn) { undoFn(); undoFn = null; }
+}
+
 let toastTimer = null;
 function toast(msg) {
   const t = $("toast");
-  t.textContent = msg;
+  t.innerHTML = msg;
   t.classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove("show"), 2400);
