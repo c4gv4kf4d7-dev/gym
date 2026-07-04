@@ -20,7 +20,7 @@ var docStub = {
   querySelectorAll: function(){ return []; },
   createElement: function(){ return fakeEl(); },
   addEventListener: function(){},
-  body: { appendChild:function(){}, removeChild:function(){} },
+  body: { appendChild:function(){}, removeChild:function(){}, style:{} },
   visibilityState: "visible"
 };
 var winStub = { addEventListener:function(){} };
@@ -40,6 +40,11 @@ var api = new Function(
     fatigueAnalysis: fatigueAnalysis, deloadActive: deloadActive,
     wrappedStats: wrappedStats, wrappedVerdict: wrappedVerdict, volumeComparison: volumeComparison,
     demoState: demoState, muscleCoverage: muscleCoverage, strengthLevel: strengthLevel,
+    enterDemoMode: enterDemoMode,
+    renderWorkout: renderWorkout, renderProgress: renderProgress, renderGoals: renderGoals,
+    renderCalendar: renderCalendar, renderMeals: renderMeals, renderPT: renderPT,
+    startGuided: startGuided, guidedCompleteSet: guidedCompleteSet, guidedQuality: guidedQuality,
+    finishGuided: finishGuided, wrappedSlides: buildWrappedSlides,
     set: function (s) { state = s; },
     get: function () { return state; }
   };`
@@ -250,6 +255,44 @@ var lastC = demo2.composition[demo2.composition.length - 1];
 ok("misure: presenti nella demo", lastC.arm > 35 && lastC.chest > 100 && lastC.waist < 81 && lastC.thigh > 56);
 ok("misure: braccio in crescita", demo2.composition[0].arm < lastC.arm);
 ok("misure: vita in calo", demo2.composition[0].waist > lastC.waist);
+
+/* ---- 17) SMOKE: ogni vista renderizza senza eccezioni (dati demo realistici) ---- */
+function smoke(name, fn) {
+  try { fn(); ok("smoke: " + name, true); }
+  catch (e) { ok("smoke: " + name + " → " + e.message, false); }
+}
+api.enterDemoMode();                     // stato realistico completo (Alex)
+smoke("Allena (renderWorkout)", function(){ api.renderWorkout(); });
+smoke("Progressi (grafici+radar+PT+storico)", function(){ api.renderProgress(); });
+smoke("Profilo (composizione+trend+coach)", function(){ api.renderGoals(); });
+smoke("Calendario", function(){ api.renderCalendar(); });
+smoke("Pasti (barre+settimana)", function(){ api.renderMeals(); });
+smoke("Wrapped (slide del mese scorso)", function(){
+  var d = new Date(); d.setDate(0);
+  var slides = api.wrappedSlides(api.localDate(d).slice(0,7));
+  if (!slides.length) throw new Error("nessuna slide");
+});
+smoke("Guided: flusso completo primo esercizio", function(){
+  api.startGuided();
+  // completa 3 serie del primo esercizio
+  elCache["g-w"] = elCache["g-w"] || {}; // gli input sono creati via innerHTML: stub li fornisce
+  var st2 = api.get();
+  // simula: compila input e completa 3 serie + qualità
+  for (var i = 0; i < 3; i++) {
+    docStub.getElementById("g-w").value = "40";
+    docStub.getElementById("g-r").value = "12";
+    api.guidedCompleteSet();
+  }
+  api.guidedQuality("clean");
+  api.finishGuided();   // con dati → fase finish (nessun commit, solo render)
+});
+smoke("Deload: banner + suggestion con scarico attivo", function(){
+  var st3 = api.get();
+  var u = new Date(); u.setDate(u.getDate() + 3);
+  st3.deload = { start: api.todayStr(), until: api.localDate(u) };
+  api.renderWorkout();
+  st3.deload = null;
+});
 
 out.push(fails === 0 ? "\nTUTTI I TEST PASSANO (" + (out.length) + ")" : "\n⚠️ " + fails + " TEST FALLITI");
 out.join("\n");

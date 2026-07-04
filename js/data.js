@@ -52,7 +52,7 @@ const WORKOUTS = [
     emoji: "🔥",
     color: "#5B8DEF",
     sub: "7 esercizi · tutto il corpo",
-    focus: "Variante B (da definire con Denis)",
+    focus: "Variante B — personalizzala quando vuoi",
     exercises: ["hipthrust", "chestfly", "pulley", "lateral", "hammer", "frenchpress", "crunch"]
   },
   {
@@ -61,7 +61,7 @@ const WORKOUTS = [
     emoji: "⚡️",
     color: "#F59E0B",
     sub: "7 esercizi · tutto il corpo",
-    focus: "Variante C (da definire con Denis)",
+    focus: "Variante C — personalizzala quando vuoi",
     exercises: ["legext", "legcurl", "reversefly", "chestpress", "facepull", "curl", "plank"]
   }
 ];
@@ -75,7 +75,7 @@ const PT_WORKOUT = {
   emoji: "🧑‍🏫",
   color: "#A855F7",
   sub: "Panca · Squat · Stacco",
-  focus: "Sedute con Denis",
+  focus: "Sedute col tuo PT",
   exercises: ["panca", "squat", "stacco"],
   pt: true
 };
@@ -142,58 +142,3 @@ const svgSilhouettes = {
   </svg>`
 };
 
-// GUIDE
-const guides = [
-  {
-    icon: '⚖️', iconBg: '#FFF0F0',
-    title: 'Come leggere lo stack pesi', sub: 'Sistema a pioli — macchine',
-    steps: [
-      { text: '<strong>Trova il piolo metallico</strong> inserito nello stack. Il numero sul disco dove è inserito indica il peso attivo.' },
-      { text: '<strong>Aumenta in piccoli incrementi:</strong> la maggior parte degli stack ha dischi da 5–10 kg. Inizia sempre dal basso (peso leggero) e sali gradualmente.' },
-      { text: '<strong>Testa prima di iniziare:</strong> fai una ripetizione lenta per sentire se il peso è gestibile. Se non riesci a controllare il ritorno, è troppo pesante.' },
-      { text: '<strong>Non tutti gli stack sono uguali:</strong> alcune macchine hanno moltiplicatori di forza. Guarda il cartello della macchina per il rapporto reale.' }
-    ]
-  },
-  {
-    icon: '🔧', iconBg: '#FFFBEB',
-    title: 'Regolare le macchine', sub: 'Seduta, schienale, supporti',
-    steps: [
-      { text: '<strong>Seduta:</strong> regola l\'altezza in modo che le maniglie o il pad siano allineati con il muscolo target (petto per il chest press, spalle per lo shoulder press).' },
-      { text: '<strong>Schiena:</strong> lo schienale deve sostenere tutta la colonna. Non ci deve essere spazio tra schiena e pad durante l\'esercizio.' },
-      { text: '<strong>Lat Machine:</strong> blocca le cosce sotto il pad in modo che non si alzino durante la trazione. Regola l\'altezza del sedile di conseguenza.' },
-      { text: '<strong>Fai sempre una prova a vuoto</strong> (senza peso o con peso minimo) dopo ogni regolazione, per controllare il ROM.' }
-    ]
-  },
-  {
-    icon: '🏋️', iconBg: '#F0FDF4',
-    title: 'Scegliere il manubrio giusto', sub: 'Per curl, alzate e hammer',
-    steps: [
-      { text: '<strong>Test delle 12 ripetizioni:</strong> prendi un manubrio e fai 12 curl. Le ultime 2–3 devono essere difficili ma tecnicamente corrette. Se le prime sono già difficili, scendi di peso.' },
-      { text: '<strong>Per un principiante 60 kg:</strong> inizia con manubri da 4–6 kg per i curl. Può sembrare poco, ma la forma corretta viene prima del peso.' },
-      { text: '<strong>I manubri sono in ordine crescente</strong> su rack a piramide o lineari. Quelli più pesanti sono in basso, i più leggeri in alto.' },
-      { text: '<strong>Rimetti sempre i manubri al posto giusto</strong> dopo l\'uso. È la regola non scritta numero uno della palestra.' }
-    ]
-  },
-  {
-    icon: '🚪', iconBg: '#EFF6FF',
-    title: 'Il primo giorno in palestra', sub: 'Orientamento rapido',
-    steps: [
-      { text: '<strong>Fai un giro esplorativo</strong> prima di allenarti: zona macchine, zona pesi liberi, spogliatoi, fontanella. 5 minuti che eliminano il 90% dell\'ansia.' },
-      { text: '<strong>Porta sempre un asciugamano</strong> da posizionare sulla macchina o sul banco che usi. È igiene base e buona educazione.' },
-      { text: '<strong>Le macchine hanno sempre un cartello</strong> con nome, muscoli target e istruzioni d\'uso. Leggilo sempre la prima volta.' },
-      { text: '<strong>Se una macchina è libera ma con un asciugamano sopra,</strong> è occupata. Chiedi sempre "È libera?" se non sei sicuro.' },
-      { text: '<strong>Non sentirti in imbarazzo a chiedere aiuto.</strong> Il personale è lì per questo. Vale anche per altri frequentatori — la maggioranza è disponibile.' }
-    ]
-  },
-  {
-    icon: '🚫', iconBg: '#FEF2F2',
-    title: '5 errori da non fare', sub: 'I più comuni nei principianti',
-    errors: [
-      { icon: '💨', title: 'Trattenere il respiro', desc: 'Espira durante la fase di sforzo, inspira durante il ritorno. Non bloccare mai il respiro.' },
-      { icon: '🏃', title: 'Correre sui pesi', desc: 'Aumentare troppo presto il carico compromette la tecnica e aumenta il rischio di infortuni. Progredisci ogni 2 settimane.' },
-      { icon: '🪞', title: 'Ignorare lo specchio', desc: 'Lo specchio non è per la vanità — è per controllare la postura. Usalo attivamente.' },
-      { icon: '😴', title: 'Saltare il riscaldamento', desc: '5–10 minuti di cardio leggero attivano il sistema cardiovascolare e preparano le articolazioni.' },
-      { icon: '📅', title: 'Allenarsi ogni giorno', desc: 'I muscoli crescono durante il riposo, non durante l\'allenamento. Rispetta i giorni di recupero.' }
-    ]
-  }
-];

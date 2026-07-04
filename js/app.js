@@ -55,13 +55,6 @@ function whenShort(ds) {
   if (diff <= 6) return new Date(ds + "T00:00:00").toLocaleDateString("it-IT", { weekday: "long" });
   return "tra " + diff + " giorni";
 }
-// "oggi" / "domani" / "tra N giorni"
-function whenLabel(ds) {
-  const diff = Math.round((new Date(ds + "T00:00:00") - new Date(todayStr() + "T00:00:00")) / 864e5);
-  if (diff <= 0) return "oggi";
-  if (diff === 1) return "domani";
-  return "tra " + diff + " giorni";
-}
 // All'apertura seleziona la scheda del prossimo allenamento in calendario
 let workoutManuallyChosen = false;
 function pickDefaultWorkout() {
@@ -190,11 +183,6 @@ function sessionVolume(s) {
 
 // 1RM stimato (formula di Epley) da peso × ripetizioni
 function estimate1RM(w, r) { return w * (1 + r / 30); }
-// Miglior 1RM stimato in una sessione per un esercizio
-function session1RM(s, exKey) {
-  const sets = exSets(s, exKey);
-  return sets.length ? Math.max(...sets.map(x => estimate1RM(x.w, x.r))) : 0;
-}
 
 // Peso corporeo attuale
 function currentBW() { const bw = state.bodyweight; return bw.length ? bw[bw.length - 1].v : null; }
@@ -757,6 +745,12 @@ function commitSession(workoutId, exercises, meta) {
   showSummary(todaySession(workoutId) || state.sessions[state.sessions.length - 1], newPRs, newBadges);
 }
 
+// Frase obiettivo dinamica (multi-utente): usa il target dell'utente se c'è
+function goalPhrase() {
+  const t = state.goals && state.goals.targetWeight;
+  return t ? `verso i ${t} kg` : "verso il tuo obiettivo";
+}
+
 function showSummary(s, newPRs, newBadges) {
   const w = getWorkout(s.workoutId);
   const vol = Math.round(sessionVolume(s));
@@ -764,7 +758,7 @@ function showSummary(s, newPRs, newBadges) {
   const streak = weekStreak();
   const motivations = [
     "Mattone su mattone. 🧱", "Costanza batte motivazione. 🔁", "Il te di domani ringrazia. 🙌",
-    "Un passo più vicino ai 70 kg. 🎯", "Ti stai costruendo, davvero. 🛠️"
+    `Un passo più vicino ${goalPhrase().replace("verso ", "a ")}. 🎯`, "Ti stai costruendo, davvero. 🛠️"
   ];
   const motto = motivations[state.sessions.length % motivations.length];
 
@@ -824,7 +818,7 @@ function recapHTML(s) {
       </div>
       <div class="recap-list">${rows || '<div class="empty-mini">Nessun esercizio registrato.</div>'}</div>
       ${s.notes ? `<div class="recap-notes">📝 ${s.notes}</div>` : ''}
-      <div class="recap-foot">💪 GYM TRACKER · verso i 70 kg</div>
+      <div class="recap-foot">💪 GYM TRACKER · ${goalPhrase()}</div>
     </div>`;
 }
 
@@ -856,7 +850,7 @@ const G_MOTTOS = [
   "Una macchina alla volta, stai andando alla grande! 🔥",
   "Bella serie! Avanti con la prossima 💪",
   "Sei in pieno flow, non mollare 🚀",
-  "Ogni esercizio è un mattone verso i 70 kg 🧱",
+  "Ogni esercizio è un mattone verso il tuo obiettivo 🧱",
   "Concentrato e preciso: così si cresce 🎯",
   "Quasi fatto, dai il meglio anche qui ⚡",
   "Stai costruendo il tuo fisico, serie dopo serie 🛠️"
@@ -1514,7 +1508,7 @@ function renderPT() {
       </div>
       <button class="btn-save" onclick="savePTLift()">💪 Registra seduta PT</button>
     </div>
-    ${lifts.length ? '<div class="chart-hint">Tocca un punto del grafico per vedere o cancellare la seduta.</div><canvas id="pt-chart" height="150"></canvas>' : '<div class="empty-mini">Nessuna seduta PT registrata. Inserisci i kg dopo un allenamento con Denis.</div>'}
+    ${lifts.length ? '<div class="chart-hint">Tocca un punto del grafico per vedere o cancellare la seduta.</div><canvas id="pt-chart" height="150"></canvas>' : '<div class="empty-mini">Nessuna seduta PT registrata. Inserisci i kg dopo una seduta col tuo PT.</div>'}
     ${strengthLadderHTML()}
     <div class="pt-detail" id="pt-detail"></div>`;
   if (lifts.length) drawPTChart(lifts);
@@ -1847,20 +1841,6 @@ function renderGoals() {
   renderBadges();
 }
 
-function projectionHTML() {
-  const p = weightProjection();
-  if (!p) return `<div class="goal-proj">📈 Registra il peso per qualche settimana per vedere la proiezione verso l'obiettivo.</div>`;
-  if (!p.date) return `<div class="goal-proj warn">⚠️ Peso fermo o in calo: per la massa serve un piccolo surplus calorico. Vedi il coach nutrizione qui sotto.</div>`;
-  const rate = p.ratePerWeek;
-  const g = state.goals;
-  let onTrack = "";
-  if (g.targetDate) {
-    onTrack = p.date <= g.targetDate
-      ? ` — sei <strong>in linea</strong> con l'obiettivo ✅`
-      : ` — un po' <strong>indietro</strong> sull'obiettivo, alza il surplus 💪`;
-  }
-  return `<div class="goal-proj">📈 Stai crescendo ~<strong>${rate.toFixed(2)} kg/sett</strong>: a questo ritmo arrivi a ${g.targetWeight} kg verso <strong>${fmtLong(p.date)}</strong>${onTrack}</div>`;
-}
 
 function renderBadges() {
   const earned = new Set(earnedBadgeIds());
@@ -2080,19 +2060,6 @@ function renderCompChart() {
   });
 }
 
-// Partenza e obiettivo peso, modificabili dal ⚙️ accanto al trend
-function editWeightGoals() {
-  sheetForm("🎯 Percorso peso",
-    sheetField("sh-start", "Peso di partenza (kg)", state.goals.startWeight, "es. 58,8") +
-    sheetField("sh-target", "Peso obiettivo (kg)", state.goals.targetWeight, "es. 70"),
-    "saveWeightGoals()");
-}
-function saveWeightGoals() {
-  state.goals.startWeight = sheetNum("sh-start");
-  state.goals.targetWeight = sheetNum("sh-target");
-  saveState(state); closeModal(); renderGoals();
-  toast("🎯 Percorso aggiornato");
-}
 
 function toggleCompForm() {
   const f = $("comp-form");
@@ -2234,9 +2201,6 @@ function proteinColor(p) {
   return "#FF4D6D";
 }
 
-function escapeMeal(s) {
-  return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-}
 
 let mealDay = null;   // giorno selezionato nei Pasti (default oggi)
 function mealDayStr() { return mealDay || todayStr(); }
@@ -2441,27 +2405,6 @@ function mealBarChart(canvasId, labels, vals, target) {
   });
 }
 
-/* ============================================================
-   VISTA GUIDA
-   ============================================================ */
-function buildGuides() {
-  const cont = $("guide-cards");
-  guides.forEach((g, i) => {
-    const card = document.createElement("div");
-    card.className = "guide-card";
-    let body = "";
-    if (g.steps) body = g.steps.map((s, idx) => `<div class="guide-step"><div class="step-num">${idx + 1}</div><div class="step-text">${s.text}</div></div>`).join("");
-    else if (g.errors) body = g.errors.map(e => `<div class="error-item"><div class="error-icon">${e.icon}</div><div class="error-content"><div class="error-title">${e.title}</div><div class="error-desc">${e.desc}</div></div></div>`).join("");
-    card.innerHTML = `
-      <div class="guide-card-header" onclick="toggleGuide(${i})">
-        <div class="guide-icon" style="background:${g.iconBg}">${g.icon}</div>
-        <div><div class="guide-title">${g.title}</div><div class="guide-sub">${g.sub}</div></div>
-        <span class="guide-chevron">▾</span>
-      </div>
-      <div class="guide-body">${body}</div>`;
-    cont.appendChild(card);
-  });
-}
 
 function toggleGuide(i) { document.querySelectorAll(".guide-card")[i].classList.toggle("open"); }
 
