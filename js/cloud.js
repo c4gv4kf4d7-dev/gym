@@ -183,7 +183,36 @@
     await sb.auth.signOut();
   }
 
+  /* ---------- RECUPERO PASSWORD ---------- */
+  let recoveryMode = false;
+
+  async function forgotPw() {
+    const email = val("acct-email");
+    if (!email) { setAuthMsg("Scrivi prima la tua email nel campo qui sopra, poi ritocca il link."); return; }
+    setAuthMsg("Invio email di recupero…");
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: "https://c4gv4kf4d7-dev.github.io/gym/"
+    });
+    if (error) setAuthMsg("Errore: " + error.message);
+    else setAuthMsg("📬 Email inviata a " + email + ": apri il link che trovi dentro e potrai scegliere una nuova password.");
+  }
+
+  async function setNewPw() {
+    const pw = val("acct-newpw");
+    if (pw.length < 6) { setAuthMsg("La password deve avere almeno 6 caratteri."); return; }
+    setAuthMsg("Salvo…");
+    const { error } = await sb.auth.updateUser({ password: pw });
+    if (error) { setAuthMsg("Errore: " + error.message); return; }
+    recoveryMode = false;
+    renderAccountUI();
+    if (typeof toast === "function") toast("🔑 Password aggiornata!");
+  }
+
   sb.auth.onAuthStateChange((_event, session) => {
+    if (_event === "PASSWORD_RECOVERY") {
+      recoveryMode = true;
+      setTimeout(() => { if (typeof goAccount === "function") goAccount(); }, 400);
+    }
     currentUser = session ? session.user : null;
     currentToken = session ? session.access_token : null;
     if (!currentUser) cloudHadData = false;
@@ -254,6 +283,16 @@
     renderGuestBanner();
     const el = document.getElementById("account-card");
     if (!el) return;
+    if (currentUser && recoveryMode) {
+      el.innerHTML =
+        '<div class="acct-intro"><b>🔑 Imposta la nuova password.</b> Sei entrato dal link di recupero: scegli la nuova password qui sotto.</div>' +
+        '<form action="#" method="post" onsubmit="cloudSetNewPw();return false;">' +
+          '<input id="acct-newpw" name="new-password" class="acct-input" type="password" autocomplete="new-password" placeholder="Nuova password (min 6)">' +
+          '<button type="submit" class="btn-save" style="width:100%">Salva nuova password</button>' +
+        '</form>' +
+        '<div class="acct-msg" id="acct-msg"></div>';
+      return;
+    }
     if (currentUser) {
       el.innerHTML =
         '<div class="acct-line">' +
@@ -277,6 +316,7 @@
             '<button type="submit" class="btn-save">Accedi</button>' +
           '</div>' +
         '</form>' +
+        '<button class="acct-forgot" onclick="cloudForgotPw()">Ho dimenticato la password</button>' +
         '<div class="acct-msg" id="acct-msg"></div>';
     }
   }
@@ -297,6 +337,8 @@
   window.cloudSignIn = signIn;
   window.cloudSignUp = signUp;
   window.cloudSignOut = signOut;
+  window.cloudForgotPw = forgotPw;
+  window.cloudSetNewPw = setNewPw;
   window.goAccount = function () {
     const btn = document.querySelector('.nav-item[onclick*="obiettivi"]');
     switchView("obiettivi", btn);
