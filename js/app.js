@@ -66,13 +66,32 @@ function whenLabel(ds) {
 let workoutManuallyChosen = false;
 function pickDefaultWorkout() {
   if (workoutManuallyChosen) return;
-  const nxt = nextScheduledFor(null);
-  if (nxt && !nxt[1].pt) {
+  // primo giorno programmato NON-PT (il PT non è una scheda selezionabile)
+  const t = todayStr();
+  const nxt = Object.entries(state.schedule || {})
+    .filter(([d, sc]) => d >= t && !sc.done && !sc.pt)
+    .sort((a, b) => a[0].localeCompare(b[0]))[0];
+  if (nxt) {
     const w = ALL_WORKOUTS().find(x => x.id === nxt[1].workoutId);
     if (w) currentWorkoutId = w.id;
   }
 }
 
+// Etichetta hero: il PROSSIMO giorno di allenamento in assoluto.
+// Se prima della scheda selezionata c'è altro (PT o altra scheda), lo dice.
+function heroWhen(w) {
+  const mine = nextScheduledFor(w.id);
+  const any = nextScheduledFor(null);
+  if (!any) return "non programmata";
+  if (mine && mine[0] === any[0]) return whenShort(mine[0]);
+  const other = any[1].pt ? "🧑‍🏫 PT" : (getWorkout(any[1].workoutId) || {}).name || "";
+  return `${whenShort(any[0])} · ${other}${mine ? ` — questa ${whenShort(mine[0])}` : ""}`;
+}
+
+// Naviga alla tab Allena (dal tocco sul titolo in alto a sinistra)
+function goWorkout() {
+  switchView("workout", document.querySelector('.nav-item[onclick*="workout"]'));
+}
 // Naviga alla tab Calendario (dal tocco sulla data in header)
 function goCalendar() {
   switchView("calendario", document.querySelector('.nav-item[onclick*="calendario"]'));
@@ -532,9 +551,8 @@ function renderWorkout() {
   // HERO
   $("workout-hero").style.background = `linear-gradient(150deg, ${w.color} 0%, #2A1B4A 95%)`;
   $("workout-hero").style.boxShadow = `0 10px 40px -8px ${w.color}66, inset 0 1px 0 rgba(255,255,255,.18)`;
-  const nx = nextScheduledFor(w.id);
   $("workout-hero").innerHTML = `
-    <div class="hero-label">${nx ? whenShort(nx[0]) : "non programmata"}</div>
+    <div class="hero-label">${heroWhen(w)}</div>
     <div class="hero-title">${w.name} ${w.emoji}</div>
     <div class="hero-stats">
       <div class="hero-stat"><div class="hero-stat-num">${exList.length}</div><div class="hero-stat-lbl">Esercizi</div></div>
@@ -2004,7 +2022,17 @@ const PROTEIN_TARGET = 150;   // g/die — default proteine (fallback)
 
 // Obiettivi giornalieri: di default quelli del coach nutrizione (adattivi);
 // se l'utente li forza a mano (nutriGoal), vincono i suoi.
-function kcalTarget() { return (state.nutriGoal && state.nutriGoal.kcal) || nutritionTargets().kcal; }
+// nutriGoal.plan = { week0, kcal0, inc }: obiettivo ancorato a una settimana,
+// che cresce di `inc` kcal OGNI LUNEDÌ in automatico.
+function kcalTarget() {
+  const g = state.nutriGoal || {};
+  if (g.plan && g.plan.kcal0) {
+    const weeks = Math.max(0, Math.round((new Date(weekStart(todayStr())) - new Date(g.plan.week0)) / (7 * 864e5)));
+    return g.plan.kcal0 + weeks * (g.plan.inc || 0);
+  }
+  if (g.kcal) return g.kcal;
+  return nutritionTargets().kcal;
+}
 function proteinTarget() { return (state.nutriGoal && state.nutriGoal.protein) || nutritionTargets().protein || PROTEIN_TARGET; }
 
 function mealsFor(date) { return (state.meals && state.meals[date]) || []; }
@@ -2092,16 +2120,27 @@ function renderMealSummary() {
 }
 
 function editKcalTarget() {
+  const g = state.nutriGoal || {};
+  const curInc = g.plan ? (g.plan.inc || 0) : 100;
   sheetForm("🔥 Obiettivo calorie",
-    sheetField("sh-kcal", "kcal al giorno (vuoto = automatico dal coach)", (state.nutriGoal && state.nutriGoal.kcal) || "", "auto: " + nutritionTargets().kcal),
+    sheetField("sh-kcal", "kcal al giorno QUESTA settimana (vuoto = coach)", kcalTarget(), "auto: " + nutritionTargets().kcal) +
+    sheetField("sh-inc", "Aumento automatico ogni lunedì (kcal)", curInc, "es. 100 — 0 = fisso"),
     "saveKcalTarget()");
 }
 function saveKcalTarget() {
   const n = sheetNum("sh-kcal");
+  const inc = sheetNum("sh-inc");
   state.nutriGoal = state.nutriGoal || {};
-  state.nutriGoal.kcal = (n && n > 0) ? Math.round(n) : null;
+  if (n && n > 0) {
+    // piano ancorato alla settimana corrente: da lunedì prossimo +inc, e così via
+    state.nutriGoal.plan = { week0: weekStart(todayStr()), kcal0: Math.round(n), inc: (inc && inc > 0) ? Math.round(inc) : 0 };
+    state.nutriGoal.kcal = null;
+  } else {
+    state.nutriGoal.plan = null;
+    state.nutriGoal.kcal = null;
+  }
   saveState(state); closeModal(); renderMeals();
-  toast(state.nutriGoal.kcal ? "Obiettivo kcal impostato a mano" : "Obiettivo kcal: automatico (coach)");
+  toast(n ? (state.nutriGoal.plan.inc ? `Obiettivo ${Math.round(n)} kcal, +${state.nutriGoal.plan.inc} ogni lunedì 📈` : "Obiettivo kcal fisso impostato") : "Obiettivo kcal: automatico (coach)");
 }
 function editProteinTarget() {
   sheetForm("💪 Obiettivo proteine",
@@ -2166,9 +2205,11 @@ function renderMealTrend() {
   if (charts.mealK) charts.mealK.destroy();
   if (charts.mealP) charts.mealP.destroy();
 
+  // Settimana corrente, da lunedì a domenica (le settimane passate spariscono)
   const days = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(); d.setDate(d.getDate() - i);
+  const monday = new Date(weekStart(todayStr()) + "T00:00:00");
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday); d.setDate(d.getDate() + i);
     days.push(localDate(d));
   }
   const kcals = days.map(d => dayTotals(d).kcal);
@@ -2176,7 +2217,7 @@ function renderMealTrend() {
   const loggedDays = days.filter(d => mealsFor(d).length).length;
 
   if (!loggedDays) {
-    host.innerHTML = `<div class="empty-mini">Registra qualche pasto per vedere l'andamento. Qui appariranno le medie giornaliere di calorie e proteine degli ultimi 7 giorni.</div>`;
+    host.innerHTML = `<div class="empty-mini">Registra qualche pasto per vedere l'andamento della settimana (lunedì → domenica).</div>`;
     return;
   }
 
@@ -2190,12 +2231,12 @@ function renderMealTrend() {
     <div class="spark-row">
       <div class="spark-head"><span class="spark-lbl" style="color:#FF6B6B">Calorie</span><span class="spark-val">obiettivo ${kT} kcal</span></div>
       <div class="spark-wrap" style="height:100px"><canvas id="meal-k-chart"></canvas></div>
-      <div class="meal-hit">✅ ${kHit}/${loggedDays} giorni obiettivo calorie raggiunto</div>
+      <div class="meal-hit">✅ ${kHit}/${loggedDays} giorni obiettivo calorie questa settimana</div>
     </div>
     <div class="spark-row">
       <div class="spark-head"><span class="spark-lbl" style="color:#2BD576">Proteine</span><span class="spark-val">obiettivo ${pT} g</span></div>
       <div class="spark-wrap" style="height:100px"><canvas id="meal-p-chart"></canvas></div>
-      <div class="meal-hit">✅ ${pHit}/${loggedDays} giorni obiettivo proteine raggiunto</div>
+      <div class="meal-hit">✅ ${pHit}/${loggedDays} giorni obiettivo proteine questa settimana</div>
     </div>`;
 
   charts.mealK = mealBarChart("meal-k-chart", labels, kcals, kT);

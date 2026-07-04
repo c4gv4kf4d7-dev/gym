@@ -8,14 +8,16 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Allenamento">
 <title>Allenamento</title>
-<link rel="stylesheet" href="css/styles.css?v=202607041536">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/icon.png">
+<link rel="stylesheet" href="css/styles.css?v=202607042234">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 
 <div class="header">
   <div class="header-top">
-    <span class="app-title">Allenamento</span>
+    <span class="app-title" onclick="goWorkout()" style="cursor:pointer">Allenamento</span>
     <div class="header-right">
       <span class="date-badge" id="today-date" onclick="goCalendar()"></span>
       <button class="acct-chip" id="header-account" onclick="goAccount()">Accedi</button>
@@ -150,7 +152,7 @@
   <div class="section-label">🍽️ Pasti del giorno</div>
   <div id="meal-list"></div>
 
-  <div class="section-label">📈 Andamento (7 giorni)</div>
+  <div class="section-label">📈 Questa settimana</div>
   <div class="goal-card" id="meal-trend"></div>
 </div>
 
@@ -189,15 +191,15 @@
 <div class="toast" id="toast"></div>
 
 <script>if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js").catch(function(){}); }</script>
-<script src="js/data.js?v=202607041536"></script>
-<script src="js/exercise-media.js?v=202607041536"></script>
-<script src="js/cues.js?v=202607041536"></script>
-<script src="js/storage.js?v=202607041536"></script>
-<script src="js/app.js?v=202607041536"></script>
-<script src="js/wrapped.js?v=202607041536"></script>
-<script src="js/setup.js?v=202607041536"></script>
+<script src="js/data.js?v=202607042234"></script>
+<script src="js/exercise-media.js?v=202607042234"></script>
+<script src="js/cues.js?v=202607042234"></script>
+<script src="js/storage.js?v=202607042234"></script>
+<script src="js/app.js?v=202607042234"></script>
+<script src="js/wrapped.js?v=202607042234"></script>
+<script src="js/setup.js?v=202607042234"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/cloud-config.js?v=202607041536"></script>
-<script src="js/cloud.js?v=202607041536"></script>
+<script src="js/cloud-config.js?v=202607042234"></script>
+<script src="js/cloud.js?v=202607042234"></script>
 </body>
 </html>

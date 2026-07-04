@@ -173,5 +173,21 @@ ok("wrapped: mese vuoto → critica presente", api.wrappedVerdict(api.wrappedSta
 ok("volumeComparison: 2400 kg ≈ 2 Fiat Panda", String(api.volumeComparison(2400)).indexOf("2 volte") === 0);
 ok("volumeComparison: sotto soglia → null", api.volumeComparison(30) === null);
 
+/* ---- 12) PIANO KCAL: +inc ogni lunedì ---- */
+st = api.defaultState();
+st.profile = { goal:"massa", daysPerWeek:3, height:179, age:39, sex:"M", onboarded:true };
+api.set(st);
+var thisMon = api.weekStart(api.todayStr());
+st.nutriGoal = { kcal:null, protein:null, plan: { week0: thisMon, kcal0: 2100, inc: 100 } };
+ok("piano kcal: settimana di ancoraggio → 2100", api.kcalTarget() === 2100);
+var lastMon = new Date(thisMon + "T00:00:00"); lastMon.setDate(lastMon.getDate() - 7);
+st.nutriGoal.plan.week0 = api.localDate(lastMon);
+ok("piano kcal: dopo 1 lunedì → 2200", api.kcalTarget() === 2200);
+var threeMon = new Date(thisMon + "T00:00:00"); threeMon.setDate(threeMon.getDate() - 21);
+st.nutriGoal.plan.week0 = api.localDate(threeMon);
+ok("piano kcal: dopo 3 lunedì → 2400", api.kcalTarget() === 2400);
+st.nutriGoal.plan.inc = 0;
+ok("piano kcal: inc 0 → fisso", api.kcalTarget() === 2100);
+
 out.push(fails === 0 ? "\nTUTTI I TEST PASSANO (" + (out.length) + ")" : "\n⚠️ " + fails + " TEST FALLITI");
 out.join("\n");

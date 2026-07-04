@@ -1,0 +1,13 @@
+{
+  "name": "Allenamento",
+  "short_name": "Allenamento",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#07040F",
+  "theme_color": "#07040F",
+  "icons": [
+    { "src": "assets/icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "assets/icon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

@@ -928,3 +928,7 @@ select.ob-input { appearance: none; -webkit-appearance: none; }
 .wb2-emoji { font-size: 26px; }
 .wb2-txt { flex: 1; font-size: 13px; line-height: 1.4; color: #fff; }
 .wb2-cta { font-size: 13px; font-weight: 800; color: #fff; white-space: nowrap; }
+
+/* Chips profilo: barre uniformi, centrate nello spazio a destra */
+.profile-chips-col { flex: 1; align-items: center; justify-content: center; }
+.profile-chips-col .profile-chip { display: block; width: 100%; max-width: 170px; text-align: center; }
