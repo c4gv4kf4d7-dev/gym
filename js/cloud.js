@@ -25,7 +25,7 @@
   // Sovrascrive saveState globale: salva in locale + (se loggato) sincronizza
   saveState = function (s) {
     _localSave(s);
-    if (currentUser) {
+    if (currentUser && !window.DEMO_MODE) {
       localStorage.setItem(PENDING_KEY, "1");
       schedulePush();
     }
@@ -187,9 +187,16 @@
     currentUser = session ? session.user : null;
     currentToken = session ? session.access_token : null;
     if (!currentUser) cloudHadData = false;
-    if (currentUser && (_event === "INITIAL_SESSION" || _event === "SIGNED_IN")) pullCloud();
+    if (currentUser && (_event === "INITIAL_SESSION" || _event === "SIGNED_IN")) {
+      if (typeof exitDemoMode === "function") exitDemoMode();   // prima di leggere il cloud
+      pullCloud();
+    }
     else if (currentUser) { /* TOKEN_REFRESHED ecc.: niente pull, solo token aggiornato */ }
-    else if (_event === "INITIAL_SESSION" && window.showWelcome) window.showWelcome();
+    else {
+      // Nessun account → modalità vetrina: profilo di ESEMPIO, zero dati reali
+      if (typeof enterDemoMode === "function") enterDemoMode();
+      if (_event === "INITIAL_SESSION" && window.showWelcome) window.showWelcome();
+    }
     renderAccountUI();
   });
 
@@ -236,8 +243,8 @@
     if (!host) return;
     host.innerHTML = currentUser ? "" : `
       <div class="guest-banner" onclick="goAccount()">
-        <div class="gb-emoji">🔓</div>
-        <div class="gb-txt"><b>Questa app può essere tua.</b><br>Accedi per sbloccare scheda personalizzata, obiettivi su misura e progressi sincronizzati.</div>
+        <div class="gb-emoji">👀</div>
+        <div class="gb-txt"><b>Stai guardando un profilo di ESEMPIO.</b><br>Dati, grafici e trofei sono finti: accedi per costruire i tuoi, veri.</div>
         <div class="gb-cta">Accedi →</div>
       </div>`;
   }

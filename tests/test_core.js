@@ -27,7 +27,7 @@ var winStub = { addEventListener:function(){} };
 var lsStub = { _d:{}, getItem:function(k){return this._d[k]||null}, setItem:function(k,v){this._d[k]=String(v)}, removeItem:function(k){delete this._d[k]} };
 function ChartStub(){ this.destroy=function(){}; } ChartStub.defaults={font:{}};
 
-var SRC = [read(ROOT + "/js/data.js"), read(ROOT + "/js/storage.js"), read(ROOT + "/js/app.js"), read(ROOT + "/js/wrapped.js")].join("\n;\n");
+var SRC = [read(ROOT + "/js/data.js"), read(ROOT + "/js/storage.js"), read(ROOT + "/js/app.js"), read(ROOT + "/js/wrapped.js"), read(ROOT + "/js/demo.js")].join("\n;\n");
 var api = new Function(
   "document","window","localStorage","sessionStorage","navigator","EXERCISE_STEPS","EXERCISE_CUES","Chart",
   SRC + `
@@ -39,6 +39,7 @@ var api = new Function(
     defaultState: defaultState,
     fatigueAnalysis: fatigueAnalysis, deloadActive: deloadActive,
     wrappedStats: wrappedStats, wrappedVerdict: wrappedVerdict, volumeComparison: volumeComparison,
+    demoState: demoState,
     set: function (s) { state = s; },
     get: function () { return state; }
   };`
@@ -188,6 +189,27 @@ st.nutriGoal.plan.week0 = api.localDate(threeMon);
 ok("piano kcal: dopo 3 lunedì → 2400", api.kcalTarget() === 2400);
 st.nutriGoal.plan.inc = 0;
 ok("piano kcal: inc 0 → fisso", api.kcalTarget() === 2100);
+
+/* ---- 13) PROFILO DEMO: realistico e coerente ---- */
+var demo = api.demoState();
+ok("demo: profilo Alex completo", demo.profile.name === "Alex" && demo.profile.onboarded === true);
+ok("demo: almeno 20 sessioni nel passato", demo.sessions.length >= 20 && demo.sessions.every(function(x){ return x.date <= api.todayStr(); }));
+var badKeys = [];
+demo.sessions.forEach(function(x){ Object.keys(x.exercises).forEach(function(k){ if (!EXERCISES_ok(k)) badKeys.push(k); }); });
+function EXERCISES_ok(k){ return true; }  // verificato sotto con le chiavi reali
+var allKeys = {};
+demo.sessions.forEach(function(x){ Object.keys(x.exercises).forEach(function(k){ allKeys[k] = 1; }); });
+var invalid = Object.keys(allKeys).filter(function(k){
+  api.set(demo); return false;
+});
+api.set(demo);
+ok("demo: tutte le chiavi esercizio esistono", Object.keys(allKeys).every(function(k){ return api.suggestion(k) != null; }));
+ok("demo: pasti su almeno 9 giorni", Object.keys(demo.meals).length >= 9);
+ok("demo: peso in crescita coerente", demo.bodyweight.length >= 6 && demo.bodyweight[demo.bodyweight.length-1].v > demo.bodyweight[0].v);
+ok("demo: seduta PT futura in calendario", Object.entries(demo.schedule).some(function(e){ return e[0] > api.todayStr() && e[1].pt; }));
+ok("demo: sedute PT registrate", demo.ptLifts.length >= 3);
+ok("demo: composizione presente", demo.composition.length >= 4);
+ok("demo: nessun riferimento a Mike", JSON.stringify(demo).indexOf("Mike") < 0 && JSON.stringify(demo).indexOf("Denis") < 0);
 
 out.push(fails === 0 ? "\nTUTTI I TEST PASSANO (" + (out.length) + ")" : "\n⚠️ " + fails + " TEST FALLITI");
 out.join("\n");

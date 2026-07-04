@@ -55,6 +55,7 @@ function loadState() {
 }
 
 function saveState(state) {
+  if (typeof window !== "undefined" && window.DEMO_MODE) return;   // il profilo demo vive solo in memoria
   try {
     localStorage.setItem(STORE_KEY, JSON.stringify(state));
   } catch (e) {
