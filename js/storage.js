@@ -26,6 +26,8 @@ const defaultState = () => ({
   ptLifts: [],         // sedute con Denis: { date, panca, squat, stacco } — kg dei 3 esercizi
   nutriGoal: { kcal: null, protein: null },  // null = usa i target adattivi del coach nutrizione
   myWorkouts: [],      // schede personali dell'utente (se vuoto → schede di default)
+  deload: null,        // scarico: { start, until } attivo oppure { snoozeUntil }
+  wrappedSeen: [],     // mesi ("YYYY-MM") il cui Wrapped è già stato aperto
   customExercises: {}, // esercizi importati/creati dall'utente (stessa forma di EXERCISES)
   badges: [],          // id dei traguardi sbloccati
   migrations: [],      // id delle migrazioni già applicate

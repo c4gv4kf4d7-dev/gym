@@ -296,6 +296,8 @@ const BADGES = [
     desc: "7 giorni di fila coi pasti registrati. La massa si costruisce in cucina." },
   { id: "builder", icon: "🧩", name: "Architetto",            test: () => (state.myWorkouts || []).length >= 1,
     desc: "Hai creato la tua prima scheda personalizzata. Questa app ora è davvero tua." },
+  { id: "coldhead",icon: "🧊", name: "Testa fredda",         test: () => state.sessions.some(x => x.deload),
+    desc: "Hai accettato e completato una settimana di scarico. Sapersi fermare è da atleti veri, non da pigri." },
   { id: "weigh4",  icon: "⚖️", name: "Bilancia fedele",       test: () => weighWeeks() >= 4,
     desc: "Peso registrato in 4 settimane diverse. Senza dati non c'è progresso misurabile." },
   { id: "goal",    icon: "👑", name: "Obiettivo raggiunto!",  test: () => { const c = currentBW(), t = state.goals.targetWeight, s = state.goals.startWeight; return c != null && t != null && (s == null || t >= s ? c >= t : c <= t); },
@@ -329,12 +331,103 @@ function earnedBadgeIds() { return BADGES.filter(b => b.test()).map(b => b.id); 
 
 // Esercizio nell'ultima sessione (prima di oggi): { date, sets, quality }
 function lastExercise(exKey) {
-  const past = state.sessions
+  const all = state.sessions
     .filter(s => s.date < todayStr() && exSets(s, exKey).length)
     .sort((a, b) => b.date.localeCompare(a.date));
-  if (!past.length) return null;
-  const sess = past[0];
+  // le sessioni di scarico non fanno da baseline per la progressione
+  const past = all.filter(s => !s.deload);
+  const sess = past.length ? past[0] : all[0];
+  if (!sess) return null;
   return { date: sess.date, sets: exSets(sess, exKey), quality: sess.exercises[exKey].quality };
+}
+
+/* ============================================================
+   DELOAD — scarico programmato, deciso come farebbe un vero PT
+   Legge il semaforo delle ultime 2 settimane: se la fatica si
+   accumula (tante "dure"/"non finite") o il motore gira da troppe
+   settimane senza pause, propone una settimana a -20%.
+   Non è un premio: è strategia per spingere più forte dopo.
+   ============================================================ */
+const DELOAD_FACTOR = 0.8;     // -20% sui carichi
+const DELOAD_DAYS = 7;
+
+function deloadActive() {
+  const d = state.deload;
+  return !!(d && d.until && d.until >= todayStr());
+}
+
+// Analisi pura: quanta fatica si è accumulata?
+function fatigueAnalysis() {
+  const cutoff = localDate(new Date(Date.now() - 14 * 864e5));
+  let evals = 0, score = 0;
+  state.sessions.filter(x => x.date >= cutoff && !x.deload).forEach(x => {
+    Object.values(x.exercises || {}).forEach(e => {
+      if (e.quality === "clean") { evals++; }
+      else if (e.quality === "hard") { evals++; score += 1; }
+      else if (e.quality === "fail") { evals++; score += 2; }
+    });
+  });
+  const ratio = evals ? +(score / (evals * 2)).toFixed(2) : 0;
+  const weeksRun = weekStreak();
+  let propose = false, reason = "";
+  if (evals >= 6 && ratio >= 0.5) {
+    propose = true;
+    reason = "Nelle ultime 2 settimane oltre metà dei tuoi esercizi sono stati duri o non completati. Il corpo sta chiedendo tregua — e ignorarlo è il modo migliore per fermarsi un mese, non una settimana.";
+  } else if (weeksRun >= 6 && evals >= 6 && ratio >= 0.35) {
+    propose = true;
+    reason = weeksRun + " settimane di fila senza pause e la fatica inizia a mordere. I muscoli crescono nel recupero: una settimana leggera ORA vale due pesanti DOPO.";
+  }
+  return { evals, ratio, weeksRun, propose, reason };
+}
+
+function startDeload() {
+  const until = new Date(); until.setDate(until.getDate() + DELOAD_DAYS - 1);
+  state.deload = { start: todayStr(), until: localDate(until) };
+  saveState(state);
+  renderWorkout();
+  toast("🧊 Scarico attivo: carichi al -20% per 7 giorni. Testa fredda, tecnica perfetta.");
+}
+function snoozeDeload() {
+  const until = new Date(); until.setDate(until.getDate() + 7);
+  state.deload = { snoozeUntil: localDate(until) };
+  saveState(state);
+  renderWorkout();
+  toast("Ok, il coach rispetta la scelta. Ne riparliamo tra una settimana — ma ascoltati.");
+}
+
+function renderDeloadBanner() {
+  const host = $("deload-banner");
+  if (!host) return;
+  // scarico scaduto → si torna a spingere
+  if (state.deload && state.deload.until && state.deload.until < todayStr()) {
+    state.deload = null;
+    saveState(state);
+    toast("🔥 Scarico finito: pile ricaricate. Da oggi si torna a spingere.");
+  }
+  if (deloadActive()) {
+    host.innerHTML = `
+      <div class="deload-bar active">
+        <span class="db-ico">🧊</span>
+        <span class="db-txt"><b>Scarico attivo fino a ${fmtShort(state.deload.until)}</b> · carichi al -20%. Non barare verso l'alto: oggi vinci recuperando.</span>
+      </div>`;
+    return;
+  }
+  const snoozed = state.deload && state.deload.snoozeUntil && state.deload.snoozeUntil >= todayStr();
+  const fa = fatigueAnalysis();
+  if (fa.propose && !snoozed) {
+    host.innerHTML = `
+      <div class="deload-bar">
+        <div class="db-head"><span class="db-ico">🧊</span><b>Il coach ha deciso: settimana di scarico.</b></div>
+        <div class="db-txt">${fa.reason}</div>
+        <div class="db-txt db-plan">Il piano: 7 giorni con gli stessi esercizi al <b>-20%</b>, tecnica maniacale. Poi si riparte a spingere più forte di prima.</div>
+        <div class="db-btns">
+          <button class="btn-outline" onclick="snoozeDeload()">Non ora</button>
+          <button class="btn-save" onclick="startDeload()">🧊 Accetto lo scarico</button>
+        </div>
+      </div>`;
+  } else {
+    host.innerHTML = "";
+  }
 }
 
 // SOVRACCARICO PROGRESSIVO — suggerimento per l'esercizio di oggi
@@ -351,6 +444,16 @@ function suggestion(exKey) {
   }
 
   const w = Math.max(...last.sets.map(s => s.w));
+
+  // 🧊 SCARICO ATTIVO — carichi al -20%, arrotondati al passo dell'attrezzo
+  if (deloadActive()) {
+    const dw = Math.max(inc, Math.floor((w * DELOAD_FACTOR) / inc) * inc);   // arrotonda in GIÙ: lo scarico non si bara
+    const day0 = new Date(last.date + "T00:00:00").toLocaleDateString("it-IT", { weekday: "long" });
+    return { last, lastW: w, lastR: Math.min(...last.sets.map(x => x.r)), lastSets: last.sets.length, day: day0,
+             todayHtml: `Scarico: <strong>${dw} kg</strong> × ${baseReps} — leggero, lento, perfetto 🧊`,
+             color: "deload", targetW: dw, targetReps: baseReps };
+  }
+
   const minR = Math.min(...last.sets.map(s => s.r));
   const nSets = last.sets.length;
   const q = last.quality;
@@ -503,6 +606,8 @@ function renderWorkout() {
 
   $("toggle-all").textContent = "Espandi tutto";
   renderGuidedResume();
+  renderDeloadBanner();
+  if (typeof renderWrappedBanner === "function") renderWrappedBanner();
 }
 
 function toggleCard(i) { $(`ex-${i}`).classList.toggle("open"); }
@@ -546,7 +651,7 @@ function manualSave(exKey) {
 function upsertManualExercise(workoutId, exKey, sets, quality) {
   let sess = todaySession(workoutId);
   if (!sess) {
-    sess = { id: Date.now(), date: todayStr(), workoutId, exercises: {}, duration: null, calories: null, notes: "" };
+    sess = { id: Date.now(), date: todayStr(), workoutId, exercises: {}, duration: null, calories: null, notes: "", deload: deloadActive() || undefined };
     state.sessions.push(sess);
   }
   sess.exercises[exKey] = { sets, quality };
@@ -583,7 +688,8 @@ function commitSession(workoutId, exercises, meta) {
   } else {
     state.sessions.push({
       id: Date.now(), date: todayStr(), workoutId, exercises,
-      duration: meta.duration, calories: meta.calories, notes: meta.notes
+      duration: meta.duration, calories: meta.calories, notes: meta.notes,
+      deload: deloadActive() || undefined
     });
   }
   state.schedule[todayStr()] = { workoutId, done: true };
@@ -705,6 +811,7 @@ const G_MOTTOS = [
 
 // Messaggio motivazionale per esercizio, calibrato sull'ultima volta
 function guidedMotivation(key) {
+  if (deloadActive()) return "🧊 Settimana di scarico: -20%, esecuzione da manuale. Chi sa scaricare, poi stacca tutti.";
   const last = lastExercise(key);
   if (!last) return "🆕 Prima volta qui: trova il tuo peso, tecnica prima di tutto.";
   const q = last.quality;
@@ -1261,6 +1368,7 @@ function renderProgress() {
   renderVolumeChart();
   renderExChart();
   renderPT();
+  if (typeof renderWrappedCard === "function") renderWrappedCard();
   renderHistory();
 }
 

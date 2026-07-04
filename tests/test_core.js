@@ -27,7 +27,7 @@ var winStub = { addEventListener:function(){} };
 var lsStub = { _d:{}, getItem:function(k){return this._d[k]||null}, setItem:function(k,v){this._d[k]=String(v)}, removeItem:function(k){delete this._d[k]} };
 function ChartStub(){ this.destroy=function(){}; } ChartStub.defaults={font:{}};
 
-var SRC = [read(ROOT + "/js/data.js"), read(ROOT + "/js/storage.js"), read(ROOT + "/js/app.js")].join("\n;\n");
+var SRC = [read(ROOT + "/js/data.js"), read(ROOT + "/js/storage.js"), read(ROOT + "/js/app.js"), read(ROOT + "/js/wrapped.js")].join("\n;\n");
 var api = new Function(
   "document","window","localStorage","sessionStorage","navigator","EXERCISE_STEPS","EXERCISE_CUES","Chart",
   SRC + `
@@ -37,6 +37,8 @@ var api = new Function(
     kcalTarget: kcalTarget, proteinTarget: proteinTarget, mealDayStreak: mealDayStreak,
     ALL_WORKOUTS: ALL_WORKOUTS, getWorkout: getWorkout, SCHEDULABLE: SCHEDULABLE,
     defaultState: defaultState,
+    fatigueAnalysis: fatigueAnalysis, deloadActive: deloadActive,
+    wrappedStats: wrappedStats, wrappedVerdict: wrappedVerdict, volumeComparison: volumeComparison,
     set: function (s) { state = s; },
     get: function () { return state; }
   };`
@@ -115,6 +117,61 @@ st.myWorkouts = [{id:"x", name:"Mia", emoji:"x", color:"#fff", exercises:["chest
 ok("ALL_WORKOUTS: schede utente vincono", api.ALL_WORKOUTS().length === 1);
 ok("getWorkout: trova PT", api.getWorkout("pt") && api.getWorkout("pt").pt === true);
 ok("SCHEDULABLE: schede utente + PT", api.SCHEDULABLE().length === 2);
+
+/* ---- 10) DELOAD: analisi fatica + suggerimento -20% ---- */
+st = api.defaultState();
+api.set(st);
+function mkSess(daysAgo, quality, w) {
+  var d = new Date(); d.setDate(d.getDate() - daysAgo);
+  return { id: Math.random(), date: api.localDate(d), workoutId: "fullbody",
+    exercises: { chestpress: { sets: [{w: w||20, r: 12},{w: w||20, r: 12},{w: w||20, r: 12}], quality: quality } } };
+}
+// 2 settimane pesanti: 6 valutazioni quasi tutte dure/fallite → propone scarico
+st.sessions = [mkSess(2,"fail"), mkSess(4,"hard"), mkSess(6,"fail"), mkSess(8,"hard"), mkSess(10,"fail"), mkSess(12,"hard")];
+var fa = api.fatigueAnalysis();
+ok("deload: fatica alta → proposto", fa.propose === true && fa.reason.length > 0);
+// tutte pulite → NON proposto
+st.sessions = [mkSess(2,"clean"), mkSess(4,"clean"), mkSess(6,"clean"), mkSess(8,"clean"), mkSess(10,"clean"), mkSess(12,"clean")];
+ok("deload: tutto pulito → non proposto", api.fatigueAnalysis().propose === false);
+// scarico attivo → suggestion al -20% arrotondato
+var u = new Date(); u.setDate(u.getDate() + 3);
+st.deload = { start: api.todayStr(), until: api.localDate(u) };
+st.sessions = [mkSess(2, "clean", 30)];
+ok("deload attivo: deloadActive true", api.deloadActive() === true);
+var sd = api.suggestion("chestpress");
+ok("deload attivo: target -20% (30→22.5 arrotondato 2.5)", sd.targetW === 22.5 && sd.color === "deload");
+st.deload = null;
+ok("deload spento: suggestion normale torna", api.suggestion("chestpress").color !== "deload");
+// le sessioni di scarico non fanno da baseline
+var dl = mkSess(1, "clean", 24); dl.deload = true;
+st.sessions = [mkSess(5, "clean", 30), dl];
+ok("deload: baseline ignora la sessione di scarico", api.suggestion("chestpress").lastW === 30);
+
+/* ---- 11) WRAPPED: statistiche, paragoni, pagella ---- */
+st = api.defaultState();
+st.profile = { goal: "massa", daysPerWeek: 3, onboarded: true };
+api.set(st);
+var MK = "2026-06";
+st.sessions = [
+  { id:1, date:"2026-06-05", workoutId:"fullbody", exercises:{ chestpress:{ sets:[{w:20,r:12},{w:20,r:12},{w:20,r:12}], quality:"clean" } } },
+  { id:2, date:"2026-06-12", workoutId:"fullbody", exercises:{ chestpress:{ sets:[{w:22.5,r:12},{w:22.5,r:12},{w:22.5,r:12}], quality:"clean" } } },
+  { id:3, date:"2026-06-19", workoutId:"fullbody", exercises:{ chestpress:{ sets:[{w:25,r:12},{w:25,r:12},{w:25,r:12}], quality:"hard" } } }
+];
+st.bodyweight = [{date:"2026-06-01", v:60},{date:"2026-06-29", v:61}];
+st.meals = { "2026-06-10": [{id:1,kcal:2600,protein:140}] };
+var ws = api.wrappedStats(MK);
+ok("wrapped: 3 sessioni", ws.sessions === 3);
+ok("wrapped: volume = somma kg×rip", ws.volume === (20*36 + 22.5*36 + 25*36));
+ok("wrapped: top exercise 20→25", ws.topEx && ws.topEx.gain === 5 && ws.topEx.to === 25);
+ok("wrapped: qualità 2 pulite 1 dura", ws.clean === 2 && ws.hard === 1 && ws.fail === 0);
+ok("wrapped: delta peso +1", ws.wDelta === 1);
+var wv = api.wrappedVerdict(ws);
+ok("wrapped: pagella ha celebrazioni", wv.cel.length >= 1);
+ok("wrapped: pagella ha una sfida", wv.chal.length === 1);
+ok("wrapped: voto 0-100", wv.score >= 0 && wv.score <= 100);
+ok("wrapped: mese vuoto → critica presente", api.wrappedVerdict(api.wrappedStats("2025-01")).crit.length >= 1);
+ok("volumeComparison: 2400 kg ≈ 2 Fiat Panda", String(api.volumeComparison(2400)).indexOf("2 volte") === 0);
+ok("volumeComparison: sotto soglia → null", api.volumeComparison(30) === null);
 
 out.push(fails === 0 ? "\nTUTTI I TEST PASSANO (" + (out.length) + ")" : "\n⚠️ " + fails + " TEST FALLITI");
 out.join("\n");

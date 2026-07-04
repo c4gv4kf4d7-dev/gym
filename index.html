@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Allenamento">
 <title>Allenamento</title>
-<link rel="stylesheet" href="css/styles.css?v=202607041521">
+<link rel="stylesheet" href="css/styles.css?v=202607041536">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
@@ -26,6 +26,8 @@
 <!-- ============ WORKOUT ============ -->
 <div class="section active" id="section-workout">
   <div id="guest-banner"></div>
+  <div id="wrapped-banner"></div>
+  <div id="deload-banner"></div>
   <div id="weigh-banner"></div>
   <div class="workout-chips" id="workout-chips"></div>
   <div class="workout-hero" id="workout-hero"></div>
@@ -77,6 +79,8 @@
   </div>
 
   <div class="chart-card" id="pt-card"></div>
+
+  <div class="chart-card" id="wrapped-card"></div>
 
   <div class="section-label">Storico sessioni</div>
   <div class="hist-months" id="hist-months"></div>
@@ -173,6 +177,9 @@
 <!-- ============ SETUP / ONBOARDING OVERLAY ============ -->
 <div class="setup-overlay" id="setup-overlay"></div>
 
+<!-- ============ WRAPPED OVERLAY ============ -->
+<div class="wrapped-overlay" id="wrapped"></div>
+
 <!-- ============ GUIDED OVERLAY ============ -->
 <div class="guided-overlay" id="guided"></div>
 
@@ -182,14 +189,15 @@
 <div class="toast" id="toast"></div>
 
 <script>if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js").catch(function(){}); }</script>
-<script src="js/data.js?v=202607041521"></script>
-<script src="js/exercise-media.js?v=202607041521"></script>
-<script src="js/cues.js?v=202607041521"></script>
-<script src="js/storage.js?v=202607041521"></script>
-<script src="js/app.js?v=202607041521"></script>
-<script src="js/setup.js?v=202607041521"></script>
+<script src="js/data.js?v=202607041536"></script>
+<script src="js/exercise-media.js?v=202607041536"></script>
+<script src="js/cues.js?v=202607041536"></script>
+<script src="js/storage.js?v=202607041536"></script>
+<script src="js/app.js?v=202607041536"></script>
+<script src="js/wrapped.js?v=202607041536"></script>
+<script src="js/setup.js?v=202607041536"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/cloud-config.js?v=202607041521"></script>
-<script src="js/cloud.js?v=202607041521"></script>
+<script src="js/cloud-config.js?v=202607041536"></script>
+<script src="js/cloud.js?v=202607041536"></script>
 </body>
 </html>
