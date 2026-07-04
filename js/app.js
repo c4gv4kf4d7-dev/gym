@@ -47,6 +47,14 @@ function nextScheduledFor(workoutId) {
     .filter(([d, sc]) => d >= t && !sc.done && (!workoutId || sc.workoutId === workoutId))
     .sort((a, b) => a[0].localeCompare(b[0]))[0] || null;
 }
+// Versione secca per l'hero: OGGI / DOMANI / LUNEDÌ / TRA N GIORNI
+function whenShort(ds) {
+  const diff = Math.round((new Date(ds + "T00:00:00") - new Date(todayStr() + "T00:00:00")) / 864e5);
+  if (diff <= 0) return "oggi";
+  if (diff === 1) return "domani";
+  if (diff <= 6) return new Date(ds + "T00:00:00").toLocaleDateString("it-IT", { weekday: "long" });
+  return "tra " + diff + " giorni";
+}
 // "oggi" / "domani" / "tra N giorni"
 function whenLabel(ds) {
   const diff = Math.round((new Date(ds + "T00:00:00") - new Date(todayStr() + "T00:00:00")) / 864e5);
@@ -422,11 +430,9 @@ function renderWorkout() {
   $("workout-hero").style.background = `linear-gradient(150deg, ${w.color} 0%, #2A1B4A 95%)`;
   $("workout-hero").style.boxShadow = `0 10px 40px -8px ${w.color}66, inset 0 1px 0 rgba(255,255,255,.18)`;
   const nx = nextScheduledFor(w.id);
-  const whenTxt = nx ? `📅 In programma ${whenLabel(nx[0])}` : "Non in calendario";
   $("workout-hero").innerHTML = `
-    <div class="hero-label">${whenTxt}</div>
+    <div class="hero-label">${nx ? whenShort(nx[0]) : "non programmata"}</div>
     <div class="hero-title">${w.name} ${w.emoji}</div>
-    <div class="hero-sub">${w.focus}</div>
     <div class="hero-stats">
       <div class="hero-stat"><div class="hero-stat-num">${exList.length}</div><div class="hero-stat-lbl">Esercizi</div></div>
       <div class="hero-stat"><div class="hero-stat-num">3</div><div class="hero-stat-lbl">Serie</div></div>
@@ -476,12 +482,7 @@ function renderWorkout() {
         <div class="sets-row m-row" data-ex="${ex.key}">
           <div class="m-field"><input class="m-in" id="m-sets-${ex.key}" type="number" inputmode="numeric" min="1" max="10" value="${today ? Object.keys(today.sets).length : ex.sets}" onchange="manualChanged('${ex.key}')"><div class="set-pill-lbl">Serie</div></div>
           <div class="m-field"><input class="m-in" id="m-reps-${ex.key}" type="number" inputmode="numeric" min="1" max="50" value="${today && today.sets[0] ? today.sets[0].r : (ex.time ? '' : (sug ? sug.targetReps : ex.reps))}" ${ex.time ? 'disabled placeholder="—"' : ''} onchange="manualChanged('${ex.key}')"><div class="set-pill-lbl">${ex.time ? 'Durata' : 'Rip.'}</div></div>
-          <div class="m-field"><input class="m-in" id="m-w-${ex.key}" type="number" inputmode="decimal" step="0.5" min="0" max="500" value="${today && today.sets[0] ? today.sets[0].w : ''}" placeholder="${!ex.time && sug && sug.targetW != null ? sug.targetW : '—'}" ${ex.time ? 'disabled' : ''} onchange="manualChanged('${ex.key}')"><div class="set-pill-lbl">Kg</div></div>
-          ${ex.time ? '' : `<div class="m-qual" id="m-q-${ex.key}">
-            <button class="mq mq-clean ${qsel === 'clean' ? 'on' : ''}" onclick="manualQuality('${ex.key}','clean',this)" title="Pulito">🟢</button>
-            <button class="mq mq-hard ${qsel === 'hard' ? 'on' : ''}" onclick="manualQuality('${ex.key}','hard',this)" title="Tosta">🟡</button>
-            <button class="mq mq-fail ${qsel === 'fail' ? 'on' : ''}" onclick="manualQuality('${ex.key}','fail',this)" title="Non finita">🔴</button>
-          </div>`}
+          <div class="m-field"><input class="m-in" id="m-w-${ex.key}" type="number" inputmode="decimal" step="0.5" min="0" max="500" value="${today && today.sets[0] ? today.sets[0].w : (!ex.time && sug && sug.targetW != null ? sug.targetW : '')}" placeholder="—" ${ex.time ? 'disabled' : ''} onchange="manualChanged('${ex.key}')"><div class="set-pill-lbl">Kg</div></div>
         </div>
         ${ex.time ? '' : `<div class="last-time">📊 Ultima volta: ${sug.last
           ? `<strong>${sug.lastW}kg</strong> · ${sug.lastSets}×${sug.lastR} ${lastQualIcon(ex.key)} <span class="lt-day">(${sug.day})</span>`
@@ -525,13 +526,6 @@ function lastQualIcon(exKey) {
    l'app salva da sola la sessione di oggi. Il semaforo alimenta il
    suggerimento della volta successiva, come nel guidato. */
 let manualTimers = {};
-
-function manualQuality(exKey, q, btn) {
-  selectedQuality[exKey] = (selectedQuality[exKey] === q) ? null : q;
-  btn.parentElement.querySelectorAll(".mq").forEach(b => b.classList.remove("on"));
-  if (selectedQuality[exKey]) btn.classList.add("on");
-  manualChanged(exKey);
-}
 
 function manualChanged(exKey) {
   clearTimeout(manualTimers[exKey]);
@@ -811,10 +805,10 @@ function gStore(key) { if (!guided.data[key]) guided.data[key] = { sets: [], qua
 function cuesHTML(key) {
   const c = (typeof EXERCISE_CUES !== "undefined" && EXERCISE_CUES[key]) || [];
   if (!c.length) return "";
-  return `<div class="g-cues">
-    <div class="g-cues-h">👁️ Occhio a</div>
+  return `<details class="g-cues">
+    <summary class="g-cues-h">👁️ Occhio a…</summary>
     <ul>${c.map(x => `<li>${x}</li>`).join("")}</ul>
-  </div>`;
+  </details>`;
 }
 
 function renderGuided() {
@@ -1623,12 +1617,12 @@ function renderNutrition() {
 
 /* ---------- COMPOSIZIONE CORPOREA ---------- */
 const COMP_METRICS = [
-  { key: "weight",         lbl: "Peso",           unit: "kg",  color: "#FF2D95" },
-  { key: "bodyFat",        lbl: "Grasso corp.",   unit: "%",   color: "#FF6B6B" },
-  { key: "skeletalMuscle", lbl: "Massa musc.",    unit: "kg",  color: "#10B981" },
-  { key: "boneMass",       lbl: "Massa ossea",    unit: "kg",  color: "#6b7280" },
-  { key: "bodyWater",      lbl: "Acqua corp.",    unit: "%",   color: "#0EA5E9" },
-  { key: "bmr",            lbl: "BMR",            unit: "kcal",color: "#F59E0B" }
+  { key: "weight",         lbl: "Peso",           unit: "kg",  color: "#FF2D95", upGood: true },
+  { key: "bodyFat",        lbl: "Grasso corp.",   unit: "%",   color: "#FF6B6B", upGood: false },
+  { key: "skeletalMuscle", lbl: "Massa musc.",    unit: "kg",  color: "#10B981", upGood: true },
+  { key: "boneMass",       lbl: "Massa ossea",    unit: "kg",  color: "#6b7280", upGood: true },
+  { key: "bodyWater",      lbl: "Acqua corp.",    unit: "%",   color: "#0EA5E9", upGood: true },
+  { key: "bmr",            lbl: "BMR",            unit: "kcal",color: "#F59E0B", upGood: true }
 ];
 
 function renderComposition() {
@@ -1648,7 +1642,10 @@ function renderComposition() {
     let delta = "";
     if (prev && prev[m.key] != null) {
       const d = +(v - prev[m.key]).toFixed(2);
-      if (d !== 0) delta = `<span class="comp-delta">${d > 0 ? '▲' : '▼'} ${Math.abs(d)}</span>`;
+      if (d !== 0) {
+        const good = (d > 0) === m.upGood;
+        delta = `<span class="comp-delta ${good ? 'cd-up' : 'cd-down'}">${d > 0 ? '▲' : '▼'} ${Math.abs(d)}</span>`;
+      }
     }
     return `<div class="comp-card">
       <div class="comp-val" style="color:${m.color}">${v}<span class="comp-unit">${m.unit}</span></div>
@@ -1732,12 +1729,12 @@ function renderCompChart() {
 
   const start = state.goals ? state.goals.startWeight : null;
   const metrics = [
-    { key: "weight", lbl: "Peso", unit: " kg", suffix: "", color: "#FF2D95", upGood: true, series: bwSeries.map(b => ({ d: b.date, v: b.v })), target, start, noVal: true, extra: projTxt },
+    { key: "weight", lbl: "Peso", unit: " kg", suffix: "", color: "#FF2D95", upGood: true, series: bwSeries.map(b => ({ d: b.date, v: b.v })), target, start, gear: true },
     { key: "skeletalMuscle", lbl: "Massa muscolare", unit: " kg", suffix: "", color: "#2BD576", upGood: true, series: comp.filter(c => c.skeletalMuscle != null).map(c => ({ d: c.date, v: c.skeletalMuscle })) },
     { key: "bodyFat", lbl: "Grasso corporeo", unit: "", suffix: "%", color: "#FFB454", upGood: false, series: comp.filter(c => c.bodyFat != null).map(c => ({ d: c.date, v: c.bodyFat })) }
   ];
 
-  host.innerHTML = metrics.map(m => {
+  host.innerHTML = (projTxt ? `<div class="spark-proj" style="margin:0 0 14px">${projTxt}</div>` : "") + metrics.map(m => {
     const vals = m.series.map(p => p.v);
     const latest = vals.length ? vals[vals.length - 1] : null;
     let badge = "";
@@ -1753,10 +1750,9 @@ function renderCompChart() {
     return `<div class="spark-row">
       <div class="spark-head">
         <span class="spark-lbl" style="color:${m.color}">${m.lbl}${goalLbl}</span>
-        ${m.noVal ? `<button class="spark-gear" onclick="editWeightGoals()">⚙️</button>` : `<span class="spark-val">${latest != null ? latest + m.suffix + m.unit : '—'} ${badge}</span>`}
+        <span class="spark-val">${latest != null ? latest + m.suffix + m.unit : '—'} ${badge}${m.gear ? ` <button class="spark-gear" onclick="editWeightGoals()">⚙️</button>` : ""}</span>
       </div>
       <div class="spark-wrap"><canvas id="spark-${m.key}"></canvas></div>
-      ${m.extra ? `<div class="spark-proj">${m.extra}</div>` : ""}
     </div>`;
   }).join("");
 
@@ -1764,11 +1760,9 @@ function renderCompChart() {
     if (!m.series.length) return;
     const labels = m.series.map(p => fmtShort(p.d));
     const data = m.series.map(p => p.v);
-    let mn = Math.min(...data), mx = Math.max(...data);
-    if (m.target != null) { mn = Math.min(mn, m.target); mx = Math.max(mx, m.target); }
-    const pad = m.target != null ? Math.max((mx - mn) * 0.15, 0.4) : Math.max((mx - mn) * 0.6, Math.abs(mn) * 0.004, 0.25);
+    const mn = Math.min(...data), mx = Math.max(...data);
+    const pad = Math.max((mx - mn) * 0.6, Math.abs(mn) * 0.004, 0.25);
     const datasets = [{ data, borderColor: m.color, backgroundColor: m.color + "22", pointRadius: 3, pointBackgroundColor: m.color, borderWidth: 2.5, tension: .3, fill: true, spanGaps: true }];
-    if (m.target != null) datasets.push({ data: labels.map(() => m.target), borderColor: "rgba(255,255,255,.55)", borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, fill: false });
     charts.sparks.push(new Chart($("spark-" + m.key).getContext("2d"), {
       type: "line",
       data: { labels, datasets },
