@@ -940,3 +940,6 @@ select.ob-input { appearance: none; -webkit-appearance: none; }
 /* Guided: cues sempre aperti e compatti */
 .g-cues summary { display: none; }
 .g-cues ul { margin-top: 4px; }
+
+/* Radar muscolare */
+.radar-wrap { height: 260px; margin-top: 6px; }

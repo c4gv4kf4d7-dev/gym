@@ -1420,6 +1420,7 @@ function renderProgress() {
 
   renderVolumeChart();
   renderExChart();
+  renderRadar();
   renderPT();
   if (typeof renderWrappedCard === "function") renderWrappedCard();
   renderHistory();
@@ -1536,6 +1537,84 @@ function deletePTLift(date) {
   toastUndo("🗑 Seduta PT eliminata.", () => {
     if (removed) { state.ptLifts.push(removed); state.ptLifts.sort((a, b) => a.date.localeCompare(b.date)); }
     saveState(state); renderPT();
+  });
+}
+
+/* ---------- RADAR MUSCOLARE ---------- */
+const MUSCLE_GROUPS = [
+  ["legs", "Gambe"], ["chest", "Petto"], ["back", "Schiena"],
+  ["shoulders", "Spalle"], ["arms", "Braccia"], ["core", "Core"]
+];
+
+// % di serie per gruppo muscolare negli ultimi `days` giorni (funzione pura)
+function muscleCoverage(days) {
+  const cutoff = localDate(new Date(Date.now() - (days || 30) * 864e5));
+  const count = {}; let total = 0;
+  state.sessions.filter(x => x.date >= cutoff).forEach(x => {
+    Object.keys(x.exercises || {}).forEach(k => {
+      const meta = EXERCISES[k];
+      if (!meta || !meta.bodyPart) return;
+      const n = (x.exercises[k].sets || []).length || 0;
+      count[meta.bodyPart] = (count[meta.bodyPart] || 0) + n;
+      total += n;
+    });
+  });
+  if (!total) return null;
+  const pct = {};
+  MUSCLE_GROUPS.forEach(([g]) => { pct[g] = Math.round(((count[g] || 0) / total) * 100); });
+  return { pct, total };
+}
+
+function radarVerdict(cov) {
+  if (!cov) return "";
+  const entries = MUSCLE_GROUPS.map(([g, lbl]) => ({ g, lbl, v: cov.pct[g] }));
+  const weakest = entries.reduce((m, e) => e.v < m.v ? e : m, entries[0]);
+  const strongest = entries.reduce((m, e) => e.v > m.v ? e : m, entries[0]);
+  if (weakest.v <= 5) return `🕳️ ${weakest.lbl} quasi assente (${weakest.v}% del lavoro): nessun gruppo cresce da solo. Rimettilo in scheda.`;
+  if (strongest.v - weakest.v <= 15) return `✅ Copertura equilibrata: nessun gruppo lasciato indietro. Da manuale.`;
+  return `⚖️ Molto ${strongest.lbl.toLowerCase()} (${strongest.v}%), poco ${weakest.lbl.toLowerCase()} (${weakest.v}%): occhio a non diventare asimmetrico.`;
+}
+
+function renderRadar() {
+  const host = $("radar-card");
+  if (!host) return;
+  const cov = muscleCoverage(30);
+  if (charts.radar) { charts.radar.destroy(); charts.radar = null; }
+  if (!cov) { host.innerHTML = ""; host.style.display = "none"; return; }
+  host.style.display = "";
+  host.innerHTML = `
+    <div class="chart-title">🕸️ Radar muscolare</div>
+    <div class="chart-sub">Come hai distribuito le serie negli ultimi 30 giorni</div>
+    <div class="radar-wrap"><canvas id="radar-chart"></canvas></div>
+    <div class="ex-verdict">${radarVerdict(cov)}</div>`;
+  charts.radar = new Chart($("radar-chart").getContext("2d"), {
+    type: "radar",
+    data: {
+      labels: MUSCLE_GROUPS.map(([, lbl]) => lbl),
+      datasets: [{
+        data: MUSCLE_GROUPS.map(([g]) => cov.pct[g]),
+        backgroundColor: "rgba(255,45,149,.22)",
+        borderColor: "#FF2D95",
+        borderWidth: 2,
+        pointBackgroundColor: "#FF2D95",
+        pointRadius: 3
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (i) => i.formattedValue + "% delle serie" } }
+      },
+      scales: { r: {
+        beginAtZero: true,
+        suggestedMax: Math.max(30, ...MUSCLE_GROUPS.map(([g]) => cov.pct[g])),
+        grid: { color: "rgba(255,255,255,.10)" },
+        angleLines: { color: "rgba(255,255,255,.10)" },
+        pointLabels: { color: "rgba(245,240,255,.8)", font: { size: 12, weight: "700" } },
+        ticks: { display: false }
+      } },
+      responsive: true, maintainAspectRatio: false
+    }
   });
 }
 

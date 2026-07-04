@@ -39,7 +39,7 @@ var api = new Function(
     defaultState: defaultState,
     fatigueAnalysis: fatigueAnalysis, deloadActive: deloadActive,
     wrappedStats: wrappedStats, wrappedVerdict: wrappedVerdict, volumeComparison: volumeComparison,
-    demoState: demoState,
+    demoState: demoState, muscleCoverage: muscleCoverage,
     set: function (s) { state = s; },
     get: function () { return state; }
   };`
@@ -210,6 +210,27 @@ ok("demo: seduta PT futura in calendario", Object.entries(demo.schedule).some(fu
 ok("demo: sedute PT registrate", demo.ptLifts.length >= 3);
 ok("demo: composizione presente", demo.composition.length >= 4);
 ok("demo: nessun riferimento a Mike", JSON.stringify(demo).indexOf("Mike") < 0 && JSON.stringify(demo).indexOf("Denis") < 0);
+
+/* ---- 14) RADAR MUSCOLARE ---- */
+st = api.defaultState();
+api.set(st);
+ok("radar: senza dati → null", api.muscleCoverage(30) === null);
+var rd = new Date(); rd.setDate(rd.getDate() - 3);
+st.sessions = [{ id: 1, date: api.localDate(rd), workoutId: "fullbody", exercises: {
+  legpress:   { sets: [{w:80,r:12},{w:80,r:12}], quality: "clean" },     // 2 serie gambe
+  chestpress: { sets: [{w:40,r:12},{w:40,r:12}], quality: "clean" },     // 2 serie petto
+  latmachine: { sets: [{w:45,r:12},{w:45,r:12},{w:45,r:12},{w:45,r:12}], quality: "clean" }  // 4 serie schiena
+}}];
+var cov = api.muscleCoverage(30);
+ok("radar: percentuali corrette (25/25/50)", cov.pct.legs === 25 && cov.pct.chest === 25 && cov.pct.back === 50);
+ok("radar: gruppi non allenati a 0", cov.pct.arms === 0 && cov.pct.core === 0);
+ok("radar: coverage nel wrapped", (function(){
+  st.sessions = st.sessions.concat([1,2,3].map(function(i){ var d=new Date(); d.setDate(d.getDate()-i-4);
+    return { id: 10+i, date: api.localDate(d), workoutId: "fullbody", exercises: { chestpress: { sets: [{w:40,r:12}], quality: "clean" } } }; }));
+  var mk = api.todayStr().slice(0,7);
+  var ws2 = api.wrappedStats(mk);
+  return ws2.coverage && typeof ws2.coverage.chest === "number";
+})());
 
 out.push(fails === 0 ? "\nTUTTI I TEST PASSANO (" + (out.length) + ")" : "\n⚠️ " + fails + " TEST FALLITI");
 out.join("\n");

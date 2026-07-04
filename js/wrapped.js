@@ -63,13 +63,24 @@ function wrappedStats(mk) {                       // mk = "YYYY-MM"
   // sedute PT (Denis)
   const ptSessions = (state.ptLifts || []).filter(l => inMonth(l.date)).length;
 
+  // copertura muscolare del mese (per la pagella)
+  const gCount = {}; let gTotal = 0;
+  sessions.forEach(x => Object.keys(x.exercises || {}).forEach(k => {
+    const meta = EXERCISES[k];
+    if (!meta || !meta.bodyPart) return;
+    const n = (x.exercises[k].sets || []).length || 0;
+    gCount[meta.bodyPart] = (gCount[meta.bodyPart] || 0) + n;
+    gTotal += n;
+  }));
+  const coverage = gTotal ? Object.fromEntries(Object.entries(gCount).map(([g, n]) => [g, Math.round((n / gTotal) * 100)])) : null;
+
   const expected = Math.round((state.profile && state.profile.daysPerWeek || 3) * weeks);
   return {
     mk, sessions: sessions.length, expected, volume: Math.round(volume), setsTot,
     clean, hard, fail, evals: clean + hard + fail,
     topEx, prCount: prCount2,
     mealDays: mealDays.length, daysInMonth, protHit,
-    wStart, wEnd, wDelta, ptSessions,
+    wStart, wEnd, wDelta, ptSessions, coverage,
     goal: (state.profile && state.profile.goal) || "massa"
   };
 }
@@ -133,6 +144,16 @@ function wrappedVerdict(st) {
       if (st.wDelta <= -1 && st.wDelta >= -4) cel.push(`${st.wDelta} kg: dimagrimento nel ritmo giusto, senza bruciare muscolo.`);
       else if (st.wDelta > -0.3) crit.push(`Peso praticamente fermo (${st.wDelta} kg). Il deficit sulla carta non conta: conta quello reale.`);
     }
+  }
+
+  // radar muscolare: il gruppo dimenticato non si nasconde
+  if (st.coverage && st.sessions >= 4) {
+    const GLBL = { legs: "le gambe", chest: "il petto", back: "la schiena", shoulders: "le spalle", arms: "le braccia", core: "il core" };
+    const groups = ["legs", "chest", "back", "shoulders", "arms", "core"].map(g => ({ g, v: st.coverage[g] || 0 }));
+    const weakest = groups.reduce((m, e) => e.v < m.v ? e : m, groups[0]);
+    const strongest = groups.reduce((m, e) => e.v > m.v ? e : m, groups[0]);
+    if (weakest.v <= 5) crit.push(`Il radar parla chiaro: ${GLBL[weakest.g]} quasi assent${weakest.g === "legs" || weakest.g === "shoulders" ? "i" : "e"} (${weakest.v}% delle serie). Nessun gruppo cresce da solo.`);
+    else if (strongest.v - weakest.v <= 15) cel.push(`Copertura muscolare equilibrata: hai allenato tutto il corpo, senza figli e figliastri.`);
   }
 
   // nutrizione
