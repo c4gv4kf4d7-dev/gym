@@ -3,3 +3,4 @@ Dataset/
 
 # macOS
 .DS_Store
+.claude.json
