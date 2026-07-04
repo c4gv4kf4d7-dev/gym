@@ -943,3 +943,17 @@ select.ob-input { appearance: none; -webkit-appearance: none; }
 
 /* Radar muscolare */
 .radar-wrap { height: 260px; margin-top: 6px; }
+
+/* Scala di forza (dentro la card PT) */
+.sl-wrap { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+.sl-head { font-size: 13.5px; font-weight: 800; margin-bottom: 10px; }
+.sl-sub { font-size: 11px; font-weight: 700; color: var(--muted); margin-left: 6px; }
+.sl-row { display: grid; grid-template-columns: 52px 86px 1fr; gap: 8px; align-items: center; margin-bottom: 9px; }
+.sl-lift { font-size: 12.5px; font-weight: 800; }
+.sl-badge { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; padding: 4px 6px; border-radius: 8px; text-align: center; background: rgba(255,255,255,.08); border: 1px solid var(--border); color: var(--muted); }
+.sl-badge.sl-l1 { color: #BEE3FF; } .sl-badge.sl-l2 { color: #7DF0B0; border-color: rgba(125,240,176,.35); }
+.sl-badge.sl-l3 { color: #FFD9A0; border-color: rgba(255,217,160,.35); } .sl-badge.sl-l4 { color: #FF9AD5; border-color: rgba(255,154,213,.4); }
+.sl-bar { height: 6px; background: rgba(255,255,255,.10); border-radius: 3px; overflow: hidden; }
+.sl-fill { height: 100%; border-radius: 3px; }
+.sl-next { grid-column: 1 / -1; font-size: 11.5px; color: var(--muted); margin: -3px 0 2px; }
+.sl-next b { color: var(--text); }

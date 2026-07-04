@@ -1448,6 +1448,59 @@ function ptNextIndex() {
   return (lastIdx + 1) % PT_SEQUENCE.length;
 }
 
+/* ---------- STANDARD DI FORZA (scala Novizio → Élite) ----------
+   Soglie classiche in multipli del peso corporeo (riferite all'1RM;
+   sui carichi di lavoro sono una stima prudente). */
+const STRENGTH_STD = {
+  M: { panca: [0.50, 0.75, 1.00, 1.50, 2.00], squat: [0.75, 1.00, 1.50, 2.00, 2.50], stacco: [1.00, 1.25, 1.75, 2.25, 2.75] },
+  F: { panca: [0.35, 0.50, 0.75, 1.00, 1.40], squat: [0.50, 0.75, 1.00, 1.50, 2.00], stacco: [0.60, 1.00, 1.25, 1.75, 2.25] }
+};
+const STRENGTH_LVLS = ["Novizio", "Principiante", "Intermedio", "Avanzato", "Élite"];
+
+function strengthLevel(lift, kg, bw, sex) {
+  const table = (STRENGTH_STD[sex === "F" ? "F" : "M"] || STRENGTH_STD.M)[lift];
+  if (!table || !kg || !bw) return null;
+  const ratio = kg / bw;
+  let idx = -1;
+  table.forEach((t, i) => { if (ratio >= t) idx = i; });
+  const levelName = idx < 0 ? "Prime armi" : STRENGTH_LVLS[idx];
+  let next = null, pct = 100;
+  if (idx < table.length - 1) {
+    const lo = idx < 0 ? 0 : table[idx];
+    const hi = table[idx + 1];
+    const nextKg = Math.ceil((hi * bw) / 2.5) * 2.5;
+    next = { name: STRENGTH_LVLS[idx + 1], kg: nextKg, missing: +(nextKg - kg).toFixed(1) };
+    pct = Math.max(4, Math.min(100, Math.round(((ratio - lo) / (hi - lo)) * 100)));
+  }
+  return { levelName, idx, next, pct, ratio: +ratio.toFixed(2) };
+}
+
+function strengthLadderHTML() {
+  const bw = currentBW();
+  if (!bw) return "";
+  const sex = (state.profile && state.profile.sex) || "M";
+  const lifts = [...(state.ptLifts || [])].sort((a, b) => a.date.localeCompare(b.date));
+  if (!lifts.length) return "";
+  const rows = PT_MOVES.map(m => {
+    let kg = null;
+    lifts.forEach(l => { if (l[m.key] != null) kg = l[m.key]; });   // ultimo valore registrato
+    if (kg == null) return "";
+    const lv = strengthLevel(m.key, kg, bw, sex);
+    if (!lv) return "";
+    return `<div class="sl-row">
+      <span class="sl-lift" style="color:${m.color}">${m.lbl}</span>
+      <span class="sl-badge sl-l${Math.max(0, lv.idx)}">${lv.levelName}</span>
+      <div class="sl-bar"><div class="sl-fill" style="width:${lv.pct}%;background:${m.color}"></div></div>
+      <span class="sl-next">${lv.next ? `${lv.next.name} a ${lv.next.kg} kg <b>(−${lv.next.missing})</b>` : "🏆 vetta raggiunta"}</span>
+    </div>`;
+  }).join("");
+  if (!rows) return "";
+  return `<div class="sl-wrap">
+    <div class="sl-head">🏅 Scala di forza <span class="sl-sub">rispetto al tuo peso (${bw} kg)</span></div>
+    ${rows}
+  </div>`;
+}
+
 function renderPT() {
   const card = $("pt-card");
   if (!card) return;
@@ -1462,6 +1515,7 @@ function renderPT() {
       <button class="btn-save" onclick="savePTLift()">💪 Registra seduta PT</button>
     </div>
     ${lifts.length ? '<div class="chart-hint">Tocca un punto del grafico per vedere o cancellare la seduta.</div><canvas id="pt-chart" height="150"></canvas>' : '<div class="empty-mini">Nessuna seduta PT registrata. Inserisci i kg dopo un allenamento con Denis.</div>'}
+    ${strengthLadderHTML()}
     <div class="pt-detail" id="pt-detail"></div>`;
   if (lifts.length) drawPTChart(lifts);
 }

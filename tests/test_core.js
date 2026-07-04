@@ -3,7 +3,7 @@
    I sorgenti girano dentro una Function così il loro `$` non collide col
    bridge ObjC di JXA. */
 ObjC.import('Foundation');
-function read(p){ var a=Application.currentApplication(); a.includeStandardAdditions=true; return a.read(Path(p)); }
+function read(p){ return ObjC.unwrap($.NSString.stringWithContentsOfFileEncodingError(p, $.NSUTF8StringEncoding, null)); }
 var ROOT = "/Users/mike/Desktop/gym";
 var out = [], fails = 0;
 function ok(n, c){ out.push((c ? "PASS " : "FAIL ") + n); if (!c) fails++; }
@@ -39,7 +39,7 @@ var api = new Function(
     defaultState: defaultState,
     fatigueAnalysis: fatigueAnalysis, deloadActive: deloadActive,
     wrappedStats: wrappedStats, wrappedVerdict: wrappedVerdict, volumeComparison: volumeComparison,
-    demoState: demoState, muscleCoverage: muscleCoverage,
+    demoState: demoState, muscleCoverage: muscleCoverage, strengthLevel: strengthLevel,
     set: function (s) { state = s; },
     get: function () { return state; }
   };`
@@ -231,6 +231,18 @@ ok("radar: coverage nel wrapped", (function(){
   var ws2 = api.wrappedStats(mk);
   return ws2.coverage && typeof ws2.coverage.chest === "number";
 })());
+
+/* ---- 15) STANDARD DI FORZA ---- */
+var sl1 = api.strengthLevel("panca", 30, 60, "M");        // ratio 0.5 → Novizio
+ok("forza: panca 30@60kg = Novizio", sl1.levelName === "Novizio");
+ok("forza: prossimo = Principiante a 45 kg", sl1.next.name === "Principiante" && sl1.next.kg === 45);
+var sl2 = api.strengthLevel("panca", 62.5, 60, "M");      // ratio ~1.04 → Intermedio
+ok("forza: panca 62.5@60kg = Intermedio", sl2.levelName === "Intermedio");
+var sl3 = api.strengthLevel("stacco", 170, 60, "M");      // ratio 2.83 → Élite, vetta
+ok("forza: stacco 170@60kg = Élite (vetta)", sl3.levelName === "Élite" && sl3.next === null);
+var sl4 = api.strengthLevel("panca", 25, 60, "M");        // ratio 0.42 → Prime armi
+ok("forza: sotto la prima soglia = Prime armi", sl4.levelName === "Prime armi");
+ok("forza: soglie femminili diverse", api.strengthLevel("panca", 30, 60, "F").levelName === "Principiante");
 
 out.push(fails === 0 ? "\nTUTTI I TEST PASSANO (" + (out.length) + ")" : "\n⚠️ " + fails + " TEST FALLITI");
 out.join("\n");
