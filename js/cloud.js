@@ -258,14 +258,18 @@
           '<button class="acct-exit" onclick="cloudSignOut()">Esci</button>' +
         '</div>';
     } else {
+      // form vero con name/autocomplete: serve al portachiavi iCloud per
+      // suggerire le credenziali salvate in automatico
       el.innerHTML =
         '<div class="acct-intro">Accedi per sincronizzare i tuoi dati e ritrovarli su ogni dispositivo.</div>' +
-        '<input id="acct-email" class="acct-input" type="email" inputmode="email" autocomplete="username" placeholder="Email">' +
-        '<input id="acct-pw" class="acct-input" type="password" autocomplete="current-password" placeholder="Password (min 6)">' +
-        '<div class="acct-btns">' +
-          '<button class="btn-outline" onclick="cloudSignUp()">Registrati</button>' +
-          '<button class="btn-save" onclick="cloudSignIn()">Accedi</button>' +
-        '</div>' +
+        '<form id="acct-form" action="#" method="post" onsubmit="cloudSignIn();return false;">' +
+          '<input id="acct-email" name="email" class="acct-input" type="email" inputmode="email" autocomplete="username" placeholder="Email">' +
+          '<input id="acct-pw" name="password" class="acct-input" type="password" autocomplete="current-password" placeholder="Password (min 6)">' +
+          '<div class="acct-btns">' +
+            '<button type="button" class="btn-outline" onclick="cloudSignUp()">Registrati</button>' +
+            '<button type="submit" class="btn-save">Accedi</button>' +
+          '</div>' +
+        '</form>' +
         '<div class="acct-msg" id="acct-msg"></div>';
     }
   }
