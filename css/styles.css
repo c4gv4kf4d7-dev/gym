@@ -932,3 +932,11 @@ select.ob-input { appearance: none; -webkit-appearance: none; }
 /* Chips profilo: barre uniformi, centrate nello spazio a destra */
 .profile-chips-col { flex: 1; align-items: center; justify-content: center; }
 .profile-chips-col .profile-chip { display: block; width: 100%; max-width: 170px; text-align: center; }
+
+/* Chips profilo: allineati a destra, barre uniformi */
+.profile-chips-col { flex: 0 0 auto; align-items: flex-end; justify-content: center; }
+.profile-chips-col .profile-chip { display: block; width: 150px; max-width: 150px; text-align: center; }
+
+/* Guided: cues sempre aperti e compatti */
+.g-cues summary { display: none; }
+.g-cues ul { margin-top: 4px; }

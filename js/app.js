@@ -119,19 +119,54 @@ function mondayKey() {
   d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
   return localDate(d);
 }
+/* Promemoria in-app (compaiono all'apertura, uno per volta, con ✕):
+   lunedì = peso · mercoledì = recap di metà settimana · vigilia PT = Denis */
+function midweekMessage() {
+  const target = (state.profile && state.profile.daysPerWeek) || 3;
+  const done = thisWeekCount();
+  const pT = proteinTarget();
+  let protDays = 0;
+  for (let i = 0; i < 3; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    if (dayTotals(localDate(d)).protein >= pT) protDays++;
+  }
+  if (done >= target) return `📊 Metà settimana: ${done}/${target} allenamenti GIÀ fatti. Sei avanti sul programma — chiudila in bellezza.`;
+  if (done >= 1) return `📊 Metà settimana: ${done}/${target} allenamenti. Ce la fai, ma i prossimi giorni contano: pianifica ORA quando vai.`;
+  return `📊 Metà settimana e ancora 0/${target} allenamenti. La settimana non è persa — ma da oggi non si rimanda più.`;
+}
+
+function reminderItems() {
+  const items = [];
+  const dow = new Date().getDay();
+  // lunedì: peso
+  if (dow === 1 && localStorage.getItem("weighReminder") !== mondayKey()) {
+    items.push({ key: "weighReminder", val: mondayKey(), txt: "📏 Lunedì del peso! Registralo in Composizione corporea: il coach nutrizione si aggiorna da solo." });
+  }
+  // mercoledì: recap motivazionale
+  if (dow === 3 && localStorage.getItem("midweekReminder") !== mondayKey()) {
+    items.push({ key: "midweekReminder", val: mondayKey(), txt: midweekMessage() });
+  }
+  // vigilia di una seduta PT
+  const tom = new Date(); tom.setDate(tom.getDate() + 1);
+  const tomStr = localDate(tom);
+  const sched = (state.schedule || {})[tomStr];
+  if (sched && sched.pt && !sched.done && localStorage.getItem("denisReminder") !== tomStr) {
+    const move = (typeof PT_SEQUENCE !== "undefined") ? PT_SHORT[PT_SEQUENCE[ptNextIndex()]] : "";
+    items.push({ key: "denisReminder", val: tomStr, txt: `🧑‍🏫 Domani seduta col PT!${move ? ` Tocca a: <b>${move}</b>.` : ""} Dormi bene e carica le pile.` });
+  }
+  return items;
+}
+
 function renderWeighBanner() {
   const host = $("weigh-banner");
   if (!host) return;
-  const isMonday = new Date().getDay() === 1;
-  const dismissed = localStorage.getItem("weighReminder") === mondayKey();
-  host.innerHTML = (isMonday && !dismissed)
-    ? `<div class="weigh-banner"><span class="wb-txt">📏 Lunedì del peso! Ricordati di registrare il tuo peso questa mattina.</span><button class="wb-x" onclick="dismissWeighBanner()" aria-label="Chiudi">✕</button></div>`
-    : "";
+  const items = reminderItems();
+  host.innerHTML = items.map((it, i) => `
+    <div class="weigh-banner"><span class="wb-txt">${it.txt}</span><button class="wb-x" onclick="dismissReminder('${it.key}','${it.val}')" aria-label="Chiudi">✕</button></div>`).join("");
 }
-function dismissWeighBanner() {
-  localStorage.setItem("weighReminder", mondayKey());
-  const host = $("weigh-banner");
-  if (host) host.innerHTML = "";
+function dismissReminder(key, val) {
+  localStorage.setItem(key, val);
+  renderWeighBanner();
 }
 
 // Sets [{w,r}] di un esercizio in una sessione
@@ -930,10 +965,10 @@ function gStore(key) { if (!guided.data[key]) guided.data[key] = { sets: [], qua
 function cuesHTML(key) {
   const c = (typeof EXERCISE_CUES !== "undefined" && EXERCISE_CUES[key]) || [];
   if (!c.length) return "";
-  return `<details class="g-cues">
-    <summary class="g-cues-h">👁️ Occhio a…</summary>
+  return `<div class="g-cues">
+    <div class="g-cues-h">👁️ Occhio a…</div>
     <ul>${c.map(x => `<li>${x}</li>`).join("")}</ul>
-  </details>`;
+  </div>`;
 }
 
 function renderGuided() {
@@ -1876,7 +1911,7 @@ function renderCompChart() {
     return `<div class="spark-row">
       <div class="spark-head">
         <span class="spark-lbl" style="color:${m.color}">${m.lbl}${goalLbl}</span>
-        <span class="spark-val">${latest != null ? latest + m.suffix + m.unit : '—'} ${badge}${m.gear ? ` <button class="spark-gear" onclick="editWeightGoals()">⚙️</button>` : ""}</span>
+        <span class="spark-val">${latest != null ? latest + m.suffix + m.unit : '—'} ${badge}</span>
       </div>
       <div class="spark-wrap"><canvas id="spark-${m.key}"></canvas></div>
     </div>`;
