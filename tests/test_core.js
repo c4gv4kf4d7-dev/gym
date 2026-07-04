@@ -244,5 +244,12 @@ var sl4 = api.strengthLevel("panca", 25, 60, "M");        // ratio 0.42 → Prim
 ok("forza: sotto la prima soglia = Prime armi", sl4.levelName === "Prime armi");
 ok("forza: soglie femminili diverse", api.strengthLevel("panca", 30, 60, "F").levelName === "Principiante");
 
+/* ---- 16) MISURE A NASTRO ---- */
+var demo2 = api.demoState();
+var lastC = demo2.composition[demo2.composition.length - 1];
+ok("misure: presenti nella demo", lastC.arm > 35 && lastC.chest > 100 && lastC.waist < 81 && lastC.thigh > 56);
+ok("misure: braccio in crescita", demo2.composition[0].arm < lastC.arm);
+ok("misure: vita in calo", demo2.composition[0].waist > lastC.waist);
+
 out.push(fails === 0 ? "\nTUTTI I TEST PASSANO (" + (out.length) + ")" : "\n⚠️ " + fails + " TEST FALLITI");
 out.join("\n");

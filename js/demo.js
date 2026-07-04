@@ -77,7 +77,9 @@ function demoState() {
       bodyFat: +(16.5 - i * 0.3).toFixed(1),
       skeletalMuscle: +(55.2 + i * 0.45).toFixed(2),
       boneMass: 3.1, bodyWater: +(58.5 + i * 0.2).toFixed(1),
-      bmr: 1710 + i * 12, metabolicAge: 27
+      bmr: 1710 + i * 12, metabolicAge: 27,
+      arm: +(35.5 + i * 0.4).toFixed(1), chest: +(100 + i * 0.7).toFixed(1),
+      waist: +(81 - i * 0.4).toFixed(1), thigh: +(56 + i * 0.5).toFixed(1)
     });
   });
   s.composition.sort((a, b) => a.date.localeCompare(b.date));

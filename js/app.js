@@ -1916,7 +1916,12 @@ const COMP_METRICS = [
   { key: "skeletalMuscle", lbl: "Massa musc.",    unit: "kg",  color: "#10B981", upGood: true },
   { key: "boneMass",       lbl: "Massa ossea",    unit: "kg",  color: "#6b7280", upGood: true },
   { key: "bodyWater",      lbl: "Acqua corp.",    unit: "%",   color: "#0EA5E9", upGood: true },
-  { key: "bmr",            lbl: "BMR",            unit: "kcal",color: "#F59E0B", upGood: true }
+  { key: "bmr",            lbl: "BMR",            unit: "kcal",color: "#F59E0B", upGood: true },
+  // misure a nastro (cm): la bilancia può stare ferma mentre il braccio cresce
+  { key: "arm",            lbl: "Braccio",        unit: "cm",  color: "#A855F7", upGood: true },
+  { key: "chest",          lbl: "Petto",          unit: "cm",  color: "#FF8A5B", upGood: true },
+  { key: "waist",          lbl: "Vita",           unit: "cm",  color: "#FFB454", upGood: false },
+  { key: "thigh",          lbl: "Coscia",         unit: "cm",  color: "#5B8DEF", upGood: true }
 ];
 
 function renderComposition() {
@@ -2022,11 +2027,17 @@ function renderCompChart() {
   }
 
   const start = state.goals ? state.goals.startWeight : null;
+  const compSeries = (key) => comp.filter(c => c[key] != null).map(c => ({ d: c.date, v: c[key] }));
   const metrics = [
     { key: "weight", lbl: "Peso", unit: " kg", suffix: "", color: "#FF2D95", upGood: true, series: bwSeries.map(b => ({ d: b.date, v: b.v })), target, start, gear: true },
-    { key: "skeletalMuscle", lbl: "Massa muscolare", unit: " kg", suffix: "", color: "#2BD576", upGood: true, series: comp.filter(c => c.skeletalMuscle != null).map(c => ({ d: c.date, v: c.skeletalMuscle })) },
-    { key: "bodyFat", lbl: "Grasso corporeo", unit: "", suffix: "%", color: "#FFB454", upGood: false, series: comp.filter(c => c.bodyFat != null).map(c => ({ d: c.date, v: c.bodyFat })) }
-  ];
+    { key: "skeletalMuscle", lbl: "Massa muscolare", unit: " kg", suffix: "", color: "#2BD576", upGood: true, series: compSeries("skeletalMuscle") },
+    { key: "bodyFat", lbl: "Grasso corporeo", unit: "", suffix: "%", color: "#FFB454", upGood: false, series: compSeries("bodyFat") },
+    // misure a nastro: compaiono solo quando inizi a registrarle
+    { key: "arm", lbl: "📏 Braccio", unit: " cm", suffix: "", color: "#A855F7", upGood: true, series: compSeries("arm"), optional: true },
+    { key: "chest", lbl: "📏 Petto", unit: " cm", suffix: "", color: "#FF8A5B", upGood: true, series: compSeries("chest"), optional: true },
+    { key: "waist", lbl: "📏 Vita", unit: " cm", suffix: "", color: "#FFB454", upGood: false, series: compSeries("waist"), optional: true },
+    { key: "thigh", lbl: "📏 Coscia", unit: " cm", suffix: "", color: "#5B8DEF", upGood: true, series: compSeries("thigh"), optional: true }
+  ].filter(m => !m.optional || m.series.length);
 
   host.innerHTML = (projTxt ? `<div class="spark-proj" style="margin:0 0 14px">${projTxt}</div>` : "") + metrics.map(m => {
     const vals = m.series.map(p => p.v);
@@ -2098,7 +2109,11 @@ function saveComposition() {
     boneMass: num("c-bone"),
     bodyWater: num("c-water"),
     bmr: num("c-bmr"),
-    metabolicAge: num("c-metage")
+    metabolicAge: num("c-metage"),
+    arm: num("c-arm"),
+    chest: num("c-chest"),
+    waist: num("c-waist"),
+    thigh: num("c-thigh")
   };
   const hasData = Object.keys(entry).some(k => k !== "date" && entry[k] != null);
   if (!hasData) { toast("Inserisci almeno un valore"); return; }
@@ -2116,7 +2131,7 @@ function saveComposition() {
     state.bodyweight.sort((a, b) => a.date.localeCompare(b.date));
   }
   saveState(state);
-  ["c-weight", "c-fat", "c-muscle", "c-bone", "c-water", "c-bmr"].forEach(id => { const e = $(id); if (e) e.value = ""; });
+  ["c-weight", "c-fat", "c-muscle", "c-bone", "c-water", "c-bmr", "c-arm", "c-chest", "c-waist", "c-thigh"].forEach(id => { const e = $(id); if (e) e.value = ""; });
   toggleCompForm();
   toast("📊 Misurazione salvata!");
   renderGoals();
