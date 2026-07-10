@@ -1503,6 +1503,7 @@ function closeModal() { $("modal").classList.remove("show"); }
    VISTA PROGRESSI
    ============================================================ */
 function renderProgress() {
+  if (window.renderCrewCard) window.renderCrewCard();
   const s = state.sessions;
   // stat cards
   const weekAgo = localDate(new Date(Date.now() - 7 * 864e5));

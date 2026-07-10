@@ -10,7 +10,7 @@
 <title>Allenamento</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="assets/icon.png">
-<link rel="stylesheet" href="css/styles.css?v=202607101452">
+<link rel="stylesheet" href="css/styles.css?v=202607101549">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
@@ -59,6 +59,7 @@
 
 <!-- ============ PROGRESSI ============ -->
 <div class="section" id="section-progressi">
+  <div class="chart-card" id="crew-card" style="display:none"></div>
   <div class="stats-grid stats-4">
     <div class="stat-card"><div class="stat-num" id="stat-sessions">0</div><div class="stat-lbl">Sessioni totali</div></div>
     <div class="stat-card"><div class="stat-num" id="stat-streak">0</div><div class="stat-lbl">🔥 Streak (sett.)</div></div>
@@ -97,6 +98,9 @@
 
   <div class="section-label">☁️ Account &amp; sincronizzazione</div>
   <div class="goal-card" id="account-card"></div>
+
+  <div class="section-label">🤝 Crew</div>
+  <div class="goal-card" id="crew-setup"></div>
 
   <div class="section-label">🍽️ Coach nutrizione</div>
   <div class="goal-card" id="nutrition-card"></div>
@@ -197,16 +201,17 @@
 <div class="toast" id="toast"></div>
 
 <script>if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js").catch(function(){}); }</script>
-<script src="js/data.js?v=202607101452"></script>
-<script src="js/exercise-media.js?v=202607101452"></script>
-<script src="js/cues.js?v=202607101452"></script>
-<script src="js/storage.js?v=202607101452"></script>
-<script src="js/app.js?v=202607101452"></script>
-<script src="js/wrapped.js?v=202607101452"></script>
-<script src="js/setup.js?v=202607101452"></script>
+<script src="js/data.js?v=202607101549"></script>
+<script src="js/exercise-media.js?v=202607101549"></script>
+<script src="js/cues.js?v=202607101549"></script>
+<script src="js/storage.js?v=202607101549"></script>
+<script src="js/app.js?v=202607101549"></script>
+<script src="js/wrapped.js?v=202607101549"></script>
+<script src="js/setup.js?v=202607101549"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/demo.js?v=202607101452"></script>
-<script src="js/cloud-config.js?v=202607101452"></script>
-<script src="js/cloud.js?v=202607101452"></script>
+<script src="js/demo.js?v=202607101549"></script>
+<script src="js/cloud-config.js?v=202607101549"></script>
+<script src="js/cloud.js?v=202607101549"></script>
+<script src="js/crew.js?v=202607101549"></script>
 </body>
 </html>

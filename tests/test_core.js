@@ -27,7 +27,7 @@ var winStub = { addEventListener:function(){} };
 var lsStub = { _d:{}, getItem:function(k){return this._d[k]||null}, setItem:function(k,v){this._d[k]=String(v)}, removeItem:function(k){delete this._d[k]} };
 function ChartStub(){ this.destroy=function(){}; } ChartStub.defaults={font:{}};
 
-var SRC = [read(ROOT + "/js/data.js"), read(ROOT + "/js/storage.js"), read(ROOT + "/js/app.js"), read(ROOT + "/js/wrapped.js"), read(ROOT + "/js/demo.js")].join("\n;\n");
+var SRC = [read(ROOT + "/js/data.js"), read(ROOT + "/js/storage.js"), read(ROOT + "/js/app.js"), read(ROOT + "/js/wrapped.js"), read(ROOT + "/js/demo.js"), read(ROOT + "/js/crew.js")].join("\n;\n");
 var api = new Function(
   "document","window","localStorage","sessionStorage","navigator","EXERCISE_STEPS","EXERCISE_CUES","Chart",
   SRC + `
@@ -37,7 +37,7 @@ var api = new Function(
     kcalTarget: kcalTarget, proteinTarget: proteinTarget, mealDayStreak: mealDayStreak,
     ALL_WORKOUTS: ALL_WORKOUTS, getWorkout: getWorkout, SCHEDULABLE: SCHEDULABLE,
     chipOrder: chipOrder, ptNextIndex: ptNextIndex, selectWorkout: selectWorkout,
-    nightCloseMessage: nightCloseMessage,
+    nightCloseMessage: nightCloseMessage, computeCrewStats: computeCrewStats,
     defaultState: defaultState,
     fatigueAnalysis: fatigueAnalysis, deloadActive: deloadActive,
     wrappedStats: wrappedStats, wrappedVerdict: wrappedVerdict, volumeComparison: volumeComparison,
@@ -306,6 +306,24 @@ st.meals[T2] = [{ id: 1, kcal: 2200, protein: 130 }];
 ok("notte: obiettivi chiusi → complimenti", api.nightCloseMessage(at(23)).txt.indexOf("✅") >= 0);
 st.meals = {};
 ok("notte: nessun pasto tracciato → silenzio", api.nightCloseMessage(at(23)) === null);
+
+/* ---- 16e) CREW: la vetrinetta contiene solo aggregati giusti ---- */
+st = api.defaultState();
+st.profile = { nick: "Mike", daysPerWeek: 3, goal: "massa" };
+st.sessions = [{ id: 1, date: api.todayStr(), workoutId: "fullbody",
+  exercises: { chestpress: { sets: [{w:30,r:12},{w:30,r:12}], quality: "clean" } } }];
+st.ptLifts = [{ date: api.todayStr(), panca: 30, squat: null, stacco: null }];
+api.set(st);
+var cs = api.computeCrewStats();
+ok("crew: settimana = sessioni + sedute PT", cs.weekDone === 2);
+ok("crew: piano dal profilo", cs.planned === 3);
+ok("crew: il giorno di oggi è un pallino pieno", cs.days.indexOf(2) >= 0 && cs.days.length === 7);
+ok("crew: duello del mese conteggiato", cs.monthDone === 2 && cs.monthPct > 0 && cs.monthPct <= 100);
+ok("crew: volume settimana = kg×rip (30×12×2)", cs.volWeek === 720);
+ok("crew: nick presente", cs.nick === "Mike");
+ok("crew: ultimo allenamento = oggi", cs.last && cs.last.date === api.todayStr());
+var keys = Object.keys(cs).join(",");
+ok("crew: NIENTE dati sensibili (pasti/peso/misure)", keys.indexOf("meal") < 0 && keys.indexOf("weight") < 0 && keys.indexOf("composition") < 0);
 
 /* ---- 17) SMOKE: ogni vista renderizza senza eccezioni (dati demo realistici) ---- */
 function smoke(name, fn) {

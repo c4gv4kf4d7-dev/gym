@@ -14,6 +14,8 @@
 
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   let currentUser = null;
+  // handle per i moduli satellite (crew): client condiviso + utente corrente
+  window.__cloud = { sb, user: () => currentUser };
   let currentToken = null;   // access token per il flush keepalive
   let cloudHadData = false;  // il cloud aveva dati all'ultimo pull (anti-wipe)
   let pushTimer = null;
@@ -68,6 +70,7 @@
       if (hasData(state)) cloudHadData = true;
       localStorage.removeItem(PENDING_KEY);
       setSyncStatus("Sincronizzato ✓");
+      if (window.crewOnSync) window.crewOnSync();   // aggiorna la vetrinetta crew
       // Cronologia versioni (assicurazione sui dati): best-effort, se la
       // tabella non esiste ancora l'errore viene ignorato.
       sb.from("state_history").insert({ user_id: currentUser.id, data: state })
@@ -124,6 +127,7 @@
         _localSave(state);
         refreshUI();
         setSyncStatus("Sincronizzato ✓");
+        if (window.crewOnLogin) window.crewOnLogin();
         if (window.maybeStartOnboarding) window.maybeStartOnboarding();
       } else {
         // Primo accesso con questo account: nessun dato nel cloud
@@ -223,6 +227,7 @@
     else if (currentUser) { /* TOKEN_REFRESHED ecc.: niente pull, solo token aggiornato */ }
     else {
       // Nessun account → modalità vetrina: profilo di ESEMPIO, zero dati reali
+      if (window.crewOnLogout) window.crewOnLogout();
       if (typeof enterDemoMode === "function") enterDemoMode();
       if (_event === "INITIAL_SESSION" && window.showWelcome) window.showWelcome();
     }
