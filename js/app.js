@@ -1640,18 +1640,32 @@ function ptRowHTML(l) {
   </div>`;
 }
 
+// Numeri romani per l'asse "volte" del grafico PT
+function roman(n) {
+  const T = [[10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
+  let r = "";
+  T.forEach(([v, s]) => { while (n >= v) { r += s; n -= v; } });
+  return r;
+}
+
 function drawPTChart(lifts) {
   const cv = $("pt-chart");
   if (!cv) return;
   const ctx = cv.getContext("2d");
   if (charts.pt) charts.pt.destroy();
+  // Asse X = numero della volta (I, II, III…), non la data: le sedute sono
+  // a rotazione e sull'asse temporale il grafico si dilaterebbe troppo.
+  // Ogni linea è indicizzata sulle SUE occorrenze.
+  const perMove = {};
+  PT_MOVES.forEach(m => { perMove[m.key] = lifts.filter(l => l[m.key] != null); });
+  const maxN = Math.max(...PT_MOVES.map(m => perMove[m.key].length), 1);
   charts.pt = new Chart(ctx, {
     type: "line",
     data: {
-      labels: lifts.map(l => fmtShort(l.date)),
+      labels: Array.from({ length: maxN }, (_, i) => roman(i + 1)),
       datasets: PT_MOVES.map(m => ({
         label: m.lbl,
-        data: lifts.map(l => (l[m.key] != null ? l[m.key] : null)),
+        data: Array.from({ length: maxN }, (_, i) => perMove[m.key][i] ? perMove[m.key][i][m.key] : null),
         borderColor: m.color,
         backgroundColor: m.color,
         tension: .3,
@@ -1662,8 +1676,10 @@ function drawPTChart(lifts) {
     },
     options: {
       onClick: (evt) => {
-        const hit = charts.pt.getElementsAtEventForMode(evt, "index", { intersect: false }, true);
-        if (hit.length) showPTDetail(lifts[hit[0].index]);
+        const hit = charts.pt.getElementsAtEventForMode(evt, "nearest", { intersect: false }, true);
+        if (!hit.length) return;
+        const l = perMove[PT_MOVES[hit[0].datasetIndex].key][hit[0].index];
+        if (l) showPTDetail(l);
       },
       plugins: { legend: { display: true, labels: { boxWidth: 12, font: { size: 11 } } } },
       scales: { y: { beginAtZero: false, grid: { color: "rgba(255,255,255,.08)" }, ticks: { callback: v => v + " kg" } }, x: { grid: { display: false } } },
