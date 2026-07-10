@@ -198,6 +198,15 @@
         <button class="ob-close" onclick="closeSetup()" aria-label="Chiudi">✕</button>
         <div class="ob-title">Modifica profilo ✏️</div>
         <div class="ob-body ob-scroll">
+          <div class="ed-av-row">
+            <div id="ed-av-preview">${avatarHTML(p, p.nick || p.name)}</div>
+            <div class="ed-av-btns">
+              <button type="button" class="btn-outline" onclick="edAvGallery()">😀 Avatar</button>
+              <label class="btn-outline ed-av-file">📷 Foto<input type="file" accept="image/*" onchange="edAvFile(this)" style="display:none"></label>
+              <button type="button" class="btn-outline" onclick="edAvClear()">Iniziale</button>
+            </div>
+          </div>
+          <div id="ed-av-extra"></div>
           <div class="ob-grid">
             <div class="ob-field"><label>Nome / nick</label><input class="ob-input" id="ed-name" maxlength="20" value="${p.name || ""}"></div>
             <div class="ob-field"><label>Età</label><input class="ob-input" id="ed-age" type="number" inputmode="numeric" value="${p.age || ""}"></div>
@@ -248,6 +257,103 @@
     toast("✅ Profilo aggiornato");
     closeSetup();
     if (typeof renderGoals === "function") renderGoals();
+  };
+
+  /* ---------- IMMAGINE PROFILO (dentro Modifica profilo) ----------
+     Galleria di avatar oppure foto propria con RITAGLIO: zoom con lo
+     slider e trascinamento per centrare. La foto finale è 256×256
+     base64 nel profilo: sincronizza col resto, zero storage extra. */
+  const AVATAR_SET = ["💪", "🏋️", "🦍", "🐺", "🦁", "🐂", "🦅", "⚡️", "🔥", "🥊", "🤖", "🦖"];
+
+  function edAvApply(av) {
+    state.profile.avatar = av;
+    saveState(state);
+    const prev = document.getElementById("ed-av-preview");
+    if (prev) prev.innerHTML = avatarHTML(state.profile, state.profile.nick || state.profile.name);
+    const ex = document.getElementById("ed-av-extra");
+    if (ex) ex.innerHTML = "";
+    if (typeof renderProfile === "function") renderProfile();
+    toast(av ? "✅ Immagine profilo aggiornata" : "Torno all'iniziale del nick");
+  }
+
+  window.edAvGallery = function () {
+    const ex = document.getElementById("ed-av-extra");
+    ex.innerHTML = `<div class="av-grid">${AVATAR_SET.map(e =>
+      `<button type="button" class="av-btn" onclick="edAvPick('${e}')">${e}</button>`).join("")}</div>`;
+  };
+  window.edAvPick = function (e) { edAvApply({ type: "emoji", v: e }); };
+  window.edAvClear = function () { edAvApply(null); };
+
+  /* --- ritaglio foto: zoom + trascina --- */
+  let cImg = null, cW = 0, cH = 0, cLx = 0, cLy = 0;   // dimensioni e posizione correnti nel viewport
+  const VP = 220;                                       // lato del riquadro di ritaglio (px CSS)
+
+  window.edAvFile = function (input) {
+    const f = input.files && input.files[0];
+    if (!f) return;
+    const img = new Image();
+    img.onload = () => { cImg = img; renderCropper(); };
+    img.src = URL.createObjectURL(f);
+    input.value = "";
+  };
+
+  function renderCropper() {
+    const ex = document.getElementById("ed-av-extra");
+    ex.innerHTML = `
+      <div class="crop-box">
+        <div class="crop-vp" id="crop-vp"><img id="crop-img" src="${cImg.src}" draggable="false" alt=""></div>
+        <div class="crop-zoom-row">🔍<input type="range" id="crop-zoom" min="1" max="4" step="0.01" value="1"></div>
+        <div class="crop-hint">Trascina per centrare, slider per zoomare</div>
+        <div class="crop-btns">
+          <button type="button" class="btn-outline" onclick="document.getElementById('ed-av-extra').innerHTML=''">Annulla</button>
+          <button type="button" class="btn-save" onclick="edAvConfirm()">✂️ Usa questa</button>
+        </div>
+      </div>`;
+    // partenza: la foto copre il riquadro, centrata
+    const s0 = VP / Math.min(cImg.width, cImg.height);
+    cW = cImg.width * s0; cH = cImg.height * s0;
+    cLx = (VP - cW) / 2; cLy = (VP - cH) / 2;
+    positionCrop();
+
+    document.getElementById("crop-zoom").addEventListener("input", (ev) => {
+      const z = parseFloat(ev.target.value);
+      // zoom mantenendo il centro del riquadro
+      const fx = (VP / 2 - cLx) / cW, fy = (VP / 2 - cLy) / cH;
+      cW = cImg.width * s0 * z; cH = cImg.height * s0 * z;
+      cLx = VP / 2 - fx * cW; cLy = VP / 2 - fy * cH;
+      positionCrop();
+    });
+
+    const vp = document.getElementById("crop-vp");
+    let dragging = false, sx = 0, sy = 0;
+    vp.addEventListener("pointerdown", (e) => { dragging = true; sx = e.clientX; sy = e.clientY; vp.setPointerCapture(e.pointerId); });
+    vp.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      cLx += e.clientX - sx; cLy += e.clientY - sy;
+      sx = e.clientX; sy = e.clientY;
+      positionCrop();
+    });
+    vp.addEventListener("pointerup", () => { dragging = false; });
+  }
+
+  function positionCrop() {
+    // la foto non può scoprire il riquadro
+    cLx = Math.min(0, Math.max(VP - cW, cLx));
+    cLy = Math.min(0, Math.max(VP - cH, cLy));
+    const img = document.getElementById("crop-img");
+    img.style.width = cW + "px";
+    img.style.height = cH + "px";
+    img.style.transform = `translate(${cLx}px, ${cLy}px)`;
+  }
+
+  window.edAvConfirm = function () {
+    const s = cW / cImg.width;                     // scala display → immagine reale
+    const S = 256, cv = document.createElement("canvas");
+    cv.width = S; cv.height = S;
+    cv.getContext("2d").drawImage(cImg, -cLx / s, -cLy / s, VP / s, VP / s, 0, 0, S, S);
+    edAvApply({ type: "img", v: cv.toDataURL("image/jpeg", 0.85) });
+    URL.revokeObjectURL(cImg.src);
+    cImg = null;
   };
 
   /* ---------- BENVENUTO (app aperta da sloggati) ---------- */

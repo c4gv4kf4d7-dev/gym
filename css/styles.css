@@ -636,17 +636,34 @@ input::placeholder { color: var(--faint); }
 .crew-join { display: flex; gap: 8px; }
 .crew-join .acct-input { flex: 1; margin: 0; }
 
-/* AVATAR profilo */
+/* AVATAR + card profilo */
 img.profile-avatar-lg.av-img { object-fit: cover; padding: 0; border: 2px solid rgba(255,255,255,.25); }
-.profile-avatar-lg.av-emoji { font-size: 30px; }
-.profile-avatar-wrap { cursor: pointer; }
-.av-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+.profile-avatar-lg.av-emoji { font-size: 34px; }
+.profile-box { position: relative; }
+.profile-tap { cursor: pointer; }
+.profile-row .profile-avatar-lg { width: 72px; height: 72px; font-size: 30px; }
+.profile-exit { position: absolute; top: 12px; right: 12px; font-size: 11px; font-weight: 800; color: rgba(245,240,255,.55); background: rgba(255,255,255,.05); border: 1px solid var(--border); border-radius: 999px; padding: 5px 11px; cursor: pointer; }
+.profile-exit:active { background: rgba(255,255,255,.12); }
+.profile-info-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.pi-pill { font-size: 12px; padding: 6px 11px; border-radius: 999px; border: 1px solid var(--border); background: rgba(255,255,255,.05); color: rgba(245,240,255,.85); }
+.pi-pill b { color: #fff; }
+.av-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0 12px; }
 .av-btn { font-size: 28px; padding: 10px 0; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,.05); cursor: pointer; }
 .av-btn:active { background: rgba(255,255,255,.15); }
-.av-upload { display: block; text-align: center; margin-bottom: 6px; cursor: pointer; }
-.chip-av { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; vertical-align: -3px; margin-right: 5px; }
-.chip-av-emoji { margin-right: 4px; }
-.profile-logout { display: block; margin: 12px auto 0; background: none; border: none; color: rgba(245,240,255,.45); font-size: 12px; font-weight: 700; text-decoration: underline; cursor: pointer; }
+
+/* Immagine profilo dentro Modifica profilo + ritaglio */
+.ed-av-row { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.ed-av-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.ed-av-btns .btn-outline { padding: 8px 12px; font-size: 13px; }
+.ed-av-file { display: inline-flex; align-items: center; cursor: pointer; }
+.crop-box { margin-bottom: 12px; }
+.crop-vp { width: 220px; height: 220px; margin: 0 auto; border-radius: 16px; overflow: hidden; position: relative; border: 2px solid rgba(255,255,255,.3); touch-action: none; background: #000; }
+.crop-vp img { position: absolute; top: 0; left: 0; max-width: none; user-select: none; -webkit-user-select: none; }
+.crop-zoom-row { display: flex; align-items: center; gap: 10px; width: 220px; margin: 10px auto 0; }
+.crop-zoom-row input { flex: 1; }
+.crop-hint { text-align: center; font-size: 11px; color: rgba(245,240,255,.5); margin-top: 6px; }
+.crop-btns { display: flex; gap: 8px; margin-top: 10px; }
+.crop-btns .btn-outline, .crop-btns .btn-save { flex: 1; }
 .pt-list { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
 .pt-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; background: rgba(255,255,255,.04); border: 1px solid var(--border); }
 .pt-row-date { font-size: 12px; font-weight: 800; color: rgba(245,240,255,.7); min-width: 52px; }

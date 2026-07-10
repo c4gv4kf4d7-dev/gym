@@ -1934,8 +1934,6 @@ function computeAge(birthday) {
   return age;
 }
 
-const GOAL_LABELS = { massa: "💪 Massa", dimagrimento: "🔥 Dimagrimento", forza: "🏋️ Forza", benessere: "🌿 Benessere" };
-
 function renderProfile() {
   const p = state.profile || {};
   const card = $("profile-card");
@@ -1943,79 +1941,40 @@ function renderProfile() {
   const age = p.age || computeAge(p.birthday);
   const nick = p.nick || p.name || "?";
   const meta = [age != null ? age + " anni" : null, p.height ? p.height + " cm" : null].filter(Boolean).join(" · ");
-  const chips = [
-    p.goal ? GOAL_LABELS[p.goal] : null,
-    p.level ? p.level.charAt(0).toUpperCase() + p.level.slice(1) : null,
-    p.daysPerWeek ? p.daysPerWeek + " gg/settimana" : null
-  ].filter(Boolean);
-  const av = p.avatar;
-  const avHTML = av
-    ? (av.type === "img"
-        ? `<img class="profile-avatar-lg av-img" src="${av.v}" alt="">`
-        : `<div class="profile-avatar-lg av-emoji">${av.v}</div>`)
-    : `<div class="profile-avatar-lg">${nick.charAt(0).toUpperCase()}</div>`;
+  const avHTML = avatarHTML(p, nick);
   const loggedIn = window.__cloud && window.__cloud.user && window.__cloud.user();
+  // info utili al posto dei bannerini: dove sei e dove stai andando
+  const bw = currentBW();
+  const target = state.goals && state.goals.targetWeight;
+  const info = [
+    bw ? `⚖️ ora <b>${bw}</b> kg` : null,
+    target ? `🎯 obiettivo <b>${target}</b> kg` : null,
+    state.sessions.length ? `🏋️ <b>${state.sessions.length}</b> sessioni` : null,
+    weekStreak() ? `🔥 <b>${weekStreak()}</b> sett. di fila` : null
+  ].filter(Boolean);
   card.className = "goal-card profile-box";
   card.innerHTML = `
-    <div class="profile-row">
-      <div class="profile-left">
-        <div class="profile-avatar-wrap" onclick="openAvatarPicker()">
-          ${avHTML}
-          <button class="profile-pencil" onclick="event.stopPropagation();startOnboarding(true)" aria-label="Modifica profilo">✏️</button>
-        </div>
-        <div class="profile-id">
-          <div class="profile-name">${nick}</div>
-          ${meta ? `<div class="profile-meta">${meta}</div>` : ""}
-        </div>
+    ${loggedIn && !window.DEMO_MODE ? `<button class="profile-exit" onclick="cloudSignOut()" aria-label="Esci dall'account">esci&nbsp;⏻</button>` : ""}
+    <div class="profile-row profile-tap" onclick="startOnboarding(true)">
+      <div class="profile-avatar-wrap">
+        ${avHTML}
+        <span class="profile-pencil">✏️</span>
       </div>
-      ${chips.length ? `<div class="profile-chips-col">${chips.map(c => `<span class="profile-chip">${c}</span>`).join("")}</div>` : ""}
+      <div class="profile-id">
+        <div class="profile-name">${nick}</div>
+        ${meta ? `<div class="profile-meta">${meta}</div>` : ""}
+      </div>
     </div>
-    ${p.limitations ? `<div class="profile-lim">⚠️ ${p.limitations}</div>` : ""}
-    ${loggedIn && !window.DEMO_MODE ? `<button class="profile-logout" onclick="cloudSignOut()">Esci dall'account</button>` : ""}`;
+    ${info.length ? `<div class="profile-info-row">${info.map(i => `<span class="pi-pill">${i}</span>`).join("")}</div>` : ""}
+    ${p.limitations ? `<div class="profile-lim">⚠️ ${p.limitations}</div>` : ""}`;
 }
 
-/* ---------- AVATAR: galleria o foto propria ----------
-   La foto viene ridotta a 128×128 e salvata come base64 nel profilo:
-   viaggia col resto dello stato (sync incluso), niente storage extra. */
-const AVATAR_SET = ["💪", "🏋️", "🦍", "🐺", "🦁", "🐂", "🦅", "⚡️", "🔥", "🥊", "🤖", "🦖"];
-
-function openAvatarPicker() {
-  if (!state.profile) return;
-  $("modal-title").textContent = "Immagine profilo";
-  $("modal-body").innerHTML = `
-    <div class="av-grid">
-      ${AVATAR_SET.map(e => `<button class="av-btn" onclick="setAvatarEmoji('${e}')">${e}</button>`).join("")}
-    </div>
-    <label class="btn-secondary av-upload">📷 Carica una tua foto
-      <input type="file" accept="image/*" onchange="avatarFromFile(this)" style="display:none">
-    </label>
-    <button class="modal-clear" onclick="setAvatarEmoji(null)">Usa l'iniziale del nick</button>`;
-  $("modal").classList.add("show");
-}
-
-function applyAvatar(av) {
-  state.profile.avatar = av;
-  saveState(state);
-  closeModal();
-  renderProfile();
-  if (window.cloudRefreshChip) window.cloudRefreshChip();
-  toast(av ? "Immagine profilo aggiornata" : "Torno all'iniziale del nick");
-}
-function setAvatarEmoji(e) { applyAvatar(e ? { type: "emoji", v: e } : null); }
-
-function avatarFromFile(input) {
-  const f = input.files && input.files[0];
-  if (!f) return;
-  const img = new Image();
-  img.onload = () => {
-    const S = 128, cv = document.createElement("canvas");
-    cv.width = S; cv.height = S;
-    const side = Math.min(img.width, img.height);   // ritaglio quadrato centrale
-    cv.getContext("2d").drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, S, S);
-    applyAvatar({ type: "img", v: cv.toDataURL("image/jpeg", 0.82) });
-    URL.revokeObjectURL(img.src);
-  };
-  img.src = URL.createObjectURL(f);
+// Avatar del profilo: foto, emoji o iniziale del nick
+function avatarHTML(p, nick) {
+  const av = p.avatar;
+  if (av && av.type === "img") return `<img class="profile-avatar-lg av-img" src="${av.v}" alt="">`;
+  if (av && av.v) return `<div class="profile-avatar-lg av-emoji">${av.v}</div>`;
+  return `<div class="profile-avatar-lg">${(nick || "?").charAt(0).toUpperCase()}</div>`;
 }
 
 function renderGoals() {

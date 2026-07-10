@@ -263,11 +263,7 @@
     const chip = document.getElementById("header-account");
     if (!chip) return;
     if (currentUser) {
-      const av = (typeof state !== "undefined" && state.profile && state.profile.avatar) || null;
-      const avHTML = av
-        ? (av.type === "img" ? '<img class="chip-av" src="' + av.v + '" alt="">' : '<span class="chip-av-emoji">' + av.v + '</span>')
-        : "👤 ";
-      chip.innerHTML = avHTML + displayName();
+      chip.textContent = "👤 " + displayName();
       chip.classList.add("in");
     } else {
       chip.textContent = "Accedi";
