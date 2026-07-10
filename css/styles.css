@@ -638,7 +638,7 @@ input::placeholder { color: var(--faint); }
 
 /* AVATAR + card profilo */
 img.profile-avatar-lg.av-img { object-fit: cover; padding: 0; border: 2px solid rgba(255,255,255,.25); }
-.profile-avatar-lg.av-emoji { font-size: 34px; }
+.profile-avatar-lg.av-emoji { font-size: 42px; }
 .profile-box { position: relative; }
 .pi-pill { font-size: 12px; padding: 7px 11px; border-radius: 999px; border: 1px solid var(--border); background: rgba(255,255,255,.05); color: rgba(245,240,255,.85); }
 .pi-pill b { color: #fff; }
@@ -652,7 +652,7 @@ img.profile-avatar-lg.av-img { object-fit: cover; padding: 0; border: 2px solid 
 .ed-av-btns .btn-outline { padding: 8px 12px; font-size: 13px; }
 .ed-av-file { display: inline-flex; align-items: center; cursor: pointer; }
 .crop-box { margin-bottom: 12px; }
-.crop-vp { width: 220px; height: 220px; margin: 0 auto; border-radius: 16px; overflow: hidden; position: relative; border: 2px solid rgba(255,255,255,.3); touch-action: none; background: #000; }
+.crop-vp { width: 220px; height: 220px; margin: 0 auto; border-radius: 50%; overflow: hidden; position: relative; border: 2px solid rgba(255,255,255,.3); touch-action: none; background: #000; }
 .crop-vp img { position: absolute; top: 0; left: 0; max-width: none; user-select: none; -webkit-user-select: none; }
 .crop-zoom-row { display: flex; align-items: center; gap: 10px; width: 220px; margin: 10px auto 0; }
 .crop-zoom-row input { flex: 1; }
@@ -853,9 +853,9 @@ select.ob-input { appearance: none; -webkit-appearance: none; }
 .profile-row .profile-avatar-lg { width: 84px; height: 84px; font-size: 36px; margin-bottom: 0; }
 .profile-row .profile-pencil { width: 26px; height: 26px; right: -4px; bottom: -2px; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; }
 .profile-row + .profile-lim { margin-top: 10px; }
-/* avatar: fondo bianco e bordo spesso rosa (emoji e iniziale "escono", la foto ha cornice) */
-.profile-avatar-lg { background: #fff; color: #241b3f; border: 3px solid var(--magenta); box-shadow: 0 8px 24px -8px var(--magenta); }
-img.profile-avatar-lg.av-img { border: 3px solid var(--magenta); }
+/* avatar: fondo bianco e bordo spesso sfumato viola→rosa→arancio (come il bottone crew) */
+.profile-avatar-lg { background: linear-gradient(#fff, #fff) padding-box, var(--grad) border-box; color: #241b3f; border: 6px solid transparent; box-shadow: 0 8px 24px -8px var(--magenta); }
+img.profile-avatar-lg.av-img { border: 6px solid transparent; background: var(--grad) border-box; }
 .profile-exit { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: rgba(245,240,255,.6); background: rgba(255,255,255,.05); border: 1px solid var(--border); border-radius: 50%; cursor: pointer; padding: 0; }
 .profile-exit:active { background: rgba(255,255,255,.12); }
 .pi-pill { white-space: nowrap; text-align: left; }
