@@ -322,6 +322,14 @@ ok("crew: duello del mese conteggiato", cs.monthDone === 2 && cs.monthPct > 0 &&
 ok("crew: volume settimana = kg×rip (30×12×2)", cs.volWeek === 720);
 ok("crew: nick presente", cs.nick === "Mike");
 ok("crew: ultimo allenamento = oggi", cs.last && cs.last.date === api.todayStr());
+ok("crew: senza storico niente delta (serve la SUA media)", cs.volDelta === null);
+// due settimane precedenti da 360 kg/sett. → questa settimana (720) = +100%
+function wAgo(n) { var d = new Date(api.weekStart(api.todayStr()) + "T00:00:00"); d.setDate(d.getDate() - n * 7); return api.localDate(d); }
+st.sessions.push(
+  { id: 2, date: wAgo(1), workoutId: "fullbody", exercises: { chestpress: { sets: [{w:30,r:12}], quality: "clean" } } },
+  { id: 3, date: wAgo(2), workoutId: "fullbody", exercises: { chestpress: { sets: [{w:30,r:12}], quality: "clean" } } });
+cs = api.computeCrewStats();
+ok("crew: volume vs la PROPRIA media (+100%)", cs.volDelta === 100);
 var keys = Object.keys(cs).join(",");
 ok("crew: NIENTE dati sensibili (pasti/peso/misure)", keys.indexOf("meal") < 0 && keys.indexOf("weight") < 0 && keys.indexOf("composition") < 0);
 

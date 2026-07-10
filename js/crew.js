@@ -41,6 +41,22 @@ function computeCrewStats() {
     .filter(s => weekStart(s.date) === wk)
     .reduce((a, s) => a + sessionVolume(s), 0));
 
+  // volume vs LA PROPRIA media delle 4 settimane precedenti: misura lo
+  // sforzo, non il livello — così chi solleva di più non vince "di rendita"
+  let volDelta = null;
+  {
+    const byWeek = {};
+    state.sessions.forEach(s => {
+      const w = weekStart(s.date);
+      if (w < wk) byWeek[w] = (byWeek[w] || 0) + sessionVolume(s);
+    });
+    const prev = Object.keys(byWeek).sort().slice(-4).map(k => byWeek[k]);
+    if (prev.length >= 2) {
+      const avg = prev.reduce((a, b) => a + b, 0) / prev.length;
+      if (avg > 0) volDelta = Math.round((volWeek / avg - 1) * 100);
+    }
+  }
+
   // ultimo allenamento (per il "si è allenato ieri" che punge)
   const all = [...state.sessions].sort((a, b) => a.date.localeCompare(b.date));
   const lastS = all[all.length - 1];
@@ -61,7 +77,7 @@ function computeCrewStats() {
     days, weekDone, planned,
     streak: weekStreak(),
     monthDone, monthExpected, monthPct,
-    volWeek, prMonth, grade,
+    volWeek, volDelta, prMonth, grade,
     last: lastS ? { date: lastS.date, name: lastW ? lastW.name : "", emoji: lastW ? lastW.emoji : "🏋️" } : null
   };
 }
@@ -197,7 +213,8 @@ function computeCrewStats() {
         <div class="crew-dots">${s.days.map(dot).join("")}</div>
         <div class="crew-line"><b>${s.weekDone}</b>/${s.planned} questa settimana</div>
         <div class="crew-line">🔥 streak <b>${s.streak}</b> sett.</div>
-        <div class="crew-line">🏋️ <b>${(s.volWeek || 0).toLocaleString("it-IT")}</b> kg</div>
+        <div class="crew-line">🏋️ <b>${(s.volWeek || 0).toLocaleString("it-IT")}</b> kg${
+          s.volDelta != null ? ` <span class="crew-delta ${s.volDelta >= 0 ? 'up' : 'down'}">${s.volDelta >= 0 ? '▲' : '▼'} ${Math.abs(s.volDelta)}% vs ${mine ? "tua" : "sua"} media</span>` : ""}</div>
         ${s.prMonth ? `<div class="crew-line">🏆 <b>${s.prMonth}</b> PR nel mese</div>` : ""}
         ${s.grade ? `<div class="crew-line">📋 pagella: <b>${s.grade}</b></div>` : ""}
         ${s.last ? `<div class="crew-last">${s.last.emoji} ${whenAgo(s.last.date)}</div>` : ""}

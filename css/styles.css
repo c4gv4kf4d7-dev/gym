@@ -627,6 +627,9 @@ input::placeholder { color: var(--faint); }
 .crew-dot.plan { background: transparent; border: 1.5px solid rgba(255,255,255,.35); box-sizing: border-box; }
 .crew-line { font-size: 12px; margin: 4px 0; color: rgba(245,240,255,.85); }
 .crew-last { font-size: 11px; color: rgba(245,240,255,.5); margin-top: 6px; }
+.crew-delta { font-size: 10px; font-weight: 800; }
+.crew-delta.up { color: #2BD576; }
+.crew-delta.down { color: #FF6B6B; }
 .crew-fire { width: 100%; margin-top: 12px; }
 .crew-hint { font-size: 11px; color: rgba(245,240,255,.5); margin-top: 10px; text-align: center; }
 .crew-code { font-size: 24px; font-weight: 900; letter-spacing: .08em; text-align: center; padding: 12px; margin: 10px 0; border: 1.5px dashed rgba(255,255,255,.3); border-radius: 12px; background: rgba(168,85,247,.10); }
