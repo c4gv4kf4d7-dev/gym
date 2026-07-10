@@ -263,13 +263,18 @@
     const chip = document.getElementById("header-account");
     if (!chip) return;
     if (currentUser) {
-      chip.textContent = "👤 " + displayName();
+      const av = (typeof state !== "undefined" && state.profile && state.profile.avatar) || null;
+      const avHTML = av
+        ? (av.type === "img" ? '<img class="chip-av" src="' + av.v + '" alt="">' : '<span class="chip-av-emoji">' + av.v + '</span>')
+        : "👤 ";
+      chip.innerHTML = avHTML + displayName();
       chip.classList.add("in");
     } else {
       chip.textContent = "Accedi";
       chip.classList.remove("in");
     }
   }
+  window.cloudRefreshChip = renderHeaderChip;
 
   // Modalità vetrina: invito ad accedere quando non loggati
   function renderGuestBanner() {
@@ -288,6 +293,13 @@
     renderGuestBanner();
     const el = document.getElementById("account-card");
     if (!el) return;
+    // Da loggati il widget è ridondante (lo stato sync è il pallino sul nick
+    // in alto): la sezione compare solo per login o recupero password.
+    const lbl = document.getElementById("account-label");
+    const hidden = currentUser && !recoveryMode;
+    el.style.display = hidden ? "none" : "";
+    if (lbl) lbl.style.display = hidden ? "none" : "";
+    if (hidden) { el.innerHTML = ""; return; }
     if (currentUser && recoveryMode) {
       el.innerHTML =
         '<div class="acct-intro"><b>🔑 Imposta la nuova password.</b> Sei entrato dal link di recupero: scegli la nuova password qui sotto.</div>' +
@@ -298,17 +310,7 @@
         '<div class="acct-msg" id="acct-msg"></div>';
       return;
     }
-    if (currentUser) {
-      el.innerHTML =
-        '<div class="acct-line">' +
-          '<span class="acct-badge-sm">☁️</span>' +
-          '<div class="acct-info">' +
-            '<div class="acct-status" id="sync-status">Sincronizzato ✓</div>' +
-            '<div class="acct-email-sub">' + (currentUser.email || "") + '</div>' +
-          '</div>' +
-          '<button class="acct-exit" onclick="cloudSignOut()">Esci</button>' +
-        '</div>';
-    } else {
+    {
       // form vero con name/autocomplete: serve al portachiavi iCloud per
       // suggerire le credenziali salvate in automatico
       el.innerHTML =

@@ -635,6 +635,18 @@ input::placeholder { color: var(--faint); }
 .crew-code { font-size: 24px; font-weight: 900; letter-spacing: .08em; text-align: center; padding: 12px; margin: 10px 0; border: 1.5px dashed rgba(255,255,255,.3); border-radius: 12px; background: rgba(168,85,247,.10); }
 .crew-join { display: flex; gap: 8px; }
 .crew-join .acct-input { flex: 1; margin: 0; }
+
+/* AVATAR profilo */
+img.profile-avatar-lg.av-img { object-fit: cover; padding: 0; border: 2px solid rgba(255,255,255,.25); }
+.profile-avatar-lg.av-emoji { font-size: 30px; }
+.profile-avatar-wrap { cursor: pointer; }
+.av-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+.av-btn { font-size: 28px; padding: 10px 0; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,.05); cursor: pointer; }
+.av-btn:active { background: rgba(255,255,255,.15); }
+.av-upload { display: block; text-align: center; margin-bottom: 6px; cursor: pointer; }
+.chip-av { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; vertical-align: -3px; margin-right: 5px; }
+.chip-av-emoji { margin-right: 4px; }
+.profile-logout { display: block; margin: 12px auto 0; background: none; border: none; color: rgba(245,240,255,.45); font-size: 12px; font-weight: 700; text-decoration: underline; cursor: pointer; }
 .pt-list { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
 .pt-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; background: rgba(255,255,255,.04); border: 1px solid var(--border); }
 .pt-row-date { font-size: 12px; font-weight: 800; color: rgba(245,240,255,.7); min-width: 52px; }
