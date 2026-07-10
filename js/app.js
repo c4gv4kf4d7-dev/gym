@@ -1947,11 +1947,9 @@ function renderProfile() {
   ].filter(Boolean);
   const avHTML = avatarHTML(p, nick);
   const loggedIn = window.__cloud && window.__cloud.user && window.__cloud.user();
-  // le 4 pill a destra: dove sei e dove stai andando
-  const bw = currentBW();
+  // le 3 pill in colonna a destra: obiettivo, sessioni, streak
   const target = state.goals && state.goals.targetWeight;
   const info = [
-    bw ? `⚖️ <b>${bw}</b> kg` : null,
     target ? `🎯 <b>${target}</b> kg` : null,
     state.sessions.length ? `🏋️ <b>${state.sessions.length}</b> sessioni` : null,
     weekStreak() ? `🔥 <b>${weekStreak()}</b> sett.` : null

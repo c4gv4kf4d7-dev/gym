@@ -848,7 +848,16 @@ select.ob-input { appearance: none; -webkit-appearance: none; }
 .profile-id { min-width: 0; }
 .profile-id .profile-name { font-size: 24px; font-weight: 900; line-height: 1.1; margin-bottom: 4px; }
 .profile-id .profile-meta { font-size: 13px; color: var(--muted); margin-top: 2px; white-space: nowrap; }
-.profile-pills { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; flex-shrink: 0; align-self: center; }
+.profile-pills { display: flex; flex-direction: column; gap: 5px; flex-shrink: 1; min-width: 0; align-self: center; margin-left: auto; }
+.profile-pills .pi-pill { font-size: 11px; padding: 4px 9px; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+@media (max-width: 374px) {
+  .profile-pills { gap: 4px; }
+  .profile-pills .pi-pill { font-size: 10px; padding: 3px 7px; }
+}
+@media (min-width: 430px) {
+  .profile-pills { gap: 6px; }
+  .profile-pills .pi-pill { font-size: 12px; padding: 4px 10px; }
+}
 .profile-box { padding: 16px; }
 .profile-row .profile-avatar-lg { width: 84px; height: 84px; font-size: 36px; margin-bottom: 0; }
 .profile-row .profile-pencil { width: 26px; height: 26px; right: -4px; bottom: -2px; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; }
@@ -859,10 +868,7 @@ img.profile-avatar-lg.av-img { border: 6px solid transparent; background: var(--
 .profile-exit { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: rgba(245,240,255,.6); background: rgba(255,255,255,.05); border: 1px solid var(--border); border-radius: 50%; cursor: pointer; padding: 0; }
 .profile-exit:active { background: rgba(255,255,255,.12); }
 .pi-pill { white-space: nowrap; text-align: left; }
-@media (max-width: 414px) {
-  .profile-row { flex-wrap: wrap; }
-  .profile-pills { grid-template-columns: 1fr 1fr; width: 100%; margin-top: 4px; }
-}
+.profile-box { overflow: hidden; }
 
 /* Guided: motivazione + stepper + note finali */
 .g-mot { font-size: 14px; font-weight: 700; line-height: 1.45; background: linear-gradient(135deg, rgba(124,58,237,.32), rgba(255,45,149,.26)); border: 1px solid var(--border); border-radius: 13px; padding: 12px 14px; margin: 10px 0 4px; max-width: 340px; }
