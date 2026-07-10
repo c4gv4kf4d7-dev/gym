@@ -47,12 +47,12 @@ function nextScheduledFor(workoutId) {
     .filter(([d, sc]) => d >= t && !sc.done && (!workoutId || sc.workoutId === workoutId))
     .sort((a, b) => a[0].localeCompare(b[0]))[0] || null;
 }
-// Versione secca per l'hero: OGGI / DOMANI / LUNEDÌ / TRA N GIORNI
+// Versione secca per l'hero: OGGI / DOMANI / DOPODOMANI / TRA N GIORNI
 function whenShort(ds) {
   const diff = Math.round((new Date(ds + "T00:00:00") - new Date(todayStr() + "T00:00:00")) / 864e5);
   if (diff <= 0) return "oggi";
   if (diff === 1) return "domani";
-  if (diff <= 6) return new Date(ds + "T00:00:00").toLocaleDateString("it-IT", { weekday: "long" });
+  if (diff === 2) return "dopodomani";
   return "tra " + diff + " giorni";
 }
 // All'apertura seleziona la scheda del prossimo allenamento in calendario
@@ -1940,32 +1940,38 @@ function renderProfile() {
   if (!p.name && !p.height && !p.birthday) { card.innerHTML = ""; return; }
   const age = p.age || computeAge(p.birthday);
   const nick = p.nick || p.name || "?";
-  const meta = [age != null ? age + " anni" : null, p.height ? p.height + " cm" : null].filter(Boolean).join(" · ");
+  // una riga per informazione, mai spezzate
+  const metaLines = [
+    age != null ? age + " anni" : null,
+    p.height ? p.height + " cm" : null
+  ].filter(Boolean);
   const avHTML = avatarHTML(p, nick);
   const loggedIn = window.__cloud && window.__cloud.user && window.__cloud.user();
-  // info utili al posto dei bannerini: dove sei e dove stai andando
+  // le 4 pill a destra: dove sei e dove stai andando
   const bw = currentBW();
   const target = state.goals && state.goals.targetWeight;
   const info = [
-    bw ? `⚖️ ora <b>${bw}</b> kg` : null,
-    target ? `🎯 obiettivo <b>${target}</b> kg` : null,
+    bw ? `⚖️ <b>${bw}</b> kg` : null,
+    target ? `🎯 <b>${target}</b> kg` : null,
     state.sessions.length ? `🏋️ <b>${state.sessions.length}</b> sessioni` : null,
-    weekStreak() ? `🔥 <b>${weekStreak()}</b> sett. di fila` : null
+    weekStreak() ? `🔥 <b>${weekStreak()}</b> sett.` : null
   ].filter(Boolean);
   card.className = "goal-card profile-box";
   card.innerHTML = `
-    ${loggedIn && !window.DEMO_MODE ? `<button class="profile-exit" onclick="cloudSignOut()" aria-label="Esci dall'account">esci&nbsp;⏻</button>` : ""}
-    <div class="profile-row profile-tap" onclick="startOnboarding(true)">
-      <div class="profile-avatar-wrap">
-        ${avHTML}
-        <span class="profile-pencil">✏️</span>
+    ${loggedIn && !window.DEMO_MODE ? `<button class="profile-exit" onclick="cloudSignOut()" aria-label="Esci dall'account">⏻</button>` : ""}
+    <div class="profile-row">
+      <div class="profile-tap" onclick="startOnboarding(true)">
+        <div class="profile-avatar-wrap">
+          ${avHTML}
+          <span class="profile-pencil">✏️</span>
+        </div>
+        <div class="profile-id">
+          <div class="profile-name">${nick}</div>
+          ${metaLines.map(m => `<div class="profile-meta">${m}</div>`).join("")}
+        </div>
       </div>
-      <div class="profile-id">
-        <div class="profile-name">${nick}</div>
-        ${meta ? `<div class="profile-meta">${meta}</div>` : ""}
-      </div>
+      ${info.length ? `<div class="profile-pills">${info.map(i => `<span class="pi-pill">${i}</span>`).join("")}</div>` : ""}
     </div>
-    ${info.length ? `<div class="profile-info-row">${info.map(i => `<span class="pi-pill">${i}</span>`).join("")}</div>` : ""}
     ${p.limitations ? `<div class="profile-lim">⚠️ ${p.limitations}</div>` : ""}`;
 }
 

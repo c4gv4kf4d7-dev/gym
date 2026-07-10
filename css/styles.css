@@ -640,12 +640,7 @@ input::placeholder { color: var(--faint); }
 img.profile-avatar-lg.av-img { object-fit: cover; padding: 0; border: 2px solid rgba(255,255,255,.25); }
 .profile-avatar-lg.av-emoji { font-size: 34px; }
 .profile-box { position: relative; }
-.profile-tap { cursor: pointer; }
-.profile-row .profile-avatar-lg { width: 72px; height: 72px; font-size: 30px; }
-.profile-exit { position: absolute; top: 12px; right: 12px; font-size: 11px; font-weight: 800; color: rgba(245,240,255,.55); background: rgba(255,255,255,.05); border: 1px solid var(--border); border-radius: 999px; padding: 5px 11px; cursor: pointer; }
-.profile-exit:active { background: rgba(255,255,255,.12); }
-.profile-info-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
-.pi-pill { font-size: 12px; padding: 6px 11px; border-radius: 999px; border: 1px solid var(--border); background: rgba(255,255,255,.05); color: rgba(245,240,255,.85); }
+.pi-pill { font-size: 12px; padding: 7px 11px; border-radius: 999px; border: 1px solid var(--border); background: rgba(255,255,255,.05); color: rgba(245,240,255,.85); }
 .pi-pill b { color: #fff; }
 .av-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0 12px; }
 .av-btn { font-size: 28px; padding: 10px 0; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,.05); cursor: pointer; }
@@ -847,18 +842,27 @@ select.ob-input { appearance: none; -webkit-appearance: none; }
 .comp-hist-list { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
 .spark-gear { background: transparent; border: none; font-size: 14px; cursor: pointer; padding: 2px 4px; opacity: .7; }
 
-/* Profilo orizzontale compatto */
-.profile-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.profile-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
+/* Profilo orizzontale: [foto grande | nome+info] + pill 2×2 a destra */
+.profile-row { display: flex; align-items: center; gap: 12px; }
+.profile-tap { display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1; cursor: pointer; }
 .profile-id { min-width: 0; }
-.profile-id .profile-name { font-size: 18px; }
-.profile-id .profile-meta { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
-.profile-chips-col { display: flex; flex-direction: column; gap: 5px; align-items: flex-end; flex-shrink: 0; }
-.profile-chips-col .profile-chip { font-size: 10.5px; padding: 4px 9px; white-space: nowrap; }
-.profile-box { padding: 14px 16px; }
-.profile-row .profile-avatar-lg { width: 52px; height: 52px; font-size: 22px; margin-bottom: 0; }
-.profile-row .profile-pencil { width: 24px; height: 24px; font-size: 11px; right: -6px; bottom: -3px; }
+.profile-id .profile-name { font-size: 24px; font-weight: 900; line-height: 1.1; margin-bottom: 4px; }
+.profile-id .profile-meta { font-size: 13px; color: var(--muted); margin-top: 2px; white-space: nowrap; }
+.profile-pills { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; flex-shrink: 0; align-self: center; }
+.profile-box { padding: 16px; }
+.profile-row .profile-avatar-lg { width: 84px; height: 84px; font-size: 36px; margin-bottom: 0; }
+.profile-row .profile-pencil { width: 26px; height: 26px; right: -4px; bottom: -2px; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; }
 .profile-row + .profile-lim { margin-top: 10px; }
+/* avatar: fondo bianco e bordo spesso rosa (emoji e iniziale "escono", la foto ha cornice) */
+.profile-avatar-lg { background: #fff; color: #241b3f; border: 3px solid var(--magenta); box-shadow: 0 8px 24px -8px var(--magenta); }
+img.profile-avatar-lg.av-img { border: 3px solid var(--magenta); }
+.profile-exit { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: rgba(245,240,255,.6); background: rgba(255,255,255,.05); border: 1px solid var(--border); border-radius: 50%; cursor: pointer; padding: 0; }
+.profile-exit:active { background: rgba(255,255,255,.12); }
+.pi-pill { white-space: nowrap; text-align: left; }
+@media (max-width: 414px) {
+  .profile-row { flex-wrap: wrap; }
+  .profile-pills { grid-template-columns: 1fr 1fr; width: 100%; margin-top: 4px; }
+}
 
 /* Guided: motivazione + stepper + note finali */
 .g-mot { font-size: 14px; font-weight: 700; line-height: 1.45; background: linear-gradient(135deg, rgba(124,58,237,.32), rgba(255,45,149,.26)); border: 1px solid var(--border); border-radius: 13px; padding: 12px 14px; margin: 10px 0 4px; max-width: 340px; }
