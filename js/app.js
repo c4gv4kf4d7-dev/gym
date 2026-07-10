@@ -59,26 +59,28 @@ function whenShort(ds) {
 let workoutManuallyChosen = false;
 function pickDefaultWorkout() {
   if (workoutManuallyChosen) return;
-  // primo giorno programmato NON-PT (il PT non è una scheda selezionabile)
-  const t = todayStr();
-  const nxt = Object.entries(state.schedule || {})
-    .filter(([d, sc]) => d >= t && !sc.done && !sc.pt)
-    .sort((a, b) => a[0].localeCompare(b[0]))[0];
-  if (nxt) {
-    const w = ALL_WORKOUTS().find(x => x.id === nxt[1].workoutId);
-    if (w) currentWorkoutId = w.id;
-  }
+  // prima scheda in ordine di calendario (PT compreso: ha la sua tab)
+  const first = chipOrder()[0];
+  if (first) currentWorkoutId = first.id;
 }
 
-// Etichetta hero: il PROSSIMO giorno di allenamento in assoluto.
-// Se prima della scheda selezionata c'è altro (PT o altra scheda), lo dice.
+// Ordine delle tab in "Allena": lo stesso del piano in calendario.
+// Ogni scheda (PT compreso) è ordinata per la sua PROSSIMA occorrenza
+// non ancora fatta; le schede non programmate finiscono in coda
+// nell'ordine originale. Niente ripetizioni: una tab per scheda.
+function chipOrder() {
+  const list = SCHEDULABLE();
+  return list
+    .map((w, i) => { const n = nextScheduledFor(w.id); return { w, i, k: n ? n[0] : "9999-99-99" }; })
+    .sort((a, b) => a.k === b.k ? a.i - b.i : a.k.localeCompare(b.k))
+    .map(x => x.w);
+}
+
+// Etichetta hero: quando tocca ALLA SCHEDA MOSTRATA (una data sola:
+// l'ordine delle tab dice già qual è il prossimo allenamento in assoluto)
 function heroWhen(w) {
   const mine = nextScheduledFor(w.id);
-  const any = nextScheduledFor(null);
-  if (!any) return "non programmata";
-  if (mine && mine[0] === any[0]) return whenShort(mine[0]);
-  const other = any[1].pt ? "🧑‍🏫 PT" : (getWorkout(any[1].workoutId) || {}).name || "";
-  return `${whenShort(any[0])} · ${other}${mine ? ` — questa ${whenShort(mine[0])}` : ""}`;
+  return mine ? whenShort(mine[0]) : "non programmata";
 }
 
 // Naviga alla tab Allena (dal tocco sul titolo in alto a sinistra)
@@ -549,8 +551,8 @@ function switchView(view, btn) {
 function renderWorkoutChips() {
   mergeCustomExercises();
   pickDefaultWorkout();
-  if (!ALL_WORKOUTS().some(w => w.id === currentWorkoutId)) currentWorkoutId = ALL_WORKOUTS()[0].id;
-  $("workout-chips").innerHTML = ALL_WORKOUTS().map(w => `
+  if (!SCHEDULABLE().some(w => w.id === currentWorkoutId)) currentWorkoutId = chipOrder()[0].id;
+  $("workout-chips").innerHTML = chipOrder().map(w => `
     <button class="wchip ${w.id === currentWorkoutId ? 'active' : ''}"
             style="${w.id === currentWorkoutId ? `background:${w.color};border-color:${w.color}` : ''}"
             onclick="selectWorkout('${w.id}')">
@@ -568,6 +570,13 @@ function selectWorkout(id) {
 
 function renderWorkout() {
   const w = getWorkout(currentWorkoutId);
+
+  // La tab PT ha una vista tutta sua (seduta col PT, non una scheda classica)
+  const isPT = !!w.pt;
+  document.querySelector(".btn-guided").style.display = isPT ? "none" : "";
+  document.querySelector(".ex-head").style.display = isPT ? "none" : "";
+  if (isPT) { renderPTWorkout(w); return; }
+
   const exList = w.exercises.map(k => Object.assign({ key: k }, EXERCISES[k]));
   const sess = todaySession(w.id);
 
@@ -647,6 +656,77 @@ function renderWorkout() {
 
   $("toggle-all").textContent = "Espandi tutto";
   renderGuidedResume();
+  renderDeloadBanner();
+  if (typeof renderWrappedBanner === "function") renderWrappedBanner();
+}
+
+/* ---------- VISTA PT: la seduta col personal trainer ----------
+   Non è una scheda da compilare: mostra il super esercizio che ti
+   aspetta (rotazione panca→stacco→squat), l'obiettivo del giorno,
+   il livello di forza e la registrazione rapida dei kg. */
+function renderPTWorkout(w) {
+  const lifts = [...(state.ptLifts || [])].sort((a, b) => a.date.localeCompare(b.date));
+  const idx = ptNextIndex();
+  const key = PT_SEQUENCE[idx];
+  const move = PT_MOVES.find(m => m.key === key);
+
+  // ultimo carico registrato per il super esercizio in arrivo
+  let lastKg = null, lastDate = null;
+  lifts.forEach(l => { if (l[key] != null) { lastKg = l[key]; lastDate = l.date; } });
+  const target = lastKg != null ? lastKg + 2.5 : null;
+
+  const bw = currentBW();
+  const sex = (state.profile && state.profile.sex) || "M";
+  const lv = (lastKg != null && bw) ? strengthLevel(key, lastKg, bw, sex) : null;
+
+  // HERO
+  $("workout-hero").style.background = `linear-gradient(150deg, ${w.color} 0%, #2A1B4A 95%)`;
+  $("workout-hero").style.boxShadow = `0 10px 40px -8px ${w.color}66, inset 0 1px 0 rgba(255,255,255,.18)`;
+  $("workout-hero").innerHTML = `
+    <div class="hero-label">${heroWhen(w)}</div>
+    <div class="hero-title">Seduta col PT ${w.emoji}</div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="hero-stat-num">${PT_SHORT[key]}</div><div class="hero-stat-lbl">Ti aspetta</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">${target != null ? target + '<small> kg</small>' : '—'}</div><div class="hero-stat-lbl">Obiettivo</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">${lifts.length}</div><div class="hero-stat-lbl">Sedute</div></div>
+    </div>`;
+
+  // CORPO
+  const focus = `
+    <div class="ex-card ptv ptv-focus">
+      <div class="ptv-head">
+        <span class="ptv-dot" style="background:${move.color}"></span>
+        <div>
+          <div class="ptv-title">🎯 Super esercizio: <b>${move.lbl}</b></div>
+          <div class="ptv-sub">rotazione ${PT_SEQUENCE.map(k => k === key ? `<b>${PT_SHORT[k]}</b>` : PT_SHORT[k]).join(" → ")}</div>
+        </div>
+      </div>
+      ${lastKg != null
+        ? `<div class="ptv-line">📊 Ultima volta: <b>${lastKg} kg</b> <span class="lt-day">(${fmtShort(lastDate)})</span> → oggi punta a <b style="color:${move.color}">${target} kg</b></div>`
+        : `<div class="ptv-line">Prima volta su questo esercizio: parti tranquillo, il carico giusto lo trovate insieme.</div>`}
+      ${lv ? `
+      <div class="ptv-line">🏅 Livello: <b>${lv.levelName}</b>${lv.next ? ` — ${lv.next.name} a ${lv.next.kg} kg (−${lv.next.missing})` : " — 🏆 vetta raggiunta"}</div>
+      <div class="sl-bar"><div class="sl-fill" style="width:${lv.pct}%;background:${move.color}"></div></div>` : ""}
+    </div>`;
+
+  const form = `
+    <div class="ex-card ptv">
+      <div class="ptv-title" style="margin-bottom:8px">💪 A fine seduta registra i kg</div>
+      <div class="pt-inputs">
+        ${PT_MOVES.map(m => `<div class="pt-field"><label>${m.lbl} (kg)</label><input type="number" id="ptw-${m.key}" inputmode="decimal" step="0.5" min="0" placeholder="—"></div>`).join("")}
+      </div>
+      <button class="btn-save" onclick="savePTLift('ptw-')">Registra seduta PT</button>
+    </div>`;
+
+  const recent = lifts.slice(-3).reverse().map(ptRowHTML).join("");
+  const history = lifts.length ? `
+    <div class="ex-card ptv">
+      <div class="ptv-title" style="margin-bottom:8px">🗓 Ultime sedute</div>${recent}
+      <div class="chart-hint" style="margin-top:8px">Grafico completo e scala di forza in <b>Progressi</b>.</div>
+    </div>` : "";
+
+  $("ex-cards").innerHTML = focus + form + history;
+
   renderDeloadBanner();
   if (typeof renderWrappedBanner === "function") renderWrappedBanner();
 }
@@ -1561,10 +1641,12 @@ function drawPTChart(lifts) {
   });
 }
 
-function savePTLift() {
+// prefix: "pt-" dal card Progressi, "ptw-" dalla tab PT in Allena
+function savePTLift(prefix) {
+  prefix = prefix || "pt-";
   const date = todayStr();
   const num = (id) => { const v = parseFloat($(id).value); return isNaN(v) ? null : v; };
-  const vals = {}; PT_MOVES.forEach(m => vals[m.key] = num("pt-" + m.key));
+  const vals = {}; PT_MOVES.forEach(m => vals[m.key] = num(prefix + m.key));
   if (PT_MOVES.every(m => vals[m.key] == null)) { toast("Inserisci almeno un valore"); return; }
   state.ptLifts = state.ptLifts || [];
   const ex = state.ptLifts.find(l => l.date === date);
@@ -1573,8 +1655,11 @@ function savePTLift() {
   } else {
     state.ptLifts.push(Object.assign({ date }, vals));
   }
+  // se oggi era in calendario col PT, la seduta è fatta
+  if (state.schedule[date] && state.schedule[date].pt) state.schedule[date].done = true;
   saveState(state);
-  renderPT();
+  if (prefix === "ptw-") { renderWorkoutChips(); renderWorkout(); }
+  else renderPT();
   toast("💪 Seduta PT registrata");
 }
 

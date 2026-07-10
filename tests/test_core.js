@@ -16,7 +16,7 @@ function fakeEl(){ return { innerHTML:"", textContent:"", value:"", className:""
 var elCache = {};
 var docStub = {
   getElementById: function(id){ return elCache[id] || (elCache[id] = fakeEl()); },
-  querySelector: function(){ return null; },
+  querySelector: function(sel){ return elCache[sel] || (elCache[sel] = fakeEl()); },
   querySelectorAll: function(){ return []; },
   createElement: function(){ return fakeEl(); },
   addEventListener: function(){},
@@ -36,6 +36,7 @@ var api = new Function(
     suggestion: suggestion, exVerdict: exVerdict, nutritionTargets: nutritionTargets,
     kcalTarget: kcalTarget, proteinTarget: proteinTarget, mealDayStreak: mealDayStreak,
     ALL_WORKOUTS: ALL_WORKOUTS, getWorkout: getWorkout, SCHEDULABLE: SCHEDULABLE,
+    chipOrder: chipOrder, ptNextIndex: ptNextIndex, selectWorkout: selectWorkout,
     defaultState: defaultState,
     fatigueAnalysis: fatigueAnalysis, deloadActive: deloadActive,
     wrappedStats: wrappedStats, wrappedVerdict: wrappedVerdict, volumeComparison: volumeComparison,
@@ -255,6 +256,36 @@ var lastC = demo2.composition[demo2.composition.length - 1];
 ok("misure: presenti nella demo", lastC.arm > 35 && lastC.chest > 100 && lastC.waist < 81 && lastC.thigh > 56);
 ok("misure: braccio in crescita", demo2.composition[0].arm < lastC.arm);
 ok("misure: vita in calo", demo2.composition[0].waist > lastC.waist);
+
+/* ---- 16b) TAB ALLENA: ordine chips = ordine calendario, PT compresa ---- */
+st = api.defaultState();
+st.myWorkouts = [
+  { id:"s1", name:"Scheda 1", emoji:"1", color:"#f00", exercises:["chestpress"] },
+  { id:"s2", name:"Scheda 2", emoji:"2", color:"#0f0", exercises:["curl"] }
+];
+api.set(st);
+function dPlus(n){ var d=new Date(); d.setDate(d.getDate()+n); return api.localDate(d); }
+st.schedule = {};
+st.schedule[dPlus(1)] = { workoutId:"pt", done:false, pt:true };
+st.schedule[dPlus(3)] = { workoutId:"s2", done:false };
+st.schedule[dPlus(5)] = { workoutId:"s1", done:false };
+st.schedule[dPlus(8)] = { workoutId:"s2", done:false };   // ripetizione: non duplica
+var ord = api.chipOrder().map(function(w){ return w.id; });
+ok("chips: ordine = calendario (PT, s2, s1) senza duplicati", JSON.stringify(ord) === '["pt","s2","s1"]');
+st.schedule[dPlus(1)].done = true;                         // PT fatta → slitta in coda
+ord = api.chipOrder().map(function(w){ return w.id; });
+ok("chips: PT completata → s2 davanti, PT dietro", ord[0] === "s2" && ord.indexOf("pt") === 2);
+st.schedule = {};
+ord = api.chipOrder().map(function(w){ return w.id; });
+ok("chips: senza calendario → ordine originale + PT in coda", JSON.stringify(ord) === '["s1","s2","pt"]');
+
+/* ---- 16c) VISTA PT: rotazione super esercizio + render ---- */
+st.ptLifts = [{ date: dPlus(-3), panca: 65, squat: null, stacco: null }];
+ok("PT: dopo la panca tocca allo stacco", api.ptNextIndex() === 1);
+api.selectWorkout("pt");
+var ptOk = true;
+try { api.renderWorkout(); } catch (e) { ptOk = false; }
+ok("PT: la tab PT renderizza senza errori", ptOk);
 
 /* ---- 17) SMOKE: ogni vista renderizza senza eccezioni (dati demo realistici) ---- */
 function smoke(name, fn) {
