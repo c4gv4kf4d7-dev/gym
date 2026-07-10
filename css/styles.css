@@ -842,31 +842,46 @@ select.ob-input { appearance: none; -webkit-appearance: none; }
 .comp-hist-list { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
 .spark-gear { background: transparent; border: none; font-size: 14px; cursor: pointer; padding: 2px 4px; opacity: .7; }
 
-/* Profilo orizzontale: [foto grande | nome+info] + pill 2×2 a destra */
-.profile-row { display: flex; align-items: center; gap: 12px; }
-.profile-tap { display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1; cursor: pointer; }
-.profile-id { min-width: 0; }
-.profile-id .profile-name { font-size: 24px; font-weight: 900; line-height: 1.1; margin-bottom: 4px; }
-.profile-id .profile-meta { font-size: 13px; color: var(--muted); margin-top: 2px; white-space: nowrap; }
-.profile-pills { display: flex; flex-direction: column; gap: 5px; flex-shrink: 1; min-width: 0; align-self: center; margin-left: auto; }
-.profile-pills .pi-pill { font-size: 11px; padding: 4px 9px; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+/* Profilo "Apple Fitness style": pannello di vetro flottante,
+   avatar con anello luminoso, nome grande, capsule in riga */
+.profile-box {
+  position: relative; overflow: hidden; padding: 20px; border-radius: 26px;
+  background:
+    radial-gradient(120% 100% at 45% 30%, rgba(255,255,255,.06), transparent 60%),
+    linear-gradient(135deg, #3A215D 0%, #24143F 100%);
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow: 0 18px 40px rgba(0,0,0,.25), inset 0 1px 1px rgba(255,255,255,.08);
+}
+.profile-row { display: flex; align-items: center; gap: 18px; }
+.profile-tap { cursor: pointer; min-width: 0; }
+.profile-main { flex: 1; min-width: 0; }
+.profile-name { font-size: 29px; font-weight: 800; letter-spacing: -.02em; line-height: 1.08; }
+.profile-meta { font-size: 13.5px; color: rgba(255,255,255,.65); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.profile-pills { display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
+.profile-pills .pi-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 600; padding: 7px 12px; border-radius: 999px;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.10);
+  color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+}
 @media (max-width: 374px) {
-  .profile-pills { gap: 4px; }
-  .profile-pills .pi-pill { font-size: 10px; padding: 3px 7px; }
+  .profile-pills { gap: 6px; }
+  .profile-pills .pi-pill { font-size: 10.5px; padding: 5px 9px; }
+  .profile-name { font-size: 25px; }
+  .profile-row .profile-avatar-lg { width: 66px; height: 66px; font-size: 30px; }
 }
 @media (min-width: 430px) {
-  .profile-pills { gap: 6px; }
-  .profile-pills .pi-pill { font-size: 12px; padding: 4px 10px; }
+  .profile-pills .pi-pill { font-size: 13px; padding: 8px 13px; }
 }
-.profile-box { padding: 16px; }
-.profile-row .profile-avatar-lg { width: 84px; height: 84px; font-size: 36px; margin-bottom: 0; }
-.profile-row .profile-pencil { width: 26px; height: 26px; right: -4px; bottom: -2px; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; }
-.profile-row + .profile-lim { margin-top: 10px; }
-/* avatar: fondo bianco e bordo spesso sfumato viola→rosa→arancio (come il bottone crew) */
-.profile-avatar-lg { background: linear-gradient(#fff, #fff) padding-box, var(--grad) border-box; color: #241b3f; border: 6px solid transparent; box-shadow: 0 8px 24px -8px var(--magenta); }
-img.profile-avatar-lg.av-img { border: 6px solid transparent; background: var(--grad) border-box; }
-.profile-exit { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: rgba(245,240,255,.6); background: rgba(255,255,255,.05); border: 1px solid var(--border); border-radius: 50%; cursor: pointer; padding: 0; }
-.profile-exit:active { background: rgba(255,255,255,.12); }
+.profile-row .profile-avatar-lg { width: 78px; height: 78px; font-size: 34px; margin-bottom: 0; }
+.profile-row .profile-pencil { width: 26px; height: 26px; right: -3px; bottom: -2px; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; background: rgba(20,12,38,.75); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.profile-row + .profile-lim { margin-top: 12px; }
+/* avatar: anello sfumato #C947FF→#FF3E87 che emana luce rosa, fondo bianco */
+.profile-avatar-lg { background: linear-gradient(#fff, #fff) padding-box, linear-gradient(135deg, #C947FF 0%, #FF3E87 100%) border-box; color: #241b3f; border: 7px solid transparent; box-shadow: 0 0 40px rgba(255,62,135,.35); }
+img.profile-avatar-lg.av-img { border: 7px solid transparent; background: linear-gradient(135deg, #C947FF 0%, #FF3E87 100%) border-box; }
+.profile-exit { position: absolute; top: 14px; right: 14px; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 400; color: rgba(255,255,255,.75); background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.10); border-radius: 50%; cursor: pointer; padding: 0; box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
+.profile-exit:active { background: rgba(255,255,255,.14); }
 .pi-pill { white-space: nowrap; text-align: left; }
 .profile-box { overflow: hidden; }
 

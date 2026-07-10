@@ -1940,35 +1940,35 @@ function renderProfile() {
   if (!p.name && !p.height && !p.birthday) { card.innerHTML = ""; return; }
   const age = p.age || computeAge(p.birthday);
   const nick = p.nick || p.name || "?";
-  // una riga per informazione, mai spezzate
-  const metaLines = [
+  // identità su una riga: "39 anni • 179 cm"
+  const meta = [
     age != null ? age + " anni" : null,
     p.height ? p.height + " cm" : null
-  ].filter(Boolean);
+  ].filter(Boolean).join(" • ");
   const avHTML = avatarHTML(p, nick);
   const loggedIn = window.__cloud && window.__cloud.user && window.__cloud.user();
-  // le 3 pill in colonna a destra: obiettivo, sessioni, streak
+  // capsule metriche in riga: obiettivo, sessioni, streak
   const target = state.goals && state.goals.targetWeight;
   const info = [
     target ? `🎯 <b>${target}</b> kg` : null,
-    state.sessions.length ? `🏋️ <b>${state.sessions.length}</b> sessioni` : null,
+    state.sessions.length ? `🏋️ <b>${state.sessions.length}</b> sess.` : null,
     weekStreak() ? `🔥 <b>${weekStreak()}</b> sett.` : null
   ].filter(Boolean);
   card.className = "goal-card profile-box";
   card.innerHTML = `
     ${loggedIn && !window.DEMO_MODE ? `<button class="profile-exit" onclick="cloudSignOut()" aria-label="Esci dall'account">⏻</button>` : ""}
     <div class="profile-row">
-      <div class="profile-tap" onclick="startOnboarding(true)">
-        <div class="profile-avatar-wrap">
-          ${avHTML}
-          <span class="profile-pencil">✏️</span>
-        </div>
-        <div class="profile-id">
-          <div class="profile-name">${nick}</div>
-          ${metaLines.map(m => `<div class="profile-meta">${m}</div>`).join("")}
-        </div>
+      <div class="profile-avatar-wrap" onclick="startOnboarding(true)">
+        ${avHTML}
+        <span class="profile-pencil">✏️</span>
       </div>
-      ${info.length ? `<div class="profile-pills">${info.map(i => `<span class="pi-pill">${i}</span>`).join("")}</div>` : ""}
+      <div class="profile-main">
+        <div class="profile-tap" onclick="startOnboarding(true)">
+          <div class="profile-name">${nick}</div>
+          ${meta ? `<div class="profile-meta">${meta}</div>` : ""}
+        </div>
+        ${info.length ? `<div class="profile-pills">${info.map(i => `<span class="pi-pill">${i}</span>`).join("")}</div>` : ""}
+      </div>
     </div>
     ${p.limitations ? `<div class="profile-lim">⚠️ ${p.limitations}</div>` : ""}`;
 }
