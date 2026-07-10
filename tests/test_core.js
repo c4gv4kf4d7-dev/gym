@@ -37,6 +37,7 @@ var api = new Function(
     kcalTarget: kcalTarget, proteinTarget: proteinTarget, mealDayStreak: mealDayStreak,
     ALL_WORKOUTS: ALL_WORKOUTS, getWorkout: getWorkout, SCHEDULABLE: SCHEDULABLE,
     chipOrder: chipOrder, ptNextIndex: ptNextIndex, selectWorkout: selectWorkout,
+    nightCloseMessage: nightCloseMessage,
     defaultState: defaultState,
     fatigueAnalysis: fatigueAnalysis, deloadActive: deloadActive,
     wrappedStats: wrappedStats, wrappedVerdict: wrappedVerdict, volumeComparison: volumeComparison,
@@ -286,6 +287,25 @@ api.selectWorkout("pt");
 var ptOk = true;
 try { api.renderWorkout(); } catch (e) { ptOk = false; }
 ok("PT: la tab PT renderizza senza errori", ptOk);
+
+/* ---- 16d) PROMEMORIA NOTTURNO (22–01): chiudi kcal/proteine ---- */
+st = api.defaultState();
+st.nutriGoal = { kcal: 2100, protein: 120 };
+api.set(st);
+var T2 = api.todayStr();
+st.meals = {}; st.meals[T2] = [{ id: 1, kcal: 1500, protein: 90 }];
+function at(h){ var d = new Date(); d.setHours(h, 30, 0, 0); return d; }
+ok("notte: alle 20 niente promemoria", api.nightCloseMessage(at(20)) === null);
+var nm = api.nightCloseMessage(at(22));
+ok("notte: alle 22 dice cosa manca (600 kcal, 30 g)", nm && nm.txt.indexOf("600 kcal") >= 0 && nm.txt.indexOf("30 g") >= 0 && nm.day === T2);
+ok("notte: suggerisce cosa mangiare", nm.txt.indexOf("shake") >= 0);
+var mid = at(0); mid.setDate(mid.getDate() + 1);          // 00:30 di domani → giorno appena chiuso
+var nm2 = api.nightCloseMessage(mid);
+ok("notte: dopo mezzanotte guarda ancora il giorno prima", nm2 && nm2.day === T2);
+st.meals[T2] = [{ id: 1, kcal: 2200, protein: 130 }];
+ok("notte: obiettivi chiusi → complimenti", api.nightCloseMessage(at(23)).txt.indexOf("✅") >= 0);
+st.meals = {};
+ok("notte: nessun pasto tracciato → silenzio", api.nightCloseMessage(at(23)) === null);
 
 /* ---- 17) SMOKE: ogni vista renderizza senza eccezioni (dati demo realistici) ---- */
 function smoke(name, fn) {

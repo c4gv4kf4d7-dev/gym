@@ -149,7 +149,38 @@ function reminderItems() {
     const move = (typeof PT_SEQUENCE !== "undefined") ? PT_SHORT[PT_SEQUENCE[ptNextIndex()]] : "";
     items.push({ key: "denisReminder", val: tomStr, txt: `🧑‍🏫 Domani seduta col PT!${move ? ` Tocca a: <b>${move}</b>.` : ""} Dormi bene e carica le pile.` });
   }
+  // dopocena (22:00–01:00): chiudi calorie e proteine prima di dormire
+  const night = nightCloseMessage();
+  if (night && localStorage.getItem("nightReminder") !== night.day) {
+    items.push({ key: "nightReminder", val: night.day, txt: night.txt });
+  }
   return items;
+}
+
+/* Messaggio "chiudi la giornata" nella finestra 22:00–01:00.
+   Dopo mezzanotte si riferisce ancora al giorno appena finito.
+   Compare solo se quel giorno hai tracciato almeno un pasto. */
+function nightCloseMessage(now) {
+  const d = now || new Date();
+  const h = d.getHours();
+  if (!(h >= 22 || h < 1)) return null;
+  let ref = new Date(d);
+  if (h < 1) ref.setDate(ref.getDate() - 1);
+  const day = localDate(ref);
+  if (!((state.meals || {})[day] || []).length) return null;
+  const t = dayTotals(day);
+  const kMiss = Math.max(0, kcalTarget() - t.kcal);
+  const pMiss = Math.max(0, proteinTarget() - t.protein);
+  if (!kMiss && !pMiss) return { day, txt: "🌙 Giornata chiusa: calorie e proteine al bersaglio. Vai a dormire da campione. ✅" };
+  let idea;
+  if (pMiss >= 30)      idea = "shake di proteine + una banana, o fiocchi di latte col miele";
+  else if (pMiss >= 15) idea = "yogurt greco intero con frutta secca (≈250 kcal, 18 g)";
+  else if (pMiss > 0)   idea = "un bicchiere di latte o uno yogurt greco";
+  else                  idea = "frutta secca o pane e miele: kcal facili che non appesantiscono";
+  const parts = [];
+  if (kMiss) parts.push(`<b>${kMiss} kcal</b>`);
+  if (pMiss) parts.push(`<b>${pMiss} g di proteine</b>`);
+  return { day, txt: `🌙 Per chiudere la giornata mancano ${parts.join(" e ")}. Idea prima di dormire: ${idea}.` };
 }
 
 function renderWeighBanner() {
@@ -2333,18 +2364,22 @@ function renderMealSummary() {
   const kPct = Math.min(100, Math.round((t.kcal / kT) * 100));
   const pPct = Math.min(100, Math.round((t.protein / pT) * 100));
   const kc = "#FF6B6B", pc = proteinColor(t.protein);
+  // quanto manca per chiudere la giornata (al posto della %)
+  const kMiss = kT - t.kcal, pMiss = pT - t.protein;
+  const kLbl = kMiss > 0 ? `mancano <b>${kMiss}</b>` : "✓ chiuse";
+  const pLbl = pMiss > 0 ? `mancano <b>${pMiss} g</b>` : "✓ chiuse";
   $("meal-today").innerHTML = `
     <div class="meal-bar">
       <div class="progress-top">
         <span class="progress-label">🔥 Calorie <b>${t.kcal}</b> / <span class="meal-goal" onclick="editKcalTarget()">${kT}</span> kcal</span>
-        <span class="progress-count" style="color:${kc}">${kPct}%</span>
+        <span class="progress-count" style="color:${kMiss > 0 ? kc : '#2BD576'}">${kLbl}</span>
       </div>
       <div class="progress-bar"><div class="progress-fill" style="width:${kPct}%;background:${kc};box-shadow:0 0 12px ${kc}"></div></div>
     </div>
     <div class="meal-bar" style="margin-top:16px">
       <div class="progress-top">
         <span class="progress-label">💪 Proteine <b>${t.protein}</b> / <span class="meal-goal" onclick="editProteinTarget()">${pT}</span> g</span>
-        <span class="progress-count" style="color:${pc}">${pPct}%</span>
+        <span class="progress-count" style="color:${pMiss > 0 ? pc : '#2BD576'}">${pLbl}</span>
       </div>
       <div class="progress-bar"><div class="progress-fill" style="width:${pPct}%;background:${pc};box-shadow:0 0 12px ${pc}"></div></div>
     </div>
