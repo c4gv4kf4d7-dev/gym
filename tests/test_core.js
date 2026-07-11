@@ -38,7 +38,7 @@ var api = new Function(
     ALL_WORKOUTS: ALL_WORKOUTS, getWorkout: getWorkout, SCHEDULABLE: SCHEDULABLE,
     chipOrder: chipOrder, ptNextIndex: ptNextIndex, selectWorkout: selectWorkout,
     nightCloseMessage: nightCloseMessage, computeCrewStats: computeCrewStats,
-    defaultState: defaultState,
+    defaultState: defaultState, applyMigrations: applyMigrations,
     fatigueAnalysis: fatigueAnalysis, deloadActive: deloadActive,
     wrappedStats: wrappedStats, wrappedVerdict: wrappedVerdict, volumeComparison: volumeComparison,
     demoState: demoState, muscleCoverage: muscleCoverage, strengthLevel: strengthLevel,
@@ -332,6 +332,17 @@ cs = api.computeCrewStats();
 ok("crew: volume vs la PROPRIA media (+100%)", cs.volDelta === 100);
 var keys = Object.keys(cs).join(",");
 ok("crew: NIENTE dati sensibili (pasti/peso/misure)", keys.indexOf("meal") < 0 && keys.indexOf("weight") < 0 && keys.indexOf("composition") < 0);
+
+/* ---- 16f) MIGRAZIONE: pulldown ai cavi → schiena ---- */
+var stM = api.defaultState();
+stM.customExercises = {
+  pt_pulldown: { name: "Pulldown cavi corda", muscle: "Tricipiti", bodyPart: "arms", type: "cable" },
+  pt_curl: { name: "Curl manubri", muscle: "Bicipiti", bodyPart: "arms", type: "dumbbell" }
+};
+stM = api.applyMigrations(stM);
+ok("migrazione: pulldown → back/Dorsali", stM.customExercises.pt_pulldown.bodyPart === "back" && stM.customExercises.pt_pulldown.muscle === "Dorsali");
+ok("migrazione: gli altri esercizi braccia restano intatti", stM.customExercises.pt_curl.bodyPart === "arms");
+ok("migrazione: marcata come applicata (non si ripete)", stM.migrations.indexOf("pulldown-back") >= 0);
 
 /* ---- 17) SMOKE: ogni vista renderizza senza eccezioni (dati demo realistici) ---- */
 function smoke(name, fn) {

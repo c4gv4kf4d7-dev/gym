@@ -39,6 +39,17 @@ const defaultState = () => ({
 // i dati di ogni utente vivono nel proprio account cloud, non nel codice.
 function applyMigrations(s) {
   s.migrations = s.migrations || [];
+  // Correzione dati: i pulldown ai cavi lavorano la schiena, non le braccia
+  // (esercizi importati dal PT con il gruppo muscolare sbagliato)
+  if (s.migrations.indexOf("pulldown-back") < 0) {
+    Object.values(s.customExercises || {}).forEach((ex) => {
+      if (ex && /pulldown/i.test(ex.name || "") && ex.bodyPart === "arms") {
+        ex.bodyPart = "back";
+        ex.muscle = "Dorsali";
+      }
+    });
+    s.migrations.push("pulldown-back");
+  }
   return s;
 }
 
