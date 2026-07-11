@@ -40,6 +40,16 @@ function mergeCustomExercises() {
 // Colore del cerchietto esercizio per tipo di attrezzo
 const TYPE_COLOR = { machine: "#5B8DEF", dumbbell: "#2BD576", cable: "#FF8A5B", body: "#A855F7", barbell: "#EF4444" };
 
+// GIF esercizio: prova con la chiave (assets/gifs/curl.gif), poi con il nome
+// "slugificato" (crunch_panca_inclinata.gif) — serve per gli esercizi custom
+// importati dal PT, le cui chiavi variano da utente a utente.
+const nameSlug = (n) => String(n || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+function gifFallback(img, slug) {
+  if (!slug || img.dataset.tried) { img.style.display = "none"; return; }
+  img.dataset.tried = "1";
+  img.src = "assets/gifs/" + slug + ".gif";
+}
+
 // Prossima data in calendario (non ancora fatta), opzionale per scheda
 function nextScheduledFor(workoutId) {
   const t = todayStr();
@@ -657,7 +667,7 @@ function renderWorkout() {
       </div>
       <div class="ex-body">
         <div class="muscle-row">
-          <img class="ex-gif" src="assets/gifs/${ex.key}.gif" loading="lazy" alt="${ex.name}" onerror="this.style.display='none'">
+          <img class="ex-gif" src="assets/gifs/${ex.key}.gif" loading="lazy" alt="${ex.name}" onerror="gifFallback(this,'${nameSlug(ex.name)}')">
           <div class="muscle-info">
             <div class="muscle-primary">Muscolo target: ${ex.muscle}</div>
             <div class="muscle-secondary">Secondari: ${ex.secondary}</div>
@@ -1122,7 +1132,7 @@ function renderGuided() {
     body = `
       <div class="g-body">
         <div class="g-trans-lbl">Prossimo esercizio</div>
-        <img class="g-gif" src="assets/gifs/${nkey}.gif" onerror="this.style.display='none'">
+        <img class="g-gif" src="assets/gifs/${nkey}.gif" onerror="gifFallback(this,'${nameSlug(nmeta.name)}')">
         <div class="g-name">${nmeta.name}</div>
         <div class="g-muscle">${nmeta.muscle} · <span class="g-eq">${badgeLabel}</span></div>
         <div class="g-motto">${motto}</div>
@@ -1167,7 +1177,7 @@ function renderGuided() {
     // plank: hold a tempo
     body = `
       <div class="g-body">
-        <img class="g-gif" src="assets/gifs/${key}.gif" onerror="this.style.display='none'">
+        <img class="g-gif" src="assets/gifs/${key}.gif" onerror="gifFallback(this,'${nameSlug(meta.name)}')">
         <div class="g-name">${meta.name}</div>
         <div class="g-muscle">${meta.muscle}</div>
         ${cuesHTML(key)}
@@ -1183,7 +1193,7 @@ function renderGuided() {
     const prevR = dset && dset.length ? dset[dset.length - 1].r : (sug.targetReps != null ? sug.targetReps : "");
     body = `
       <div class="g-body">
-        <img class="g-gif" src="assets/gifs/${key}.gif" onerror="this.style.display='none'">
+        <img class="g-gif" src="assets/gifs/${key}.gif" onerror="gifFallback(this,'${nameSlug(meta.name)}')">
         <div class="g-name">${meta.name}</div>
         <div class="g-muscle">${meta.muscle} · Serie ${Math.min(guided.setIndex + 1, totalSets)}/${totalSets}</div>
         ${guided.setIndex === 0 ? `<div class="g-mot">${guidedMotivation(key)}</div>` : `<div class="g-sugg sugg-${sug.color}"><span class="sugg-label">Oggi:</span> ${sug.todayHtml}</div>`}
