@@ -80,9 +80,9 @@ const EXERCISE_CUES = {
     "Spalle basse: niente scrollata, niente slancio."
   ],
   curl: [
+    "Impugna l'EZ nella curva interna: la presa inclinata protegge i polsi.",
     "Gomiti incollati ai fianchi e fermi: non portarli avanti.",
-    "Niente dondolii: se usi il busto per tirare, scala il peso.",
-    "Estendi del tutto in basso e ruota i palmi verso l'alto salendo."
+    "Niente dondolii: sali fino al petto, scendi lento senza rimbalzare."
   ],
   hammer: [
     "Presa neutra (pollici in alto), gomiti fermi ai fianchi.",
