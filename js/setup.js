@@ -476,18 +476,36 @@
 
   /* ---------- 2) BUILDER MANUALE ---------- */
   let manualSel = [];
+  let editingId = null;        // se valorizzato, il builder sta MODIFICANDO una scheda esistente
+  let manualName = "";
   const GROUPS = [["legs","🦵 Gambe"],["chest","🫁 Petto"],["back","🔙 Schiena"],["shoulders","🙆 Spalle"],["arms","💪 Braccia"],["core","🧘 Core"]];
   window.setupManual = function () {
     manualSel = [];
+    editingId = null;
+    manualName = "";
+    renderManual();
+  };
+  // Modifica una scheda esistente dal tab Allena
+  window.editWorkout = function (id) {
+    const w = (state.myWorkouts || []).find(x => x.id === id);
+    if (!w) return;
+    mergeCustomExercises();
+    editingId = id;
+    manualName = w.name;
+    manualSel = (w.exercises || []).filter(k => EXERCISES[k]);
+    overlay().classList.add("show");
     renderManual();
   };
   function renderManual() {
+    const nameEl = document.getElementById("mw-name");
+    if (nameEl) manualName = nameEl.value;                 // conserva il nome digitato tra i re-render
     const byGroup = {};
     Object.entries(EXERCISES).forEach(([k, e]) => { (byGroup[e.bodyPart] = byGroup[e.bodyPart] || []).push([k, e]); });
     overlay().innerHTML = `
       <div class="ob-box ob-wide">
-        <div class="ob-title">Costruisci la scheda 🧩 <span class="ob-count">${manualSel.length} esercizi</span></div>
+        <div class="ob-title">${editingId ? "Modifica scheda ✏️" : "Costruisci la scheda 🧩"} <span class="ob-count">${manualSel.length} esercizi</span></div>
         <div class="ob-body ob-scroll">
+          <div class="ob-field" style="margin-bottom:10px"><label>Nome scheda</label><input class="ob-input" id="mw-name" maxlength="24" value="${(manualName || "").replace(/"/g, "&quot;")}" placeholder="es. Seduta 3"></div>
           ${GROUPS.map(([g, lbl]) => byGroup[g] ? `
             <div class="ob-group-lbl">${lbl}</div>
             <div class="ob-exgrid">${byGroup[g].map(([k, e]) => `
@@ -496,8 +514,8 @@
           <div class="ob-analysis" id="ob-analysis">${analysisHTML()}</div>
         </div>
         <div class="ob-nav">
-          <button class="btn-outline" onclick="showBuilderChooser(false)">Indietro</button>
-          <button class="btn-save" onclick="confirmManual()">Crea scheda (${manualSel.length})</button>
+          <button class="btn-outline" onclick="${editingId ? "closeSetup()" : "showBuilderChooser(false)"}">${editingId ? "Annulla" : "Indietro"}</button>
+          <button class="btn-save" onclick="confirmManual()">${editingId ? "Salva modifiche" : "Crea scheda"} (${manualSel.length})</button>
         </div>
       </div>`;
   }
@@ -523,13 +541,24 @@
   }
   window.confirmManual = function () {
     if (manualSel.length < 3) { toast("Scegli almeno 3 esercizi"); return; }
-    state.myWorkouts = (state.myWorkouts || []).concat([{
-      id: "my_" + Date.now(), name: "La mia scheda", emoji: "🧩", color: "#FF2D95",
-      sub: `${manualSel.length} esercizi`, focus: "Scheda personalizzata", exercises: manualSel.slice(), custom: true
-    }]);
-    saveState(state);
-    toast("📋 Scheda creata!");
+    const nameEl = document.getElementById("mw-name");
+    const name = clean(nameEl ? nameEl.value : "") || manualName || "La mia scheda";
+    if (editingId) {
+      const w = (state.myWorkouts || []).find(x => x.id === editingId);
+      if (w) { w.name = name; w.exercises = manualSel.slice(); w.sub = `${manualSel.length} esercizi`; }
+      editingId = null;
+      saveState(state);
+      toast("✏️ Scheda aggiornata!");
+    } else {
+      state.myWorkouts = (state.myWorkouts || []).concat([{
+        id: "my_" + Date.now(), name, emoji: "🧩", color: "#FF2D95",
+        sub: `${manualSel.length} esercizi`, focus: "Scheda personalizzata", exercises: manualSel.slice(), custom: true
+      }]);
+      saveState(state);
+      toast("📋 Scheda creata!");
+    }
     closeSetup();
+    if (typeof renderWorkoutChips === "function") { renderWorkoutChips(); renderWorkout(); }
   };
 
   /* ---------- 3) IMPORT DA PT ---------- */

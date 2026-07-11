@@ -70,7 +70,9 @@ body {
 .section.active { display: block; }
 
 /* WORKOUT CHIPS */
-.workout-chips { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 14px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+/* margini negativi + padding: il glow dei chips respira fino al bordo
+   dello schermo invece di venire tagliato dal box della sezione */
+.workout-chips { display: flex; gap: 8px; overflow-x: auto; margin: -10px -16px 0; padding: 14px 16px 18px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
 .workout-chips::-webkit-scrollbar { display: none; }
 .wchip { flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; background: var(--card); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--border); color: var(--muted); border-radius: 22px; padding: 9px 15px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all .2s; }
 .wchip.active { color: #fff; border-color: transparent; box-shadow: 0 6px 20px -6px currentColor; }
@@ -254,7 +256,11 @@ input::placeholder { color: var(--faint); }
 .cal-cell.today { background: rgba(255,45,149,.18); box-shadow: inset 0 0 0 1px rgba(255,45,149,.5); }
 .cal-cell.today .cal-num { color: var(--pink); font-weight: 800; }
 .cal-num { font-size: 13px; font-weight: 700; }
-.cal-dot { width: 19px; height: 19px; border-radius: 50%; font-size: 10px; color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px -2px currentColor; }
+.cal-dot { position: relative; width: 19px; height: 19px; border-radius: 50%; font-size: 10px; color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px -2px currentColor; }
+.cal-dot.done { box-shadow: 0 0 0 2px #10B981, 0 2px 8px -2px currentColor; }
+.cal-dot.done::after { content: "✓"; position: absolute; right: -6px; top: -6px; width: 12px; height: 12px; border-radius: 50%; background: #10B981; color: #04220f; font-size: 8px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+.cal-legend { grid-column: 1 / -1; text-align: center; font-size: 10.5px; color: rgba(245,240,255,.5); padding-top: 10px; }
+.cal-legend-done { color: #2BD576; font-weight: 700; }
 .cal-dot.cal-pt { font-size: 11px; box-shadow: 0 0 0 2px rgba(168,85,247,.45), 0 2px 8px -2px #A855F7; }
 .up-row { display: flex; align-items: center; gap: 10px; border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; }
 .up-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 10px currentColor; }
@@ -610,26 +616,31 @@ input::placeholder { color: var(--faint); }
 .ptv-sub { font-size: 12px; color: rgba(245,240,255,.55); margin-top: 2px; }
 .ptv-line { font-size: 13px; line-height: 1.5; margin: 8px 0; color: rgba(245,240,255,.85); }
 
-/* CREW — duello a due */
-.crew-duel { display: flex; align-items: center; gap: 10px; margin: 12px 0 14px; }
+/* CREW — la sfida a due */
+.crew-duel { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.crew-duel-name { width: 52px; font-size: 12px; font-weight: 800; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .crew-duel-bar { flex: 1; position: relative; height: 22px; background: rgba(255,255,255,.07); border-radius: 11px; overflow: hidden; }
 .crew-duel-bar span { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 800; }
 .crew-duel-fill { height: 100%; border-radius: 11px; background: rgba(255,255,255,.22); }
 .crew-duel-fill.me { background: linear-gradient(90deg, #FF2D95, #A855F7); }
-.crew-duel-vs { font-size: 11px; font-weight: 800; color: rgba(245,240,255,.5); }
+.crew-lead { font-size: 12.5px; font-weight: 700; color: rgba(245,240,255,.85); margin: 10px 0 12px; }
 .crew-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .crew-col { background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 14px; padding: 12px; }
 .crew-nick { font-size: 14px; font-weight: 800; margin-bottom: 8px; }
-.crew-stale { font-size: 12px; }
-.crew-dots { display: flex; gap: 5px; margin-bottom: 10px; }
-.crew-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,.12); }
-.crew-dot.on { background: #2BD576; box-shadow: 0 0 8px rgba(43,213,118,.6); }
-.crew-dot.plan { background: transparent; border: 1.5px solid rgba(255,255,255,.35); box-sizing: border-box; }
-.crew-line { font-size: 12px; margin: 4px 0; color: rgba(245,240,255,.85); }
-.crew-last { font-size: 11px; color: rgba(245,240,255,.5); margin-top: 6px; }
-.crew-delta { font-size: 10px; font-weight: 800; }
-.crew-delta.up { color: #2BD576; }
-.crew-delta.down { color: #FF6B6B; }
+.crew-row-lbl { font-size: 11.5px; color: rgba(245,240,255,.7); margin-bottom: 6px; }
+.crew-dots { display: flex; gap: 4px; margin-bottom: 10px; }
+.crew-dot { width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,.08); color: rgba(245,240,255,.45); font-size: 9px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.crew-dot.on { background: #2BD576; color: #06281a; box-shadow: 0 0 8px rgba(43,213,118,.5); }
+.crew-dot.plan { background: transparent; border: 1.5px solid rgba(255,255,255,.4); box-sizing: border-box; color: rgba(245,240,255,.75); }
+.crew-line { font-size: 12px; margin: 5px 0; color: rgba(245,240,255,.85); }
+
+/* Gestione scheda (fondo tab Allena) */
+.wk-manage { display: flex; gap: 8px; margin-top: 14px; }
+.wk-manage .btn-outline { flex: 1; padding: 11px; font-size: 13px; }
+.wk-manage .wk-del { color: rgba(255,120,120,.9); border-color: rgba(255,120,120,.3); flex: 0 0 auto; }
+
+/* Coach extra sotto i grafici */
+.coach-extra { display: inline-block; margin-top: 6px; color: rgba(245,240,255,.75); }
 .crew-fire { width: 100%; margin-top: 12px; }
 .crew-hint { font-size: 11px; color: rgba(245,240,255,.5); margin-top: 10px; text-align: center; }
 .crew-code { font-size: 24px; font-weight: 900; letter-spacing: .08em; text-align: center; padding: 12px; margin: 10px 0; border: 1.5px dashed rgba(255,255,255,.3); border-radius: 12px; background: rgba(168,85,247,.10); }

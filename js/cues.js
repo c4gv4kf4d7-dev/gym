@@ -103,5 +103,72 @@ const EXERCISE_CUES = {
     "Arrotola il busto con gli addominali: non tirare con le braccia.",
     "Bacino fermo, si muove solo la colonna; espira mentre chiudi.",
     "Controlla la risalita, niente strappi."
+  ],
+
+  /* --- esercizi custom delle schede PT (lookup per nome-slug) --- */
+  alzate_laterali_manubri: [
+    "Gomiti leggermente piegati e fissi: alza fino alle spalle, non oltre.",
+    "Guidano i gomiti, non le mani; mignolo appena più alto del pollice.",
+    "Niente slancio del busto: se dondoli, il peso è troppo."
+  ],
+  panca_inclinata_manubri: [
+    "Scapole retratte e piedi piantati: la spinta parte da lì.",
+    "Manubri sopra il petto alto, gomiti a ~45°, non a croce.",
+    "Non sbattere i manubri in cima: fermati un soffio prima."
+  ],
+  lat_pulldown_inversa: [
+    "Presa supinata larghezza spalle: tira i gomiti verso i fianchi.",
+    "Petto in fuori, spalle basse: parte tutto dalle scapole.",
+    "Niente slancio all'indietro: il busto resta quasi fermo."
+  ],
+  lento_avanti_manubri: [
+    "Core attivo e schiena neutra: niente arco lombare esagerato.",
+    "Gomiti sotto i polsi, spinta verticale fino quasi a estensione.",
+    "Scendi controllato fino alle orecchie: il range conta."
+  ],
+  pulldown_cavi_corda: [
+    "Braccia quasi tese e FISSE: se pieghi i gomiti diventa tricipiti.",
+    "Spingi i gomiti verso le tasche: il movimento parte dalla spalla.",
+    "Spalle basse (non scrollare) e core attivo; risalita controllata."
+  ],
+  plank_battito_spalle: [
+    "Piedi più larghi per stabilità; il bacino NON deve ruotare.",
+    "Tocca la spalla opposta lento: la lentezza è l'esercizio.",
+    "Core e glutei sempre attivi, corpo in linea retta."
+  ],
+  crunch_sollevamento_gambe: [
+    "Lombare a contatto col pavimento per tutta la serie.",
+    "Sali con il controllo dell'addome, niente slancio delle gambe.",
+    "Scendi lento senza appoggiare i piedi: la tensione resta."
+  ],
+  mountain_climber: [
+    "Spalle sopra i polsi, corpo in linea: il sedere resta basso.",
+    "Ginocchia al petto con ritmo costante, non rimbalzare.",
+    "Core attivo: è un plank che corre, non una corsa piegata."
+  ],
+  circuito_metabolico: [
+    "Il ritmo è l'esercizio: recuperi brevi, cronometro alla mano.",
+    "Tecnica pulita anche da stanco: quando crolla, rallenta.",
+    "Respira regolare: non trattenere il fiato negli sforzi."
+  ],
+  crunch_panca_inclinata: [
+    "Mani leggere dietro la testa: non tirare il collo.",
+    "Arrotola una vertebra alla volta ed espira in chiusura.",
+    "Scendi controllato senza mollare la tensione addominale."
   ]
+};
+
+/* "Errore comune" per gli esercizi custom (le schede importate dal PT
+   hanno un tip segnaposto nei dati: qui il consiglio vero, per nome) */
+const EXERCISE_TIPS_BYNAME = {
+  alzate_laterali_manubri: "Niente slancio: alza fino all'altezza delle spalle con i gomiti appena piegati. Se dondoli il busto, scala il peso.",
+  panca_inclinata_manubri: "Scapole retratte e gomiti a ~45°: non aprirli a croce. Traiettoria sopra il petto alto, senza sbattere i manubri in cima.",
+  lat_pulldown_inversa: "Presa supinata, tira i gomiti verso i fianchi fino al petto alto. Il busto resta fermo: niente slancio all'indietro.",
+  lento_avanti_manubri: "Core attivo e schiena neutra: se inarchi la lombare il peso è troppo. Gomiti sotto i polsi, spinta verticale.",
+  pulldown_cavi_corda: "Braccia quasi tese e fisse: se i gomiti si piegano diventa un esercizio per tricipiti. Spingi i gomiti verso le tasche, spalle basse.",
+  plank_battito_spalle: "Il bacino non deve ruotare: allarga i piedi e tocca la spalla lentamente. Se i fianchi ballano, rallenta.",
+  crunch_sollevamento_gambe: "Lombare sempre a contatto col pavimento: se si stacca, riduci il range. Gambe su col controllo, non con lo slancio.",
+  mountain_climber: "Spalle sopra i polsi e sedere basso: è un plank in movimento. Ritmo costante, niente rimbalzi.",
+  circuito_metabolico: "Da stanco la tecnica crolla per prima: quando succede, rallenta il ritmo invece di sporcare le ripetizioni.",
+  crunch_panca_inclinata: "Non tirare il collo con le mani: arrotola il busto con gli addominali ed espira in chiusura."
 };

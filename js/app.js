@@ -683,17 +683,27 @@ function renderWorkout() {
           : '— nessuna sessione precedente'}</div>`}
         <div class="tip-box">
           <div class="tip-label">⚠️ Errore comune</div>
-          <div class="tip-text">${ex.tip}</div>
+          <div class="tip-text">${tipFor(ex)}</div>
         </div>
-        ${EXERCISE_STEPS[ex.key] ? `
+        ${stepsFor(ex.key) ? `
         <details class="steps">
           <summary>📋 Come si esegue</summary>
-          <ol class="steps-list">${EXERCISE_STEPS[ex.key].map(st => `<li>${st}</li>`).join("")}</ol>
+          <ol class="steps-list">${stepsFor(ex.key).map(st => `<li>${st}</li>`).join("")}</ol>
         </details>` : ''}
         ${ex.time ? `<button class="plank-done" onclick="togglePlankDone(${i})">✓ Segna come fatto</button>` : ''}
       </div>`;
     cont.appendChild(card);
   });
+
+  // gestione scheda: modifica/elimina in fondo (solo per le schede personali)
+  if ((state.myWorkouts || []).some(x => x.id === w.id)) {
+    const mg = document.createElement("div");
+    mg.className = "wk-manage";
+    mg.innerHTML = `
+      <button class="btn-outline" onclick="editWorkout('${w.id}')">✏️ Modifica scheda</button>
+      <button class="btn-outline wk-del" onclick="deleteMyWorkout('${w.id}')">🗑 Elimina</button>`;
+    cont.appendChild(mg);
+  }
 
   $("toggle-all").textContent = "Espandi tutto";
   renderGuidedResume();
@@ -1077,8 +1087,24 @@ function renderGuidedResume() {
 function gStore(key) { if (!guided.data[key]) guided.data[key] = { sets: [], quality: null }; return guided.data[key]; }
 
 // Box "Occhio a" con i punti tecnici del PT
+// Cues/passi/tip con fallback per nome-slug: gli esercizi custom (schede PT)
+// hanno chiavi variabili, ma il nome è stabile.
+function exSlugOf(key) { return nameSlug((EXERCISES[key] || {}).name); }
+function stepsFor(key) {
+  if (typeof EXERCISE_STEPS === "undefined") return null;
+  return EXERCISE_STEPS[key] || EXERCISE_STEPS[exSlugOf(key)] || null;
+}
+function tipFor(ex) {
+  const isPlaceholder = ex.tip && ex.tip.indexOf("importato dalla scheda") >= 0;
+  if (isPlaceholder && typeof EXERCISE_TIPS_BYNAME !== "undefined") {
+    const t = EXERCISE_TIPS_BYNAME[nameSlug(ex.name)];
+    if (t) return t;
+  }
+  return ex.tip;
+}
+
 function cuesHTML(key) {
-  const c = (typeof EXERCISE_CUES !== "undefined" && EXERCISE_CUES[key]) || [];
+  const c = (typeof EXERCISE_CUES !== "undefined" && (EXERCISE_CUES[key] || EXERCISE_CUES[exSlugOf(key)])) || [];
   if (!c.length) return "";
   return `<div class="g-cues">
     <div class="g-cues-h">👁️ Occhio a…</div>
@@ -1376,10 +1402,11 @@ function renderCalendar() {
     html += `
       <div class="cal-cell ${isToday ? 'today' : ''} ${sched ? 'has' : ''}" onclick="openDay('${ds}')">
         <span class="cal-num">${d}</span>
-        ${w ? `<span class="cal-dot" style="background:${sched.done ? '#10B981' : '#9CA3AF'};color:${sched.done ? '#fff' : '#1a1a1a'}">${sched.done ? '✓' : (sched.pt ? '🧑‍🏫' : w.emoji)}</span>` : ''}
+        ${w ? `<span class="cal-dot ${sched.done ? 'done' : ''}" style="background:${sched.pt ? '#A855F7' : w.color}" title="${w.name}${sched.done ? ' · fatto' : ''}">${sched.pt ? '🧑‍🏫' : w.emoji}</span>` : ''}
       </div>`;
   }
-  $("cal-grid").innerHTML = html;
+  $("cal-grid").innerHTML = html +
+    `<div class="cal-legend">colore = scheda · 🧑‍🏫 = PT · <span class="cal-legend-done">✓ verde</span> = completato</div>`;
 
   // prossimi allenamenti programmati
   const limit = new Date(); limit.setDate(limit.getDate() + 21);
@@ -1527,12 +1554,18 @@ function renderProgress() {
   $("stat-pr").textContent = prCount;
   $("stat-streak").textContent = weekStreak();
 
-  // popola select esercizi (solo quelli loggati)
+  // popola select esercizi: quelli delle schede attuali (in ordine di scheda)
+  // + tutti quelli con storico. Le chiavi sono stabili: la progressione fatta
+  // con la vecchia Full Body prosegue negli stessi esercizi delle nuove schede.
   const sel = $("ex-select");
-  const loggedKeys = [...allKeys];
+  const prevSel = sel.value;
+  const schedKeys = ALL_WORKOUTS().flatMap(w => w.exercises || []);
+  const loggedKeys = [...new Set([...schedKeys, ...allKeys])]
+    .filter(k => EXERCISES[k] && !EXERCISES[k].time);
   sel.innerHTML = loggedKeys.length
     ? loggedKeys.map(k => `<option value="${k}">${EXERCISES[k].name}</option>`).join("")
     : `<option value="">Nessun dato ancora</option>`;
+  if (prevSel && loggedKeys.includes(prevSel)) sel.value = prevSel;
 
   renderVolumeChart();
   renderExChart();
@@ -1631,6 +1664,7 @@ function renderPT() {
       <button class="btn-save" onclick="savePTLift()">💪 Registra seduta PT</button>
     </div>
     ${lifts.length ? '<div class="chart-hint">Tocca un punto del grafico per vedere o cancellare la seduta.</div><canvas id="pt-chart" height="150"></canvas>' : '<div class="empty-mini">Nessuna seduta PT registrata. Inserisci i kg dopo una seduta col tuo PT.</div>'}
+    ${lifts.length ? `<div class="ex-verdict">${ptCoachNote(lifts)}</div>` : ""}
     ${strengthLadderHTML()}
     <div class="pt-detail" id="pt-detail"></div>`;
   if (lifts.length) drawPTChart(lifts);
@@ -1761,9 +1795,21 @@ function radarVerdict(cov) {
   const entries = MUSCLE_GROUPS.map(([g, lbl]) => ({ g, lbl, v: cov.pct[g] }));
   const weakest = entries.reduce((m, e) => e.v < m.v ? e : m, entries[0]);
   const strongest = entries.reduce((m, e) => e.v > m.v ? e : m, entries[0]);
-  if (weakest.v <= 5) return `🕳️ ${weakest.lbl} quasi assente (${weakest.v}% del lavoro): nessun gruppo cresce da solo. Rimettilo in scheda.`;
-  if (strongest.v - weakest.v <= 15) return `✅ Copertura equilibrata: nessun gruppo lasciato indietro. Da manuale.`;
-  return `⚖️ Molto ${strongest.lbl.toLowerCase()} (${strongest.v}%), poco ${weakest.lbl.toLowerCase()} (${weakest.v}%): occhio a non diventare asimmetrico.`;
+  if (weakest.v <= 5) return coachPick([
+    `🕳️ ${weakest.lbl} quasi assente (${weakest.v}% del lavoro): nessun gruppo cresce da solo. Rimettilo in scheda.`,
+    `🕳️ ${weakest.lbl} al ${weakest.v}%: il radar non perdona. Un esercizio dedicato a settimana e il buco si chiude.`,
+    `🕳️ Stai ignorando ${weakest.lbl.toLowerCase()} (${weakest.v}%): i muscoli che non alleni sono quelli che presentano il conto per primi.`
+  ], "radhole");
+  if (strongest.v - weakest.v <= 15) return coachPick([
+    `✅ Copertura equilibrata: nessun gruppo lasciato indietro. Da manuale.`,
+    `✅ Radar quasi tondo: distribuzione da programma fatto bene. Continua a ruotare le schede così.`,
+    `✅ Tutti i gruppi dentro il range: è la base che ti permette di spingere senza creare squilibri.`
+  ], "radok");
+  return coachPick([
+    `⚖️ Molto ${strongest.lbl.toLowerCase()} (${strongest.v}%), poco ${weakest.lbl.toLowerCase()} (${weakest.v}%): occhio a non diventare asimmetrico.`,
+    `⚖️ ${strongest.lbl} domina il mese (${strongest.v}%): sposta un paio di serie su ${weakest.lbl.toLowerCase()} (${weakest.v}%) e il radar si arrotonda.`,
+    `⚖️ Divario ${strongest.lbl.toLowerCase()}–${weakest.lbl.toLowerCase()} (${strongest.v}% vs ${weakest.v}%): due settimane di attenzione e rientra.`
+  ], "radskew");
 }
 
 function renderRadar() {
@@ -1809,12 +1855,78 @@ function renderRadar() {
   });
 }
 
+/* ---------- IL COACH NEI GRAFICI ----------
+   Ogni grafico in Progressi ha il suo commento da PT: preciso sui numeri,
+   motivante, mai ripetitivo. La variante è scelta in modo deterministico
+   (ruota con la settimana), così non cambia a ogni render ma non annoia. */
+function coachPick(pool, salt) {
+  if (!pool.length) return "";
+  let h = 0;
+  const seed = weekStart(todayStr()) + salt;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return pool[h % pool.length];
+}
+
+function volumeVerdict(vols) {
+  if (vols.length < 3) return coachPick([
+    "📊 Ancora poche sessioni per un giudizio: il volume racconta la sua storia dopo 4-5 allenamenti.",
+    "📊 Il grafico si sta riempiendo: ogni barra è lavoro messo in banca."
+  ], "volfew");
+  const trend = linReg(vols);
+  const slopePct = trend ? ((trend[trend.length - 1] - trend[0]) / Math.max(1, trend[0])) * 100 : 0;
+  const last = vols[vols.length - 1];
+  const avg = vols.reduce((a, b) => a + b, 0) / vols.length;
+  const lastVsAvg = Math.round((last / avg - 1) * 100);
+  if (slopePct > 15) return coachPick([
+    `📈 Tendenza in salita netta (+${Math.round(slopePct)}% dal primo allenamento): il sovraccarico progressivo sta funzionando. Non avere fretta di strafare.`,
+    `📈 Volume in crescita costante: è così che si costruisce massa, un chilo alla volta. Occhio solo a dormire abbastanza per assorbirlo.`,
+    `📈 La linea di tendenza punta in alto: stai sollevando sempre di più. Quando arriva la settimana pesante, ricordati che il deload non è un fallimento.`
+  ], "volup");
+  if (slopePct < -15) return coachPick([
+    `📉 Il volume sta calando: se è scarico programmato va benissimo, se è calo di motivazione parliamone. I numeri non mentono.`,
+    `📉 Tendenza in discesa: controlla se stai tagliando serie o saltando esercizi. Meglio una sessione corta ma completa che una lunga a metà.`
+  ], "voldown");
+  if (lastVsAvg >= 10) return coachPick([
+    `💪 Ultima sessione sopra la tua media (+${lastVsAvg}%): giornata di quelle giuste. Replicala, non superarla subito.`,
+    `💪 L'ultima barra svetta sulla media: il corpo risponde. Tienilo come nuovo standard, non come eccezione.`
+  ], "vollast");
+  return coachPick([
+    "⚖️ Volume stabile: la costanza è la base, ma dopo 2-3 settimane uguali serve uno stimolo nuovo — un esercizio, una serie, 2,5 kg.",
+    "⚖️ Ritmo regolare, nessun crollo: questa è professionalità. Il prossimo salto arriverà dai carichi, non dalle ore in palestra.",
+    "⚖️ Il volume tiene: bene. Se le sensazioni sono buone, è il momento di spingere le serie chiave, non di aggiungerne."
+  ], "volflat");
+}
+
+function ptCoachNote(lifts) {
+  if (!lifts.length) return "";
+  const gains = PT_MOVES.map(m => {
+    const vals = lifts.filter(l => l[m.key] != null).map(l => l[m.key]);
+    return vals.length >= 2 ? { lbl: m.lbl, gain: +(vals[vals.length - 1] - vals[0]).toFixed(1), n: vals.length } : null;
+  }).filter(Boolean);
+  if (!gains.length) return coachPick([
+    "🧑‍🏫 Registra i kg a ogni seduta: dopo 2-3 giri della rotazione, qui vedrai la tua forza crescere nero su bianco.",
+    "🧑‍🏫 I tre grandi sollevamenti sono il termometro della forza: ogni seduta registrata è un punto sulla mappa."
+  ], "ptfew");
+  const best = gains.reduce((m, g) => g.gain > m.gain ? g : m, gains[0]);
+  if (best.gain > 0) return coachPick([
+    `🧑‍🏫 ${best.lbl}: +${best.gain} kg da quando registri. La forza sui fondamentali si porta dietro tutto il resto — continua a fidarti della progressione.`,
+    `🧑‍🏫 Il tuo ${best.lbl.toLowerCase()} è cresciuto di ${best.gain} kg: sui fondamentali non esistono scorciatoie, solo sedute ben fatte. E si vede.`,
+    `🧑‍🏫 +${best.gain} kg di ${best.lbl.toLowerCase()}: la scala di forza qui sotto non sale per caso. Prossimo obiettivo: il gradino che ti manca.`
+  ], "ptgain");
+  return coachPick([
+    "🧑‍🏫 Carichi fermi sulle alzate: normale dopo i primi progressi rapidi. Cura tecnica e recupero, il prossimo salto arriva.",
+    "🧑‍🏫 Plateau sui fondamentali: capita a tutti. Un piccolo passo indietro con più qualità spesso sblocca il passo avanti."
+  ], "ptflat");
+}
+
 function renderVolumeChart() {
   const s = [...state.sessions].sort((a, b) => a.date.localeCompare(b.date));
   const ctx = $("vol-chart").getContext("2d");
   if (charts.vol) charts.vol.destroy();
-  if (!s.length) return;
+  const vv = $("vol-verdict");
+  if (!s.length) { if (vv) vv.textContent = ""; return; }
   const vols = s.map(sessionVolume);
+  if (vv) vv.innerHTML = volumeVerdict(vols);
   const trend = linReg(vols);
   charts.vol = new Chart(ctx, {
     type: "bar",
@@ -1858,6 +1970,33 @@ function exVerdict(pts) {
   return `Continua così: costanza batte intensità.`;
 }
 
+// Seconda riga del coach sotto la progressione: cambia con la settimana
+function exCoachExtra(pts, key) {
+  if (pts.length < 2) return "";
+  const q = pts[pts.length - 1].q || "hard";
+  const pools = {
+    clean: [
+      "Quando le serie escono pulite per due sessioni di fila, l'aumento non è un rischio: è il passo dovuto.",
+      "Tecnica a posto e reps complete: il margine c'è. Usalo prima che il corpo si adagi.",
+      "Le sessioni verdi sono benzina: cavalca il momento e alza l'asticella di 2,5 kg.",
+      "Pulito non vuol dire facile: vuol dire pronto. Il prossimo carico ti aspetta."
+    ],
+    hard: [
+      "Le sessioni gialle sono le più preziose: è lì che il muscolo riceve il messaggio. Ripeti il peso finché non torna verde.",
+      "Dura ma completata: è il confine giusto. Consolida qui prima di salire.",
+      "Quando è dura, cura i dettagli: respirazione, traiettoria, recuperi pieni. Il verde arriva da lì.",
+      "Tenere il peso nelle giornate dure vale quanto salire in quelle buone."
+    ],
+    fail: [
+      "Una rossa non è un fallimento: è un'informazione. Stesso peso la prossima volta, con recuperi più lunghi.",
+      "Serie incomplete: controlla sonno e pasti degli ultimi due giorni — spesso il problema non è in palestra.",
+      "Dopo una rossa, la mossa da professionista è ripetere il carico, non fuggire in avanti né mollare indietro.",
+      "Il rosso di oggi prepara il verde di settimana prossima: torna sullo stesso peso e chiudilo."
+    ]
+  };
+  return "<br><span class='coach-extra'>🧑‍🏫 " + coachPick(pools[q] || pools.hard, "ex" + q + key) + "</span>";
+}
+
 function renderExChart() {
   const k = $("ex-select").value;
   const ctx = $("ex-chart").getContext("2d");
@@ -1878,7 +2017,7 @@ function renderExChart() {
   const maxV = Math.max(...vals), minV = Math.min(...vals);
   const maxIdx = vals.lastIndexOf(maxV);
   if (lbl) lbl.textContent = `max ${maxV} kg`;
-  if (verd) verd.textContent = exVerdict(pts);
+  if (verd) verd.innerHTML = exVerdict(pts) + exCoachExtra(pts, k);
   charts.ex = new Chart(ctx, {
     type: "line",
     data: {

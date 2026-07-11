@@ -62,14 +62,19 @@ function computeCrewStats() {
   const lastS = all[all.length - 1];
   const lastW = lastS ? getWorkout(lastS.workoutId) : null;
 
-  // PR del mese (pesi mai visti prima) — riusa la logica del Wrapped
-  let prMonth = 0, grade = null;
+  // PR del mese (pesi mai visti prima) — riusa la logica del Wrapped.
+  // La pagella è testo pronto ("💪 72/100"), non l'oggetto interno.
+  let prMonth = 0, grade = null, gradeMonth = null;
   try {
     const stM = wrappedStats(mk);
     prMonth = stM.prCount;
     const d0 = new Date(); d0.setDate(0);                    // pagella del mese scorso
     const prev = wrappedStats(localDate(d0).slice(0, 7));
-    if (prev.sessions) grade = wrappedVerdict(prev).grade;
+    if (prev.sessions) {
+      const v = wrappedVerdict(prev);
+      grade = `${v.grade.e} ${v.score}/100`;
+      gradeMonth = new Date(d0).toLocaleDateString("it-IT", { month: "long" });
+    }
   } catch (e) { /* wrapped non caricato: pazienza */ }
 
   return {
@@ -77,7 +82,7 @@ function computeCrewStats() {
     days, weekDone, planned,
     streak: weekStreak(),
     monthDone, monthExpected, monthPct,
-    volWeek, volDelta, prMonth, grade,
+    volWeek, volDelta, prMonth, grade, gradeMonth,
     last: lastS ? { date: lastS.date, name: lastW ? lastW.name : "", emoji: lastW ? lastW.emoji : "🏋️" } : null
   };
 }
@@ -203,26 +208,21 @@ function computeCrewStats() {
     }
   };
 
-  /* --- la card del duello (in cima a Progressi) --- */
-  const dot = (v) => `<span class="crew-dot ${v === 2 ? 'on' : v === 1 ? 'plan' : ''}"></span>`;
+  /* --- la card del duello (in cima a Progressi) ---
+     Poche cose, spiegate: settimana coi giorni etichettati, streak,
+     kg del mese e pagella. Il duello dice chiaramente qual è la sfida. */
+  const DAY_LETTERS = ["L", "M", "M", "G", "V", "S", "D"];
+  const dot = (v, i) => `<span class="crew-dot ${v === 2 ? 'on' : v === 1 ? 'plan' : ''}" title="${v === 2 ? 'fatto' : v === 1 ? 'in programma' : ''}">${DAY_LETTERS[i]}</span>`;
   function col(s, mine) {
-    const fresh = !mine && s.updated && (Date.now() - new Date(s.updated)) > 8 * 864e5;
     return `
       <div class="crew-col">
-        <div class="crew-nick">${mine ? "Tu" : s.nick}${fresh ? ' <span class="crew-stale">💤</span>' : ''}</div>
+        <div class="crew-nick">${mine ? "Tu" : s.nick}</div>
+        <div class="crew-row-lbl">Settimana · <b>${s.weekDone}</b> allenament${s.weekDone === 1 ? "o" : "i"} su <b>${s.planned}</b> previsti</div>
         <div class="crew-dots">${s.days.map(dot).join("")}</div>
-        <div class="crew-line"><b>${s.weekDone}</b>/${s.planned} questa settimana</div>
-        <div class="crew-line">🔥 streak <b>${s.streak}</b> sett.</div>
-        <div class="crew-line">🏋️ <b>${(s.volWeek || 0).toLocaleString("it-IT")}</b> kg${
-          s.volDelta != null ? ` <span class="crew-delta ${s.volDelta >= 0 ? 'up' : 'down'}">${s.volDelta >= 0 ? '▲' : '▼'} ${Math.abs(s.volDelta)}% vs ${mine ? "tua" : "sua"} media</span>` : ""}</div>
-        ${s.prMonth ? `<div class="crew-line">🏆 <b>${s.prMonth}</b> PR nel mese</div>` : ""}
-        ${s.grade ? `<div class="crew-line">📋 pagella: <b>${s.grade}</b></div>` : ""}
-        ${s.last ? `<div class="crew-last">${s.last.emoji} ${whenAgo(s.last.date)}</div>` : ""}
+        <div class="crew-line">🔥 <b>${s.streak}</b> settiman${s.streak === 1 ? "a" : "e"} di fila senza saltare</div>
+        <div class="crew-line">🏋️ <b>${(s.volWeek || 0).toLocaleString("it-IT")}</b> kg sollevati questa settimana</div>
+        ${s.grade ? `<div class="crew-line">📋 Pagella di ${s.gradeMonth || "…"}: <b>${s.grade}</b></div>` : ""}
       </div>`;
-  }
-  function whenAgo(ds) {
-    const diff = Math.round((new Date(todayStr() + "T00:00:00") - new Date(ds + "T00:00:00")) / 864e5);
-    return diff <= 0 ? "oggi" : diff === 1 ? "ieri" : diff + " giorni fa";
   }
 
   window.renderCrewCard = function () {
@@ -232,7 +232,7 @@ function computeCrewStats() {
       // vetrina: mostra come sarebbe con un socio d'esempio
       const my = computeCrewStats();
       const luca = { nick: "Luca", days: [2, 0, 2, 0, 0, 1, 0], weekDone: 2, planned: 2,
-                     streak: 3, volWeek: 5400, prMonth: 1, grade: "B", last: { date: todayStr(), emoji: "🔥" } };
+                     streak: 3, volWeek: 5400, grade: "💪 68/100", gradeMonth: "giugno" };
       el.style.display = "";
       el.innerHTML = crewHTML(my, luca, 71, 100) +
         '<div class="crew-hint">👀 Esempio: con un account puoi sfidare un amico vero.</div>';
@@ -246,17 +246,22 @@ function computeCrewStats() {
   };
 
   function crewHTML(my, other, myPct, otherPct) {
-    const lead = myPct > otherPct ? `Guidi tu il duello del mese 💪` :
-                 myPct < otherPct ? `${other.nick} è avanti nel duello del mese — reagisci` :
-                 `Duello del mese in parità: si decide adesso`;
+    const monthName = new Date().toLocaleDateString("it-IT", { month: "long" });
+    const lead = myPct > otherPct ? `Per ora guidi tu: continua così 💪` :
+                 myPct < otherPct ? `${other.nick} è avanti — un allenamento e lo riprendi` :
+                 `Perfetta parità: la decide il prossimo allenamento`;
     return `
-      <div class="chart-title">🤝 Crew</div>
-      <div class="chart-sub">${lead}</div>
+      <div class="chart-title">🤝 La sfida di ${monthName}</div>
+      <div class="chart-sub">Vince chi completa più % del <b>proprio</b> programma entro fine mese</div>
       <div class="crew-duel">
+        <div class="crew-duel-name">Tu</div>
         <div class="crew-duel-bar"><div class="crew-duel-fill me" style="width:${myPct}%"></div><span>${myPct}%</span></div>
-        <div class="crew-duel-vs">vs</div>
+      </div>
+      <div class="crew-duel">
+        <div class="crew-duel-name">${other.nick}</div>
         <div class="crew-duel-bar"><div class="crew-duel-fill" style="width:${otherPct}%"></div><span>${otherPct}%</span></div>
       </div>
+      <div class="crew-lead">${lead}</div>
       <div class="crew-grid">${col(my, true)}${col(other, false)}</div>`;
   }
 
