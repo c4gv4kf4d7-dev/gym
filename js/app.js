@@ -2593,27 +2593,50 @@ function renderMeals() {
   renderMealHistory();
 }
 
-// Storico degli ultimi 14 giorni tracciati: kcal e proteine vs obiettivo
+// Storico pasti PER SETTIMANE, con menu a tendina del mese (stile Wrapped)
+let mealHistMonth = null;
 function renderMealHistory() {
   const host = $("meal-history");
   if (!host) return;
   const t = todayStr();
   const days = Object.keys(state.meals || {})
-    .filter(d => d < t && (state.meals[d] || []).length)
-    .sort((a, b) => b.localeCompare(a))
-    .slice(0, 14);
-  if (!days.length) { host.innerHTML = `<div class="empty-mini">Lo storico si riempie dal secondo giorno di tracking.</div>`; return; }
+    .filter(d => d <= t && (state.meals[d] || []).length)
+    .sort();
+  if (!days.length) { host.innerHTML = `<div class="empty-mini">Lo storico si riempie dal primo giorno di tracking.</div>`; return; }
+
+  // mesi disponibili (dal più recente) + tendina
+  const months = [...new Set(days.map(d => d.slice(0, 7)))].sort().reverse();
+  if (!mealHistMonth || !months.includes(mealHistMonth)) mealHistMonth = months[0];
+  const monthLbl = (mk) => {
+    const d = new Date(mk + "-01T00:00:00");
+    const s = d.toLocaleDateString("it-IT", { month: "long", year: "numeric" });
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  };
+  const selHTML = `<select class="chart-select" onchange="mealHistMonth=this.value;renderMealHistory()">
+    ${months.map(m => `<option value="${m}" ${m === mealHistMonth ? "selected" : ""}>${monthLbl(m)}</option>`).join("")}
+  </select>`;
+
+  // aggrega per settimana (lun→dom) il mese scelto
+  const byWeek = {};
+  days.filter(d => d.slice(0, 7) === mealHistMonth).forEach(d => {
+    (byWeek[weekStart(d)] = byWeek[weekStart(d)] || []).push(d);
+  });
   const kT = kcalTarget(), pT = proteinTarget();
-  host.innerHTML = days.map(d => {
-    const tot = dayTotals(d);
-    const kOk = tot.kcal >= kT * 0.9, pOk = tot.protein >= pT;
+  const rows = Object.keys(byWeek).sort().reverse().map(wk => {
+    const ds = byWeek[wk];
+    const kAvg = Math.round(ds.reduce((a, d) => a + dayTotals(d).kcal, 0) / ds.length);
+    const pAvg = Math.round(ds.reduce((a, d) => a + dayTotals(d).protein, 0) / ds.length);
+    const end = new Date(wk + "T00:00:00"); end.setDate(end.getDate() + 6);
+    const kOk = kAvg >= kT * 0.9, pOk = pAvg >= pT;
     return `<div class="mh-row">
-      <span class="mh-date">${fmtShort(d)}</span>
-      <span class="mh-val">🔥 <b class="${kOk ? 'mh-ok' : 'mh-miss'}">${tot.kcal}</b> kcal</span>
-      <span class="mh-val">💪 <b class="${pOk ? 'mh-ok' : 'mh-miss'}">${tot.protein}</b> g</span>
-      <span class="mh-flag">${kOk && pOk ? '✅' : ''}</span>
+      <span class="mh-date">${fmtShort(wk)} – ${fmtShort(localDate(end))}</span>
+      <span class="mh-val">🔥 <b class="${kOk ? 'mh-ok' : 'mh-miss'}">${kAvg}</b></span>
+      <span class="mh-val">💪 <b class="${pOk ? 'mh-ok' : 'mh-miss'}">${pAvg}</b> g</span>
+      <span class="mh-flag">${kOk && pOk ? '✅' : ''}${ds.length < 7 ? `<span class="mh-days">${ds.length} gg</span>` : ''}</span>
     </div>`;
-  }).join("") + `<div class="chart-hint" style="margin-top:8px">Verde = obiettivo centrato (kcal ≥ 90%, proteine piene) rispetto ai target di oggi.</div>`;
+  }).join("");
+  host.innerHTML = selHTML + rows +
+    `<div class="chart-hint" style="margin-top:8px">Medie giornaliere della settimana · verde = obiettivo centrato (kcal ≥ 90%, proteine piene).</div>`;
 }
 
 function renderMealSummary() {

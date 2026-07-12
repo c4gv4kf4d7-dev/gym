@@ -249,8 +249,8 @@ function computeCrewStats() {
                  a < b ? `${other.nick} è avanti ${b}–${a} — un allenamento e riapri la gara` :
                  `Parità ${a}–${b}: la decide il prossimo che si allena`;
     return `
-      <div class="chart-title">🤝 La gara di ${monthName}</div>
-      <div class="chart-sub">Chi si allena di più questo mese? Ogni allenamento registrato vale 1</div>
+      <div class="chart-title">🤝 La sfida di ${monthName}</div>
+      <div class="chart-sub">Chi si è allenato di più?</div>
       <div class="crew-duel">
         <div class="crew-duel-name">Tu</div>
         <div class="crew-duel-bar"><div class="crew-duel-fill me" style="width:${Math.round(a / max * 100)}%"></div><span>${a}</span></div>
