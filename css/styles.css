@@ -259,8 +259,6 @@ input::placeholder { color: var(--faint); }
 .cal-dot { position: relative; width: 19px; height: 19px; border-radius: 50%; font-size: 10px; color: #fff; display: flex; align-items: center; justify-content: center; }
 .cal-dot.done { box-shadow: 0 0 0 2px #10B981; }
 .cal-dot.done::after { content: "✓"; position: absolute; right: -6px; top: -6px; width: 12px; height: 12px; border-radius: 50%; background: #10B981; color: #04220f; font-size: 8px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
-.cal-legend { grid-column: 1 / -1; text-align: center; font-size: 10.5px; color: rgba(245,240,255,.5); padding-top: 10px; }
-.cal-legend-done { color: #2BD576; font-weight: 700; }
 .cal-dot.cal-pt { font-size: 11px; }
 .up-row { display: flex; align-items: center; gap: 10px; border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; }
 .up-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 10px currentColor; }
@@ -833,13 +831,9 @@ img.profile-avatar-lg.av-img { object-fit: cover; padding: 0; border: 2px solid 
 select.ob-input { appearance: none; -webkit-appearance: none; }
 
 /* Profilo compatto */
-.profile-compact { gap: 4px; padding: 2px 0; }
 .profile-avatar-wrap { position: relative; margin-bottom: 6px; }
-.profile-compact .profile-avatar-lg { width: 58px; height: 58px; font-size: 25px; margin-bottom: 0; }
 .profile-pencil { position: absolute; right: -8px; bottom: -4px; width: 27px; height: 27px; border-radius: 50%; background: #1d1433; border: 1px solid var(--border); font-size: 12px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,.4); }
 .profile-meta-inline { font-size: 13px; font-weight: 600; color: var(--muted); }
-.profile-compact .profile-chips { margin-top: 6px; }
-.profile-compact .profile-chip { font-size: 11px; padding: 5px 10px; }
 
 /* Account su una riga */
 .acct-line { display: flex; align-items: center; gap: 11px; }
@@ -974,7 +968,6 @@ img.profile-avatar-lg.av-img { border: 7px solid transparent; background: linear
 .m-row { background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px; }
 
 /* Profilo: chips centrati nello spazio a destra */
-.profile-chips-col { flex: 1; align-items: center; }
 
 /* Frecce trend colorate nei tile composizione */
 .comp-delta.cd-up { color: #2BD576; }
@@ -1042,12 +1035,8 @@ img.profile-avatar-lg.av-img { border: 7px solid transparent; background: linear
 .wb2-cta { font-size: 13px; font-weight: 800; color: #fff; white-space: nowrap; }
 
 /* Chips profilo: barre uniformi, centrate nello spazio a destra */
-.profile-chips-col { flex: 1; align-items: center; justify-content: center; }
-.profile-chips-col .profile-chip { display: block; width: 100%; max-width: 170px; text-align: center; }
 
 /* Chips profilo: allineati a destra, barre uniformi */
-.profile-chips-col { flex: 0 0 auto; align-items: flex-end; justify-content: center; }
-.profile-chips-col .profile-chip { display: block; width: 150px; max-width: 150px; text-align: center; }
 
 /* Guided: cues sempre aperti e compatti */
 .g-cues summary { display: none; }

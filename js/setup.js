@@ -663,10 +663,17 @@ Regole: "gruppo" ∈ petto|schiena|gambe|spalle|braccia|core. "attrezzo" ∈ bil
   window.deleteMyWorkout = function (id) {
     const removed = (state.myWorkouts || []).find(w => w.id === id);
     state.myWorkouts = (state.myWorkouts || []).filter(w => w.id !== id);
+    // pulizia: via anche i giorni futuri programmati con questa scheda
+    const t = todayStr();
+    const removedDays = {};
+    Object.entries(state.schedule || {}).forEach(([d, sc]) => {
+      if (sc.workoutId === id && d >= t && !sc.done) { removedDays[d] = sc; delete state.schedule[d]; }
+    });
     saveState(state);
     if (typeof renderWorkoutChips === "function") { renderWorkoutChips(); renderWorkout(); }
     if (typeof toastUndo === "function") toastUndo("🗑 Scheda eliminata.", function () {
       if (removed) state.myWorkouts.push(removed);
+      Object.assign(state.schedule, removedDays);   // ripristina anche i giorni programmati
       saveState(state);
       renderWorkoutChips(); renderWorkout();
       if (typeof showBuilderChooser === "function") showBuilderChooser(false);

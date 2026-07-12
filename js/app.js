@@ -778,6 +778,7 @@ function renderPTWorkout(w) {
 
   $("ex-cards").innerHTML = focus + form + history;
 
+  $("guided-resume").innerHTML = "";        // il guidato non riguarda la tab PT
   renderDeloadBanner();
   if (typeof renderWrappedBanner === "function") renderWrappedBanner();
 }
@@ -1424,10 +1425,11 @@ function renderCalendar() {
           const moveIdx = (baseIdx + ptCounter) % PT_SEQUENCE.length; ptCounter++;
           nameHtml = `🧑‍🏫 PT — <b class="pt-next">${PT_SHORT[PT_SEQUENCE[moveIdx]]}</b>`;
         } else {
-          nameHtml = `${w.emoji} ${w.name}`;
+          // guardia: la scheda potrebbe essere stata eliminata dopo la programmazione
+          nameHtml = w ? `${w.emoji} ${w.name}` : "🏋️ Allenamento";
         }
         return `<div class="up-row">
-          <span class="up-dot" style="background:${isPT ? '#A855F7' : w.color}"></span>
+          <span class="up-dot" style="background:${isPT ? '#A855F7' : (w ? w.color : '#9CA3AF')}"></span>
           <span class="up-date">${fmtShort(d)}</span>
           <span class="up-name">${nameHtml}${(!isPT && s.note) ? ` <span class="up-note">· ${s.note}</span>` : ''}</span>
           <span class="up-status">${s.done ? '✓ fatto' : 'programmato'}</span>
@@ -1469,9 +1471,18 @@ function icsContent() {
   return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Allenamento//IT\r\nCALSCALE:GREGORIAN\r\nX-WR-CALNAME:Allenamento\r\n" + events + "\r\nEND:VCALENDAR";
 }
 
-function exportICS() {
+async function exportICS() {
   const ics = icsContent();
   if (!ics) { toast("Nessun allenamento in programma da esportare"); return; }
+  // dall'app installata sulla Home il download classico e' inaffidabile:
+  // meglio il foglio di condivisione nativo (-> "Aggiungi a Calendario")
+  try {
+    const file = new File([ics], "allenamenti.ics", { type: "text/calendar" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: "Allenamenti" });
+      return;
+    }
+  } catch (e) { if (e && e.name === "AbortError") return; /* altrimenti fallback */ }
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
   a.download = "allenamenti.ics";
