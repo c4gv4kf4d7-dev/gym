@@ -36,10 +36,15 @@ function computeCrewStats() {
   const monthExpected = Math.max(1, Math.round(planned * dom / 7));
   const monthPct = Math.min(100, Math.round((monthDone / monthExpected) * 100));
 
-  // volume della settimana (kg totali sollevati)
+  // volume della settimana (kg totali sollevati), sedute PT comprese:
+  // dei super esercizi registriamo solo il carico, quindi la seduta vale
+  // kg × 15 (convenzione 3 serie × 5 ripetizioni da lavoro di forza)
+  const ptVolWeek = (state.ptLifts || [])
+    .filter(l => weekStart(l.date) === wk)
+    .reduce((a, l) => a + PT_SEQUENCE.reduce((x, k) => x + (l[k] || 0) * 15, 0), 0);
   const volWeek = Math.round(state.sessions
     .filter(s => weekStart(s.date) === wk)
-    .reduce((a, s) => a + sessionVolume(s), 0));
+    .reduce((a, s) => a + sessionVolume(s), 0) + ptVolWeek);
 
   // volume vs LA PROPRIA media delle 4 settimane precedenti: misura lo
   // sforzo, non il livello — così chi solleva di più non vince "di rendita"
@@ -62,27 +67,16 @@ function computeCrewStats() {
   const lastS = all[all.length - 1];
   const lastW = lastS ? getWorkout(lastS.workoutId) : null;
 
-  // PR del mese (pesi mai visti prima) — riusa la logica del Wrapped.
-  // La pagella è testo pronto ("💪 72/100"), non l'oggetto interno.
-  let prMonth = 0, grade = null, gradeMonth = null;
-  try {
-    const stM = wrappedStats(mk);
-    prMonth = stM.prCount;
-    const d0 = new Date(); d0.setDate(0);                    // pagella del mese scorso
-    const prev = wrappedStats(localDate(d0).slice(0, 7));
-    if (prev.sessions) {
-      const v = wrappedVerdict(prev);
-      grade = `${v.grade.e} ${v.score}/100`;
-      gradeMonth = new Date(d0).toLocaleDateString("it-IT", { month: "long" });
-    }
-  } catch (e) { /* wrapped non caricato: pazienza */ }
+  // PR del mese (pesi mai visti prima) — riusa la logica del Wrapped
+  let prMonth = 0;
+  try { prMonth = wrappedStats(mk).prCount; } catch (e) { /* wrapped non caricato */ }
 
   return {
     nick: (state.profile && (state.profile.nick || state.profile.name)) || "Atleta",
     days, weekDone, planned,
     streak: weekStreak(),
     monthDone, monthExpected, monthPct,
-    volWeek, volDelta, prMonth, grade, gradeMonth,
+    volWeek, volDelta, prMonth,
     last: lastS ? { date: lastS.date, name: lastW ? lastW.name : "", emoji: lastW ? lastW.emoji : "🏋️" } : null
   };
 }
@@ -217,11 +211,10 @@ function computeCrewStats() {
     return `
       <div class="crew-col">
         <div class="crew-nick">${mine ? "Tu" : s.nick}</div>
-        <div class="crew-row-lbl">Settimana · <b>${s.weekDone}</b> allenament${s.weekDone === 1 ? "o" : "i"} su <b>${s.planned}</b> previsti</div>
+        <div class="crew-row-lbl">Questa settimana · <b>${s.weekDone}</b> allenament${s.weekDone === 1 ? "o" : "i"}</div>
         <div class="crew-dots">${s.days.map(dot).join("")}</div>
         <div class="crew-line">🔥 <b>${s.streak}</b> settiman${s.streak === 1 ? "a" : "e"} di fila senza saltare</div>
         <div class="crew-line">🏋️ <b>${(s.volWeek || 0).toLocaleString("it-IT")}</b> kg sollevati questa settimana</div>
-        ${s.grade ? `<div class="crew-line">📋 Pagella di ${s.gradeMonth || "…"}: <b>${s.grade}</b></div>` : ""}
       </div>`;
   }
 
@@ -232,7 +225,7 @@ function computeCrewStats() {
       // vetrina: mostra come sarebbe con un socio d'esempio
       const my = computeCrewStats();
       const luca = { nick: "Luca", days: [2, 0, 2, 0, 0, 1, 0], weekDone: 2, planned: 2,
-                     streak: 3, volWeek: 5400, grade: "💪 68/100", gradeMonth: "giugno" };
+                     streak: 3, volWeek: 5400 };
       el.style.display = "";
       el.innerHTML = crewHTML(my, luca, 71, 100) +
         '<div class="crew-hint">👀 Esempio: con un account puoi sfidare un amico vero.</div>';

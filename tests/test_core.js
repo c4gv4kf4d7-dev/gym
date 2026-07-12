@@ -319,7 +319,7 @@ ok("crew: settimana = sessioni + sedute PT", cs.weekDone === 2);
 ok("crew: piano dal profilo", cs.planned === 3);
 ok("crew: il giorno di oggi è un pallino pieno", cs.days.indexOf(2) >= 0 && cs.days.length === 7);
 ok("crew: duello del mese conteggiato", cs.monthDone === 2 && cs.monthPct > 0 && cs.monthPct <= 100);
-ok("crew: volume settimana = kg×rip (30×12×2)", cs.volWeek === 720);
+ok("crew: volume = sessioni (30×12×2) + seduta PT (30 kg × 15)", cs.volWeek === 720 + 450);
 ok("crew: nick presente", cs.nick === "Mike");
 ok("crew: ultimo allenamento = oggi", cs.last && cs.last.date === api.todayStr());
 ok("crew: senza storico niente delta (serve la SUA media)", cs.volDelta === null);
@@ -329,7 +329,7 @@ st.sessions.push(
   { id: 2, date: wAgo(1), workoutId: "fullbody", exercises: { chestpress: { sets: [{w:30,r:12}], quality: "clean" } } },
   { id: 3, date: wAgo(2), workoutId: "fullbody", exercises: { chestpress: { sets: [{w:30,r:12}], quality: "clean" } } });
 cs = api.computeCrewStats();
-ok("crew: volume vs la PROPRIA media (+100%)", cs.volDelta === 100);
+ok("crew: volume vs la PROPRIA media ((720+450)/360 → +225%)", cs.volDelta === 225);
 var keys = Object.keys(cs).join(",");
 ok("crew: NIENTE dati sensibili (pasti/peso/misure)", keys.indexOf("meal") < 0 && keys.indexOf("weight") < 0 && keys.indexOf("composition") < 0);
 
