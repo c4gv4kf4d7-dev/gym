@@ -37,7 +37,7 @@ var api = new Function(
     kcalTarget: kcalTarget, proteinTarget: proteinTarget, mealDayStreak: mealDayStreak,
     ALL_WORKOUTS: ALL_WORKOUTS, getWorkout: getWorkout, SCHEDULABLE: SCHEDULABLE,
     chipOrder: chipOrder, ptNextIndex: ptNextIndex, selectWorkout: selectWorkout,
-    nightCloseMessage: nightCloseMessage, computeCrewStats: computeCrewStats,
+    nightCloseMessage: nightCloseMessage, computeCrewStats: computeCrewStats, icsContent: icsContent,
     defaultState: defaultState, applyMigrations: applyMigrations,
     fatigueAnalysis: fatigueAnalysis, deloadActive: deloadActive,
     wrappedStats: wrappedStats, wrappedVerdict: wrappedVerdict, volumeComparison: volumeComparison,
@@ -343,6 +343,20 @@ stM = api.applyMigrations(stM);
 ok("migrazione: pulldown → back/Dorsali", stM.customExercises.pt_pulldown.bodyPart === "back" && stM.customExercises.pt_pulldown.muscle === "Dorsali");
 ok("migrazione: gli altri esercizi braccia restano intatti", stM.customExercises.pt_curl.bodyPart === "arms");
 ok("migrazione: marcata come applicata (non si ripete)", stM.migrations.indexOf("pulldown-back") >= 0);
+
+/* ---- 16g) EXPORT ICS ---- */
+st = api.defaultState();
+api.set(st);
+st.schedule = {};
+st.schedule[dPlus(2)] = { workoutId: "fullbody", done: false };
+st.schedule[dPlus(4)] = { workoutId: "pt", done: false, pt: true };
+st.schedule[dPlus(1)] = { workoutId: "fullbody", done: true };   // fatta: non si esporta
+var ics = api.icsContent();
+ok("ICS: contiene i 2 eventi futuri non fatti", (ics.match(/BEGIN:VEVENT/g) || []).length === 2);
+ok("ICS: la seduta PT ha il super esercizio", ics.indexOf("PT — Panca") >= 0 || ics.indexOf("PT — Stacco") >= 0 || ics.indexOf("PT — Squat") >= 0);
+ok("ICS: eventi giornata intera", ics.indexOf("DTSTART;VALUE=DATE:") >= 0);
+st.schedule = {};
+ok("ICS: senza piano → null", api.icsContent() === null);
 
 /* ---- 17) SMOKE: ogni vista renderizza senza eccezioni (dati demo realistici) ---- */
 function smoke(name, fn) {

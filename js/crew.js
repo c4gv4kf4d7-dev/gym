@@ -215,6 +215,7 @@ function computeCrewStats() {
         <div class="crew-dots">${s.days.map(dot).join("")}</div>
         <div class="crew-line">🔥 <b>${s.streak}</b> settiman${s.streak === 1 ? "a" : "e"} di fila senza saltare</div>
         <div class="crew-line">🏋️ <b>${(s.volWeek || 0).toLocaleString("it-IT")}</b> kg sollevati questa settimana</div>
+        <div class="crew-line">🏆 <b>${s.prMonth || 0}</b> record personali questo mese</div>
       </div>`;
   }
 
@@ -225,34 +226,38 @@ function computeCrewStats() {
       // vetrina: mostra come sarebbe con un socio d'esempio
       const my = computeCrewStats();
       const luca = { nick: "Luca", days: [2, 0, 2, 0, 0, 1, 0], weekDone: 2, planned: 2,
-                     streak: 3, volWeek: 5400 };
+                     streak: 3, volWeek: 5400, monthDone: 5, prMonth: 1 };
       el.style.display = "";
-      el.innerHTML = crewHTML(my, luca, 71, 100) +
+      el.innerHTML = crewHTML(my, luca) +
         '<div class="crew-hint">👀 Esempio: con un account puoi sfidare un amico vero.</div>';
       return;
     }
     if (!myCrew || !mate) { el.style.display = "none"; el.innerHTML = ""; return; }
     const my = computeCrewStats();
     el.style.display = "";
-    el.innerHTML = crewHTML(my, mate, my.monthPct, mate.monthPct) + `
+    el.innerHTML = crewHTML(my, mate) + `
       <button class="btn-outline crew-fire" onclick="crewNudge()">🔥 Punzecchia ${mate.nick}</button>`;
   };
 
-  function crewHTML(my, other, myPct, otherPct) {
+  // La gara del mese: CONTEGGIO SECCO degli allenamenti registrati.
+  // Niente % del piano (barabile pianificando poco): o ti alleni o no.
+  function crewHTML(my, other) {
     const monthName = new Date().toLocaleDateString("it-IT", { month: "long" });
-    const lead = myPct > otherPct ? `Per ora guidi tu: continua così 💪` :
-                 myPct < otherPct ? `${other.nick} è avanti — un allenamento e lo riprendi` :
-                 `Perfetta parità: la decide il prossimo allenamento`;
+    const a = my.monthDone || 0, b = other.monthDone || 0;
+    const max = Math.max(a, b, 1);
+    const lead = a > b ? `Guidi tu ${a}–${b}: non mollare adesso 💪` :
+                 a < b ? `${other.nick} è avanti ${b}–${a} — un allenamento e riapri la gara` :
+                 `Parità ${a}–${b}: la decide il prossimo che si allena`;
     return `
-      <div class="chart-title">🤝 La sfida di ${monthName}</div>
-      <div class="chart-sub">Vince chi completa più % del <b>proprio</b> programma entro fine mese</div>
+      <div class="chart-title">🤝 La gara di ${monthName}</div>
+      <div class="chart-sub">Chi si allena di più questo mese? Ogni allenamento registrato vale 1</div>
       <div class="crew-duel">
         <div class="crew-duel-name">Tu</div>
-        <div class="crew-duel-bar"><div class="crew-duel-fill me" style="width:${myPct}%"></div><span>${myPct}%</span></div>
+        <div class="crew-duel-bar"><div class="crew-duel-fill me" style="width:${Math.round(a / max * 100)}%"></div><span>${a}</span></div>
       </div>
       <div class="crew-duel">
         <div class="crew-duel-name">${other.nick}</div>
-        <div class="crew-duel-bar"><div class="crew-duel-fill" style="width:${otherPct}%"></div><span>${otherPct}%</span></div>
+        <div class="crew-duel-bar"><div class="crew-duel-fill" style="width:${Math.round(b / max * 100)}%"></div><span>${b}</span></div>
       </div>
       <div class="crew-lead">${lead}</div>
       <div class="crew-grid">${col(my, true)}${col(other, false)}</div>`;

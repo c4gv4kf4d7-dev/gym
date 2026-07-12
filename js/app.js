@@ -1405,8 +1405,7 @@ function renderCalendar() {
         ${w ? `<span class="cal-dot ${sched.done ? 'done' : ''}" style="background:${sched.pt ? '#A855F7' : w.color}" title="${w.name}${sched.done ? ' · fatto' : ''}">${sched.pt ? '🧑‍🏫' : w.emoji}</span>` : ''}
       </div>`;
   }
-  $("cal-grid").innerHTML = html +
-    `<div class="cal-legend">colore = scheda · 🧑‍🏫 = PT · <span class="cal-legend-done">✓ verde</span> = completato</div>`;
+  $("cal-grid").innerHTML = html;
 
   // prossimi allenamenti programmati
   const limit = new Date(); limit.setDate(limit.getDate() + 21);
@@ -1438,6 +1437,49 @@ function renderCalendar() {
 }
 
 function calNav(delta) { calRef.setMonth(calRef.getMonth() + delta); renderCalendar(); }
+
+/* ---------- EXPORT ICS: gli allenamenti nel calendario di iPhone ----------
+   Genera un file .ics con tutto il piano futuro (eventi giornata intera).
+   È una fotografia: se sposti gli allenamenti, ri-esporti. */
+function icsContent() {
+  const t = todayStr();
+  const entries = Object.entries(state.schedule || {})
+    .filter(([d, s]) => d >= t && !s.done)
+    .sort((a, b) => a[0].localeCompare(b[0]));
+  if (!entries.length) return null;
+  const baseIdx = ptNextIndex();
+  let ptc = 0;
+  const events = entries.map(([d, s]) => {
+    const w = getWorkout(s.workoutId);
+    const isPT = !!(s.pt || (w && w.pt));
+    const title = isPT
+      ? "🧑‍🏫 PT — " + PT_SHORT[PT_SEQUENCE[(baseIdx + ptc++) % PT_SEQUENCE.length]]
+      : (w ? `${w.emoji} ${w.name}` : "Allenamento");
+    const dt = d.replace(/-/g, "");
+    const nd = new Date(d + "T00:00:00"); nd.setDate(nd.getDate() + 1);
+    return [
+      "BEGIN:VEVENT",
+      "UID:gym-" + d + "@allenamento",
+      "DTSTART;VALUE=DATE:" + dt,
+      "DTEND;VALUE=DATE:" + localDate(nd).replace(/-/g, ""),
+      "SUMMARY:" + title.replace(/[,;]/g, " "),
+      "END:VEVENT"
+    ].join("\r\n");
+  }).join("\r\n");
+  return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Allenamento//IT\r\nCALSCALE:GREGORIAN\r\nX-WR-CALNAME:Allenamento\r\n" + events + "\r\nEND:VCALENDAR";
+}
+
+function exportICS() {
+  const ics = icsContent();
+  if (!ics) { toast("Nessun allenamento in programma da esportare"); return; }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+  a.download = "allenamenti.ics";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  toast("📅 File creato: aprilo per aggiungere gli eventi al calendario");
+}
 
 function openDay(ds) {
   const d = new Date(ds + "T00:00:00").toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
@@ -2537,6 +2579,30 @@ function renderMeals() {
   renderMealSummary();
   renderMealList();
   renderMealTrend();
+  renderMealHistory();
+}
+
+// Storico degli ultimi 14 giorni tracciati: kcal e proteine vs obiettivo
+function renderMealHistory() {
+  const host = $("meal-history");
+  if (!host) return;
+  const t = todayStr();
+  const days = Object.keys(state.meals || {})
+    .filter(d => d < t && (state.meals[d] || []).length)
+    .sort((a, b) => b.localeCompare(a))
+    .slice(0, 14);
+  if (!days.length) { host.innerHTML = `<div class="empty-mini">Lo storico si riempie dal secondo giorno di tracking.</div>`; return; }
+  const kT = kcalTarget(), pT = proteinTarget();
+  host.innerHTML = days.map(d => {
+    const tot = dayTotals(d);
+    const kOk = tot.kcal >= kT * 0.9, pOk = tot.protein >= pT;
+    return `<div class="mh-row">
+      <span class="mh-date">${fmtShort(d)}</span>
+      <span class="mh-val">🔥 <b class="${kOk ? 'mh-ok' : 'mh-miss'}">${tot.kcal}</b> kcal</span>
+      <span class="mh-val">💪 <b class="${pOk ? 'mh-ok' : 'mh-miss'}">${tot.protein}</b> g</span>
+      <span class="mh-flag">${kOk && pOk ? '✅' : ''}</span>
+    </div>`;
+  }).join("") + `<div class="chart-hint" style="margin-top:8px">Verde = obiettivo centrato (kcal ≥ 90%, proteine piene) rispetto ai target di oggi.</div>`;
 }
 
 function renderMealSummary() {
