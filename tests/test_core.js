@@ -27,7 +27,7 @@ var winStub = { addEventListener:function(){} };
 var lsStub = { _d:{}, getItem:function(k){return this._d[k]||null}, setItem:function(k,v){this._d[k]=String(v)}, removeItem:function(k){delete this._d[k]} };
 function ChartStub(){ this.destroy=function(){}; } ChartStub.defaults={font:{}};
 
-var SRC = [read(ROOT + "/js/data.js"), read(ROOT + "/js/storage.js"), read(ROOT + "/js/app.js"), read(ROOT + "/js/wrapped.js"), read(ROOT + "/js/demo.js"), read(ROOT + "/js/crew.js")].join("\n;\n");
+var SRC = [read(ROOT + "/js/data.js"), read(ROOT + "/js/storage.js"), read(ROOT + "/js/core.js"), read(ROOT + "/js/deload.js"), read(ROOT + "/js/workout.js"), read(ROOT + "/js/guided.js"), read(ROOT + "/js/calendar.js"), read(ROOT + "/js/progress.js"), read(ROOT + "/js/profile.js"), read(ROOT + "/js/meals.js"), read(ROOT + "/js/init.js"), read(ROOT + "/js/wrapped.js"), read(ROOT + "/js/demo.js"), read(ROOT + "/js/crew.js")].join("\n;\n");
 var api = new Function(
   "document","window","localStorage","sessionStorage","navigator","EXERCISE_STEPS","EXERCISE_CUES","Chart",
   SRC + `
