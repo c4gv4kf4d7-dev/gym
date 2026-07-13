@@ -86,7 +86,7 @@ function renderWorkout() {
           </div>
         </div>
         <div class="sets-row m-row" data-ex="${ex.key}">
-          <div class="m-field"><input class="m-in" id="m-sets-${ex.key}" type="number" inputmode="numeric" min="1" max="10" value="${today ? Object.keys(today.sets).length : ex.sets}" onchange="manualChanged('${ex.key}')"><div class="set-pill-lbl">Serie</div></div>
+          <div class="m-field"><input class="m-in" id="m-sets-${ex.key}" type="number" inputmode="numeric" min="1" max="10" value="${today ? Object.keys(today.sets).length : ((state.prep || {})[ex.key] || {}).sets || ex.sets}" onchange="manualChanged('${ex.key}')"><div class="set-pill-lbl">Serie</div></div>
           <div class="m-field"><input class="m-in" id="m-reps-${ex.key}" type="number" inputmode="numeric" min="1" max="50" value="${today && today.sets[0] ? today.sets[0].r : (ex.time ? '' : (sug ? sug.targetReps : ex.reps))}" ${ex.time ? 'disabled placeholder="—"' : ''} onchange="manualChanged('${ex.key}')"><div class="set-pill-lbl">${ex.time ? 'Durata' : 'Rip.'}</div></div>
           <div class="m-field"><input class="m-in" id="m-w-${ex.key}" type="number" inputmode="decimal" step="0.5" min="0" max="500" value="${today && today.sets[0] ? today.sets[0].w : (!ex.time && sug && sug.targetW != null ? sug.targetW : '')}" placeholder="—" ${ex.time ? 'disabled' : ''} onchange="manualChanged('${ex.key}')"><div class="set-pill-lbl">Kg</div></div>
         </div>
@@ -102,7 +102,6 @@ function renderWorkout() {
           <summary>📋 Come si esegue</summary>
           <ol class="steps-list">${stepsFor(ex.key).map(st => `<li>${st}</li>`).join("")}</ol>
         </details>` : ''}
-        ${ex.time ? `<button class="plank-done" onclick="togglePlankDone(${i})">✓ Segna come fatto</button>` : ''}
       </div>`;
     cont.appendChild(card);
   });
@@ -212,9 +211,10 @@ function lastQualIcon(exKey) {
 }
 
 /* ---------- INSERIMENTO MANUALE (serie × rip @ kg + semaforo) ----------
-   Per chi non usa il guidato: modifichi i numeri in alto nella card e
-   l'app salva da sola la sessione di oggi. Il semaforo alimenta il
-   suggerimento della volta successiva, come nel guidato. */
+   La tab Allena NON registra nulla: i numeri toccati nella card sono
+   PREPARAZIONE (i consigli del PT prima della seduta) e finiscono in
+   state.prep, che il guidato usa come obiettivi. L'unico modo per
+   registrare un allenamento è il "Salva" del guidato. */
 let manualTimers = {};
 
 function manualChanged(exKey) {
@@ -227,31 +227,11 @@ function manualSave(exKey) {
   const nSets = Math.max(1, Math.min(10, parseInt(gv("m-sets-" + exKey)) || (EXERCISES[exKey].sets || 3)));
   const reps = Math.max(1, Math.min(50, parseInt(gv("m-reps-" + exKey)) || (EXERCISES[exKey].reps || 12)));
   const w = gv("m-w-" + exKey);
-  if (isNaN(w) || w <= 0) return;              // niente kg → niente salvataggio
-  const sets = Array.from({ length: nSets }, () => ({ w, r: reps }));
-  upsertManualExercise(currentWorkoutId, exKey, sets, selectedQuality[exKey] || null);
-  toast("💾 " + EXERCISES[exKey].name + " salvato per oggi");
-}
-
-function upsertManualExercise(workoutId, exKey, sets, quality) {
-  let sess = todaySession(workoutId);
-  if (!sess) {
-    sess = { id: Date.now(), date: todayStr(), workoutId, exercises: {}, duration: null, calories: null, notes: "", deload: deloadActive() || undefined };
-    state.sessions.push(sess);
-  }
-  sess.exercises[exKey] = { sets, quality };
-  state.schedule[todayStr()] = { workoutId, done: true };
-  const before = state.badges || [];
-  state.badges = earnedBadgeIds();
+  if (isNaN(w) || w <= 0) return;              // niente kg → niente preparazione
+  state.prep = state.prep || {};
+  state.prep[exKey] = { sets: nSets, reps, w };
   saveState(state);
-}
-
-function togglePlankDone(i) {
-  const card = $(`ex-${i}`);
-  const on = card.classList.toggle("plank-on");
-  const num = $(`exnum-${i}`);
-  if (on) { num.style.background = "#2BD576"; num.textContent = "✓"; }
-  else { num.style.background = num.dataset.c || ""; num.textContent = i + 1; }
+  toast("🎯 " + EXERCISES[exKey].name + ": preparato per il guidato");
 }
 
 // Salva (o aggiorna) la sessione di oggi e mostra il riepilogo
@@ -278,6 +258,8 @@ function commitSession(workoutId, exercises, meta) {
     });
   }
   state.schedule[todayStr()] = { workoutId, done: true };
+  // la preparazione è servita: gli obiettivi tornano al motore di progressione
+  Object.keys(exercises).forEach(k => { if (state.prep) delete state.prep[k]; });
 
   const before = state.badges || [];
   const now = earnedBadgeIds();

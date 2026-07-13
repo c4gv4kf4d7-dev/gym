@@ -29,6 +29,7 @@ const defaultState = () => ({
   deload: null,        // scarico: { start, until } attivo oppure { snoozeUntil }
   wrappedSeen: [],     // mesi ("YYYY-MM") il cui Wrapped è già stato aperto
   crew: null,          // crew di appartenenza: { id, code } (i dati vivono su Supabase)
+  prep: {},            // preparazione pre-allenamento per esercizio: { sets, reps, w }
   customExercises: {}, // esercizi importati/creati dall'utente (stessa forma di EXERCISES)
   badges: [],          // id dei traguardi sbloccati
   migrations: [],      // id delle migrazioni già applicate

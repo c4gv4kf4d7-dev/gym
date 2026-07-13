@@ -88,7 +88,21 @@ function renderDeloadBanner() {
 }
 
 // SOVRACCARICO PROGRESSIVO — suggerimento per l'esercizio di oggi
+// La tab Allena è SOLO preparazione: i valori toccati lì finiscono in
+// state.prep e diventano gli obiettivi proposti dal guidato (che è
+// l'unico posto dove una sessione viene davvero registrata).
 function suggestion(exKey) {
+  const sug = suggestionBase(exKey);
+  const prep = (state.prep || {})[exKey];
+  if (prep && prep.w != null) {
+    sug.targetW = prep.w;
+    if (prep.reps) sug.targetReps = prep.reps;
+    sug.todayHtml = `Preparato da te: <strong>${sug.targetW} kg</strong> × ${sug.targetReps} 🎯`;
+  }
+  return sug;
+}
+
+function suggestionBase(exKey) {
   const meta = EXERCISES[exKey];
   const last = lastExercise(exKey);
   const inc = meta.type === "dumbbell" ? 2 : 2.5;   // +2 manubri, +2.5 macchine/cavi

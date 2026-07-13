@@ -28,9 +28,10 @@ var lsStub = { _d:{}, getItem:function(k){return this._d[k]||null}, setItem:func
 function ChartStub(){ this.destroy=function(){}; } ChartStub.defaults={font:{}};
 
 var SRC = [read(ROOT + "/js/data.js"), read(ROOT + "/js/storage.js"), read(ROOT + "/js/core.js"), read(ROOT + "/js/deload.js"), read(ROOT + "/js/workout.js"), read(ROOT + "/js/guided.js"), read(ROOT + "/js/calendar.js"), read(ROOT + "/js/progress.js"), read(ROOT + "/js/profile.js"), read(ROOT + "/js/meals.js"), read(ROOT + "/js/init.js"), read(ROOT + "/js/wrapped.js"), read(ROOT + "/js/demo.js"), read(ROOT + "/js/crew.js")].join("\n;\n");
+var TIMER_STUBS = "var setTimeout=function(){return 0};var clearTimeout=function(){};var setInterval=function(){return 0};var clearInterval=function(){};\n";
 var api = new Function(
   "document","window","localStorage","sessionStorage","navigator","EXERCISE_STEPS","EXERCISE_CUES","Chart",
-  SRC + `
+  TIMER_STUBS + SRC + `
   ;return {
     localDate: localDate, todayStr: todayStr, weekStart: weekStart, linReg: linReg,
     suggestion: suggestion, exVerdict: exVerdict, nutritionTargets: nutritionTargets,
@@ -38,6 +39,7 @@ var api = new Function(
     ALL_WORKOUTS: ALL_WORKOUTS, getWorkout: getWorkout, SCHEDULABLE: SCHEDULABLE,
     chipOrder: chipOrder, ptNextIndex: ptNextIndex, selectWorkout: selectWorkout,
     nightCloseMessage: nightCloseMessage, computeCrewStats: computeCrewStats, icsContent: icsContent,
+    manualSave: manualSave, commitSession: commitSession,
     defaultState: defaultState, applyMigrations: applyMigrations,
     fatigueAnalysis: fatigueAnalysis, deloadActive: deloadActive,
     wrappedStats: wrappedStats, wrappedVerdict: wrappedVerdict, volumeComparison: volumeComparison,
@@ -357,6 +359,27 @@ ok("ICS: la seduta PT ha il super esercizio", ics.indexOf("PT — Panca") >= 0 |
 ok("ICS: eventi giornata intera", ics.indexOf("DTSTART;VALUE=DATE:") >= 0);
 st.schedule = {};
 ok("ICS: senza piano → null", api.icsContent() === null);
+
+/* ---- 16h) PREPARAZIONE: la tab Allena non registra, prepara ---- */
+st = api.defaultState();
+st.sessions = [{ id:1, date:"2026-07-01", workoutId:"fullbody",
+  exercises:{ chestpress:{ sets:[{w:20,r:12},{w:20,r:12},{w:20,r:12}], quality:"clean" } } }];
+api.set(st);
+var nBefore = st.sessions.length;
+docStub.getElementById("m-sets-chestpress").value = "3";
+docStub.getElementById("m-reps-chestpress").value = "10";
+docStub.getElementById("m-w-chestpress").value = "27.5";
+api.manualSave("chestpress");
+ok("prep: modificare la card NON crea sessioni", api.get().sessions.length === nBefore);
+ok("prep: il calendario NON viene toccato", Object.keys(api.get().schedule).length === 0);
+ok("prep: i valori finiscono in state.prep", st.prep.chestpress && st.prep.chestpress.w === 27.5 && st.prep.chestpress.reps === 10);
+var sgP = api.suggestion("chestpress");
+ok("prep: il guidato propone i kg preparati", sgP.targetW === 27.5 && sgP.targetReps === 10);
+ok("prep: il suggerimento lo dice chiaramente", sgP.todayHtml.indexOf("Preparato da te") >= 0);
+api.commitSession("fullbody", { chestpress: { sets:[{w:27.5,r:10}], quality:"clean" } }, {});
+ok("prep: dopo il salvataggio del guidato la sessione esiste", api.get().sessions.length === nBefore + 1);
+ok("prep: e la preparazione si azzera", !st.prep.chestpress);
+ok("prep: il calendario ora segna fatto", api.get().schedule[api.todayStr()].done === true);
 
 /* ---- 17) SMOKE: ogni vista renderizza senza eccezioni (dati demo realistici) ---- */
 function smoke(name, fn) {

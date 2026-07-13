@@ -59,14 +59,36 @@ function closeGuidedOverlay() {
   document.body.style.overflow = "";
 }
 
-// Chiusura con ✕ → mette in pausa e salva (riprendibile)
+// Chiusura con ✕ prima della fine → scegli tu: salva, riprendi dopo o scarta.
+// (il salvataggio esplicito è l'UNICO modo in cui nasce una sessione)
 function pauseGuided() {
   if (!guided) return;
   if (guided.timer) { clearInterval(guided.timer); guided.timer = null; }
   if (guided.phase === "menu") guided.phase = guided.menuReturn || "set";   // non riaprire sul menù
+  const any = Object.keys(guided.data || {}).some(k => guided.data[k].sets.length);
+  if (!any) { clearGuided(); closeGuidedOverlay(); renderWorkout(); return; }   // niente dati → chiudi e basta
   saveGuided();
   closeGuidedOverlay();
   renderWorkout();
+  $("modal-title").textContent = "Allenamento interrotto";
+  $("modal-body").innerHTML = `
+    <p class="modal-q">Hai delle serie registrate: cosa vuoi farne?</p>
+    <div class="modal-opts">
+      <button class="modal-opt" onclick="closeModal();pauseSaveNow()"><span class="modal-opt-emoji">💾</span><span><b>Salva la sessione</b><br><small>registra quello che hai fatto finora</small></span></button>
+      <button class="modal-opt" onclick="closeModal()"><span class="modal-opt-emoji">⏸️</span><span><b>Riprendi più tardi</b><br><small>resta in pausa, la ritrovi in Allena</small></span></button>
+      <button class="modal-opt" onclick="closeModal();doDiscardGuided()"><span class="modal-opt-emoji">🗑</span><span><b>Scarta</b><br><small>era una prova: non registrare nulla</small></span></button>
+    </div>`;
+  $("modal").classList.add("show");
+}
+
+// Salva subito i dati della sessione in pausa (senza schermata finale)
+function pauseSaveNow() {
+  const snap = loadGuided();
+  if (!snap) return;
+  const exercises = {};
+  Object.keys(snap.data || {}).forEach(k => { if (snap.data[k].sets.length) exercises[k] = snap.data[k]; });
+  clearGuided();
+  commitSession(snap.workoutId, exercises, { duration: null, calories: null, notes: "" });
 }
 
 function resumeGuided() {
@@ -147,7 +169,7 @@ function cuesHTML(key) {
 function renderGuided() {
   const meta = gMeta(), key = gKey();
   const N = guided.keys.length;
-  const totalSets = meta.sets;
+  const totalSets = (((state.prep || {})[key] || {}).sets) || meta.sets;   // serie preparate in Allena
   const done = Object.values(guided.status || {}).filter(s => s === "done").length;
   const pct = Math.round((done / N) * 100);
   const canBack = (guided.history || []).length > 0;
