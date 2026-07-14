@@ -279,10 +279,10 @@ function renderGuided() {
         ${guided.setIndex === 0 ? `<div class="g-mot">${guidedMotivation(key)}</div>` : `<div class="g-sugg sugg-${sug.color}"><span class="sugg-label">Oggi:</span> ${sug.todayHtml}</div>`}
         ${cuesHTML(key)}
         <div class="g-inputs">
-          <div class="g-ig"><div class="g-ilbl">Peso (kg)</div>
+          ${isBodyweight(meta) ? '' : `<div class="g-ig"><div class="g-ilbl">Peso (kg)</div>
             <div class="g-step"><button class="g-pm" onclick="gStep('g-w',-2.5)">−</button><input id="g-w" type="number" inputmode="decimal" value="${prevW}" min="0" max="500" step="2.5"><button class="g-pm" onclick="gStep('g-w',2.5)">＋</button></div>
           </div>
-          <div class="g-ix">×</div>
+          <div class="g-ix">×</div>`}
           <div class="g-ig"><div class="g-ilbl">Ripetizioni</div>
             <div class="g-step"><button class="g-pm" onclick="gStep('g-r',-1)">−</button><input id="g-r" type="number" inputmode="numeric" value="${prevR}" min="0" max="50"><button class="g-pm" onclick="gStep('g-r',1)">＋</button></div>
           </div>
@@ -304,15 +304,18 @@ function gStep(id, delta) {
 function guidedCompleteSet() {
   const meta = gMeta(), key = gKey();
   if (!meta.time) {
-    const wv = parseFloat($("g-w").value);
+    const bwEx = isBodyweight(meta);
+    const wv = bwEx ? 0 : parseFloat($("g-w").value);
     const rv = parseInt($("g-r").value);
-    if (isNaN(wv) || wv <= 0) { toast("Inserisci il peso della serie"); return; }
+    if (!bwEx && (isNaN(wv) || wv <= 0)) { toast("Inserisci il peso della serie"); return; }
+    if (bwEx && (isNaN(rv) || rv <= 0)) { toast("Inserisci le ripetizioni"); return; }
     gPush();
     gStore(key).sets.push({ w: wv, r: isNaN(rv) ? meta.reps : rv });
   } else {
     gPush();
   }
-  if (guided.setIndex < meta.sets - 1) {
+  const plannedSets = (((state.prep || {})[key] || {}).sets) || meta.sets;
+  if (guided.setIndex < plannedSets - 1) {
     guided.setIndex++;            // serie successiva, senza recupero (lo gestisci tu sull'Apple Watch)
     guided.phase = "set";
     renderGuided();

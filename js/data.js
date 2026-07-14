@@ -4,7 +4,7 @@
 
 // Libreria esercizi: ogni esercizio è referenziato per chiave dalle schede.
 const EXERCISES = {
-  legpress:     { name: "Leg Press",        muscle: "Quadricipiti",      secondary: "Glutei, Femorali",          type: "machine",  sets: 3, reps: 12, rest: '90"', bodyPart: "legs",      tip: "Non portare le ginocchia oltre le punte dei piedi e non bloccare completamente le gambe in estensione: mantieni una leggera flessione." },
+  legpress:     { name: "Leg Press",        muscle: "Quadricipiti",      secondary: "Glutei, Femorali",          type: "machine", inc: 10, sets: 3, reps: 12, rest: '90"', bodyPart: "legs",      tip: "Non portare le ginocchia oltre le punte dei piedi e non bloccare completamente le gambe in estensione: mantieni una leggera flessione." },
   legext:       { name: "Leg Extension",    muscle: "Quadricipiti",      secondary: "—",                          type: "machine",  sets: 3, reps: 12, rest: '60"', bodyPart: "legs",      tip: "Non slanciare il peso. Estendi in modo controllato e contrai il quadricipite per un secondo in cima." },
   legcurl:      { name: "Leg Curl",         muscle: "Femorali",          secondary: "Polpacci",                   type: "machine",  sets: 3, reps: 12, rest: '60"', bodyPart: "legs",      tip: "Tieni il bacino aderente al pad, non sollevarlo. Fase di discesa lenta e controllata." },
   hipthrust:    { name: "Hip Thrust",       muscle: "Glutei",            secondary: "Femorali",                   type: "machine",  sets: 3, reps: 12, rest: '90"', bodyPart: "legs",      tip: "Spingi con i talloni e contrai i glutei in cima. Non iperestendere la zona lombare." },

@@ -94,24 +94,40 @@ function renderDeloadBanner() {
 function suggestion(exKey) {
   const sug = suggestionBase(exKey);
   const prep = (state.prep || {})[exKey];
-  if (prep && prep.w != null) {
-    sug.targetW = prep.w;
-    if (prep.reps) sug.targetReps = prep.reps;
-    sug.todayHtml = `Preparato da te: <strong>${sug.targetW} kg</strong> × ${sug.targetReps} 🎯`;
+  if (prep) {
+    if (isBodyweight(EXERCISES[exKey])) {
+      if (prep.reps) { sug.targetReps = prep.reps; sug.todayHtml = `Preparato da te: <strong>${sug.targetReps} ripetizioni</strong> 🎯`; }
+    } else if (prep.w != null && prep.w > 0) {
+      sug.targetW = prep.w;
+      if (prep.reps) sug.targetReps = prep.reps;
+      sug.todayHtml = `Preparato da te: <strong>${sug.targetW} kg</strong> × ${sug.targetReps} 🎯`;
+    }
   }
   return sug;
 }
 
+// Esercizio a corpo libero (senza kg): si progredisce a ripetizioni
+const isBodyweight = (meta) => !!meta && meta.type === "body" && !meta.time;
+
 function suggestionBase(exKey) {
   const meta = EXERCISES[exKey];
   const last = lastExercise(exKey);
-  const inc = meta.type === "dumbbell" ? 2 : 2.5;   // +2 manubri, +2.5 macchine/cavi
+  const inc = meta.inc || (meta.type === "dumbbell" ? 2 : 2.5);   // passo custom (es. leg press +10), poi +2 manubri, +2.5 macchine/cavi
   const baseReps = meta.reps;        // base del contenitore (es. 12)
   const capReps = baseReps + 3;      // tetto del contenitore (es. 15)
 
   if (!last) {
-    return { last: null, todayHtml: `Scegli un peso che ti dia serie pulite`,
+    return { last: null, todayHtml: isBodyweight(meta) ? `A corpo libero: conta le ripetizioni pulite` : `Scegli un peso che ti dia serie pulite`,
              color: "gray", targetW: null, targetReps: baseReps };
+  }
+
+  // corpo libero: niente kg, la progressione è sulle ripetizioni
+  if (isBodyweight(meta)) {
+    const minR0 = Math.min(...last.sets.map(s => s.r));
+    const day0 = new Date(last.date + "T00:00:00").toLocaleDateString("it-IT", { weekday: "long" });
+    const b0 = { last, lastW: null, lastR: minR0, lastSets: last.sets.length, day: day0 };
+    if (last.quality === "clean") return { ...b0, todayHtml: `Aggiungi una ripetizione per serie 🎯`, color: "green", targetW: null, targetReps: minR0 + 1 };
+    return { ...b0, todayHtml: `Stesse ripetizioni, più pulite`, color: "yellow", targetW: null, targetReps: minR0 };
   }
 
   const w = Math.max(...last.sets.map(s => s.w));

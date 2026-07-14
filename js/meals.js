@@ -110,16 +110,22 @@ function renderMealHistory() {
     const kAvg = Math.round(ds.reduce((a, d) => a + dayTotals(d).kcal, 0) / ds.length);
     const pAvg = Math.round(ds.reduce((a, d) => a + dayTotals(d).protein, 0) / ds.length);
     const end = new Date(wk + "T00:00:00"); end.setDate(end.getDate() + 6);
+    // semaforo della settimana: 🟢 7/7 giorni con ENTRAMBI gli obiettivi ·
+    // 🟡 almeno un obiettivo preso in qualche giorno · 🔴 mai nessuno dei due
+    const perDay = ds.map(d => { const t = dayTotals(d); return { k: t.kcal >= kT * 0.9, p: t.protein >= pT }; });
+    const allBoth = ds.length === 7 && perDay.every(x => x.k && x.p);
+    const anyHit = perDay.some(x => x.k || x.p);
+    const badge = allBoth ? '<span class="mh-b mh-green">✓</span>' : anyHit ? '<span class="mh-b mh-yellow">～</span>' : '<span class="mh-b mh-red">✕</span>';
     const kOk = kAvg >= kT * 0.9, pOk = pAvg >= pT;
     return `<div class="mh-row">
-      <span class="mh-date">${fmtShort(wk)} – ${fmtShort(localDate(end))}</span>
+      <span class="mh-date">${fmtShort(wk)} – ${fmtShort(localDate(end))}${ds.length < 7 ? `<span class="mh-days">${ds.length} gg</span>` : ''}</span>
       <span class="mh-val">🔥 <b class="${kOk ? 'mh-ok' : 'mh-miss'}">${kAvg}</b></span>
       <span class="mh-val">💪 <b class="${pOk ? 'mh-ok' : 'mh-miss'}">${pAvg}</b> g</span>
-      <span class="mh-flag">${kOk && pOk ? '✅' : ''}${ds.length < 7 ? `<span class="mh-days">${ds.length} gg</span>` : ''}</span>
+      <span class="mh-flag">${badge}</span>
     </div>`;
   }).join("");
   host.innerHTML = selHTML + rows +
-    `<div class="chart-hint" style="margin-top:8px">Medie giornaliere della settimana · verde = obiettivo centrato (kcal ≥ 90%, proteine piene).</div>`;
+    `<div class="chart-hint" style="margin-top:8px">Medie giornaliere · 🟢 7/7 giorni con entrambi gli obiettivi · 🟡 a metà strada · 🔴 nessun obiettivo preso.</div>`;
 }
 
 function renderMealSummary() {

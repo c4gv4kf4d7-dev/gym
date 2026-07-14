@@ -88,10 +88,10 @@ function renderWorkout() {
         <div class="sets-row m-row" data-ex="${ex.key}">
           <div class="m-field"><input class="m-in" id="m-sets-${ex.key}" type="number" inputmode="numeric" min="1" max="10" value="${today ? Object.keys(today.sets).length : ((state.prep || {})[ex.key] || {}).sets || ex.sets}" onchange="manualChanged('${ex.key}')"><div class="set-pill-lbl">Serie</div></div>
           <div class="m-field"><input class="m-in" id="m-reps-${ex.key}" type="number" inputmode="numeric" min="1" max="50" value="${today && today.sets[0] ? today.sets[0].r : (ex.time ? '' : (sug ? sug.targetReps : ex.reps))}" ${ex.time ? 'disabled placeholder="—"' : ''} onchange="manualChanged('${ex.key}')"><div class="set-pill-lbl">${ex.time ? 'Durata' : 'Rip.'}</div></div>
-          <div class="m-field"><input class="m-in" id="m-w-${ex.key}" type="number" inputmode="decimal" step="0.5" min="0" max="500" value="${today && today.sets[0] ? today.sets[0].w : (!ex.time && sug && sug.targetW != null ? sug.targetW : '')}" placeholder="—" ${ex.time ? 'disabled' : ''} onchange="manualChanged('${ex.key}')"><div class="set-pill-lbl">Kg</div></div>
+          <div class="m-field"><input class="m-in" id="m-w-${ex.key}" type="number" inputmode="decimal" step="0.5" min="0" max="500" value="${today && today.sets[0] ? (today.sets[0].w || '') : (!ex.time && sug && sug.targetW != null ? sug.targetW : '')}" placeholder="—" ${ex.time || isBodyweight(ex) ? 'disabled' : ''} onchange="manualChanged('${ex.key}')"><div class="set-pill-lbl">Kg</div></div>
         </div>
         ${ex.time ? '' : `<div class="last-time">📊 Ultima volta: ${sug.last
-          ? `<strong>${sug.lastW}kg</strong> · ${sug.lastSets}×${sug.lastR} ${lastQualIcon(ex.key)} <span class="lt-day">(${sug.day})</span>`
+          ? `${sug.lastW != null ? `<strong>${sug.lastW}kg</strong> · ` : ''}${sug.lastSets}×${sug.lastR} ${lastQualIcon(ex.key)} <span class="lt-day">(${sug.day})</span>`
           : '— nessuna sessione precedente'}</div>`}
         <div class="tip-box">
           <div class="tip-label">⚠️ Errore comune</div>
@@ -226,10 +226,11 @@ function manualSave(exKey) {
   const gv = (id) => { const e = $(id); return e ? parseFloat(String(e.value).replace(",", ".")) : NaN; };
   const nSets = Math.max(1, Math.min(10, parseInt(gv("m-sets-" + exKey)) || (EXERCISES[exKey].sets || 3)));
   const reps = Math.max(1, Math.min(50, parseInt(gv("m-reps-" + exKey)) || (EXERCISES[exKey].reps || 12)));
+  const bw = isBodyweight(EXERCISES[exKey]);
   const w = gv("m-w-" + exKey);
-  if (isNaN(w) || w <= 0) return;              // niente kg → niente preparazione
+  if (!bw && (isNaN(w) || w <= 0)) return;     // niente kg → niente preparazione (tranne corpo libero)
   state.prep = state.prep || {};
-  state.prep[exKey] = { sets: nSets, reps, w };
+  state.prep[exKey] = { sets: nSets, reps, w: bw ? 0 : w };
   saveState(state);
   toast("🎯 " + EXERCISES[exKey].name + ": preparato per il guidato");
 }

@@ -5,8 +5,10 @@ function renderProgress() {
   if (window.renderCrewCard) window.renderCrewCard();
   const s = state.sessions;
   // stat cards
-  const weekAgo = localDate(new Date(Date.now() - 7 * 864e5));
-  const thisWeek = s.filter(x => x.date >= weekAgo).length;
+  // settimana corrente (lun→dom), sedute PT comprese — come nella sfida crew
+  const wk0 = weekStart(todayStr());
+  const thisWeek = s.filter(x => weekStart(x.date) === wk0).length +
+                   (state.ptLifts || []).filter(l => weekStart(l.date) === wk0).length;
   let prCount = 0;
   const allKeys = new Set(); s.forEach(x => Object.keys(x.exercises || {}).forEach(k => allKeys.add(k)));
   allKeys.forEach(k => { if (bestPR(k) > 0) prCount++; });
@@ -472,13 +474,16 @@ function renderExChart() {
       const sets = exSets(s, k);
       const maxW = Math.max(...sets.map(x => x.w));
       const topSet = sets.find(x => x.w === maxW);
-      return { d: fmtShort(s.date), v: maxW, sets: sets.length, reps: topSet ? topSet.r : null, q: s.exercises[k].quality };
+      const vol = sets.reduce((a, x) => a + (x.w || 0) * (x.r || 0), 0);
+      const repsTot = sets.reduce((a, x) => a + (x.r || 0), 0);
+      return { d: fmtShort(s.date), v: vol > 0 ? vol : repsTot, maxW, sets: sets.length, reps: topSet ? topSet.r : null, q: s.exercises[k].quality };
     });
   if (!pts.length) { if (lbl) lbl.textContent = "—"; if (verd) verd.textContent = ""; return; }
   const vals = pts.map(p => p.v);
   const maxV = Math.max(...vals), minV = Math.min(...vals);
   const maxIdx = vals.lastIndexOf(maxV);
-  if (lbl) lbl.textContent = `max ${maxV} kg`;
+  const isBW = isBodyweight(EXERCISES[k]);
+  if (lbl) lbl.textContent = isBW ? `max ${maxV} rip. totali` : `max ${Math.max(...pts.map(p => p.maxW))} kg`;
   if (verd) verd.innerHTML = exVerdict(pts) + exCoachExtra(pts, k);
   charts.ex = new Chart(ctx, {
     type: "line",

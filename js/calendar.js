@@ -19,10 +19,22 @@ function renderCalendar() {
     const sched = state.schedule[ds];
     const isToday = ds === todayStr();
     const w = sched ? getWorkout(sched.workoutId) : null;
+    // fatto anche SENZA programmazione: sessioni salvate e sedute PT contano
+    const sess = state.sessions.find(x => x.date === ds);
+    const ptDone = (state.ptLifts || []).some(l => l.date === ds);
+    let dot = "";
+    if (w) {
+      dot = `<span class="cal-dot ${sched.done ? 'done' : ''}" style="background:${sched.pt ? '#A855F7' : w.color}" title="${w.name}${sched.done ? ' · fatto' : ''}">${sched.pt ? '🧑‍🏫' : w.emoji}</span>`;
+    } else if (sess) {
+      const sw = getWorkout(sess.workoutId);
+      dot = `<span class="cal-dot done" style="background:${sw ? sw.color : '#9CA3AF'}" title="${sw ? sw.name : 'Allenamento'} · fatto">${sw ? sw.emoji : '🏋️'}</span>`;
+    } else if (ptDone) {
+      dot = `<span class="cal-dot done" style="background:#A855F7" title="Seduta PT · fatta">🧑‍🏫</span>`;
+    }
     html += `
-      <div class="cal-cell ${isToday ? 'today' : ''} ${sched ? 'has' : ''}" onclick="openDay('${ds}')">
+      <div class="cal-cell ${isToday ? 'today' : ''} ${(sched || sess || ptDone) ? 'has' : ''}" onclick="openDay('${ds}')">
         <span class="cal-num">${d}</span>
-        ${w ? `<span class="cal-dot ${sched.done ? 'done' : ''}" style="background:${sched.pt ? '#A855F7' : w.color}" title="${w.name}${sched.done ? ' · fatto' : ''}">${sched.pt ? '🧑‍🏫' : w.emoji}</span>` : ''}
+        <span class="cal-slot">${dot}</span>
       </div>`;
   }
   $("cal-grid").innerHTML = html;
@@ -123,10 +135,10 @@ function openDay(ds) {
     const sched = state.schedule[ds];
     $("modal-body").innerHTML = `
       <p class="modal-q">Quale scheda vuoi programmare?</p>
-      <div class="modal-opts">
+      <div class="modal-opts ${sched ? 'has-sel' : ''}">
         ${SCHEDULABLE().map(w => `
           <button class="modal-opt ${sched && sched.workoutId === w.id ? 'sel' : ''}"
-                  style="border-color:${w.color}" onclick="assignDay('${ds}','${w.id}')">
+                  style="border-color:${w.color};color:${sched && sched.workoutId === w.id ? w.color : 'var(--text)'}" onclick="assignDay('${ds}','${w.id}')">
             <span class="modal-opt-emoji">${w.emoji}</span>
             <span>${w.name}</span>
           </button>`).join("")}

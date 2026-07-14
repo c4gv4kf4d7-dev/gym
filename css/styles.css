@@ -250,12 +250,13 @@ input::placeholder { color: var(--faint); }
 .cal-month { font-size: 16px; font-weight: 800; }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; border-radius: 20px; padding: 12px; margin-bottom: 16px; }
 .cal-dow { text-align: center; font-size: 10px; font-weight: 800; color: var(--muted); padding-bottom: 4px; }
-.cal-cell { aspect-ratio: 1; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; position: relative; transition: background .15s; }
+.cal-cell { aspect-ratio: 1; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 5px; gap: 2px; cursor: pointer; position: relative; transition: background .15s; }
+.cal-slot { height: 21px; display: flex; align-items: center; justify-content: center; }
 .cal-cell:not(.empty):hover { background: rgba(255,255,255,.06); }
 .cal-cell.empty { cursor: default; }
 .cal-cell.today { background: rgba(255,45,149,.18); box-shadow: inset 0 0 0 1px rgba(255,45,149,.5); }
 .cal-cell.today .cal-num { color: var(--pink); font-weight: 800; }
-.cal-num { font-size: 13px; font-weight: 700; }
+.cal-num { font-size: 13px; font-weight: 700; height: 18px; display: flex; align-items: center; }
 .cal-dot { position: relative; width: 19px; height: 19px; border-radius: 50%; font-size: 10px; color: #fff; display: flex; align-items: center; justify-content: center; }
 .cal-dot.done { box-shadow: 0 0 0 2px #10B981; }
 .cal-dot.done::after { content: "✓"; position: absolute; right: -6px; top: -6px; width: 12px; height: 12px; border-radius: 50%; background: #10B981; color: #04220f; font-size: 8px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
@@ -430,7 +431,8 @@ input::placeholder { color: var(--faint); }
 .modal-q { font-size: 13px; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
 .modal-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .modal-opt { display: flex; flex-direction: column; align-items: center; gap: 6px; background: rgba(255,255,255,.05); border: 1.5px solid var(--border); border-radius: 16px; padding: 16px 10px; font-size: 13px; font-weight: 800; cursor: pointer; transition: all .15s; color: var(--text); }
-.modal-opt.sel { background: rgba(255,45,149,.14); }
+.modal-opt.sel { background: rgba(255,45,149,.18); box-shadow: 0 0 0 2px currentColor inset, 0 6px 18px -6px rgba(255,45,149,.5); transform: scale(1.03); }
+.modal-opts.has-sel .modal-opt:not(.sel) { opacity: .35; }
 .modal-opt-emoji { font-size: 24px; }
 .modal-clear { width: 100%; margin-top: 14px; background: rgba(255,77,109,.16); color: #FF9DAE; border: 1px solid rgba(255,77,109,.3); border-radius: 12px; padding: 12px; font-size: 13px; font-weight: 800; cursor: pointer; }
 .confirm-row { display: flex; gap: 10px; margin-top: 16px; }
@@ -635,7 +637,7 @@ input::placeholder { color: var(--faint); }
 /* Gestione scheda (fondo tab Allena) */
 .wk-manage { display: flex; gap: 8px; margin-top: 14px; }
 .wk-manage .btn-outline { flex: 1; padding: 11px; font-size: 13px; }
-.wk-manage .wk-del { color: rgba(255,120,120,.9); border-color: rgba(255,120,120,.3); flex: 0 0 auto; }
+.wk-manage .wk-del { color: rgba(255,120,120,.9); border-color: rgba(255,120,120,.3); }
 
 /* Coach extra sotto i grafici */
 .coach-extra { display: inline-block; margin-top: 6px; color: rgba(245,240,255,.75); }
@@ -649,7 +651,12 @@ input::placeholder { color: var(--faint); }
 .mh-val { flex: 1; }
 .mh-ok { color: #2BD576; }
 .mh-miss { color: rgba(245,240,255,.85); }
-.mh-flag { min-width: 18px; text-align: right; }
+.mh-flag { min-width: 26px; display: flex; justify-content: flex-end; }
+.mh-b { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; }
+.mh-green { background: rgba(43,213,118,.2); color: #2BD576; }
+.mh-yellow { background: rgba(245,158,11,.2); color: #F59E0B; }
+.mh-red { background: rgba(255,77,109,.2); color: #FF4D6D; }
+.mh-days { margin-left: 6px; font-size: 10px; color: rgba(245,240,255,.45); font-weight: 700; }
 .crew-fire { width: 100%; margin-top: 12px; }
 .crew-hint { font-size: 11px; color: rgba(245,240,255,.5); margin-top: 10px; text-align: center; }
 .crew-code { font-size: 24px; font-weight: 900; letter-spacing: .08em; text-align: center; padding: 12px; margin: 10px 0; border: 1.5px dashed rgba(255,255,255,.3); border-radius: 12px; background: rgba(168,85,247,.10); }

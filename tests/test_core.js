@@ -39,7 +39,7 @@ var api = new Function(
     ALL_WORKOUTS: ALL_WORKOUTS, getWorkout: getWorkout, SCHEDULABLE: SCHEDULABLE,
     chipOrder: chipOrder, ptNextIndex: ptNextIndex, selectWorkout: selectWorkout,
     nightCloseMessage: nightCloseMessage, computeCrewStats: computeCrewStats, icsContent: icsContent,
-    manualSave: manualSave, commitSession: commitSession,
+    manualSave: manualSave, commitSession: commitSession, mergeCustomExercises: mergeCustomExercises,
     defaultState: defaultState, applyMigrations: applyMigrations,
     fatigueAnalysis: fatigueAnalysis, deloadActive: deloadActive,
     wrappedStats: wrappedStats, wrappedVerdict: wrappedVerdict, volumeComparison: volumeComparison,
@@ -380,6 +380,19 @@ api.commitSession("fullbody", { chestpress: { sets:[{w:27.5,r:10}], quality:"cle
 ok("prep: dopo il salvataggio del guidato la sessione esiste", api.get().sessions.length === nBefore + 1);
 ok("prep: e la preparazione si azzera", !st.prep.chestpress);
 ok("prep: il calendario ora segna fatto", api.get().schedule[api.todayStr()].done === true);
+
+/* ---- 16i) INCREMENTI E CORPO LIBERO ---- */
+st = api.defaultState();
+st.sessions = [{ id:1, date:"2026-07-01", workoutId:"fullbody", exercises:{
+  legpress:{ sets:[{w:45,r:15},{w:45,r:15},{w:45,r:15}], quality:"clean" } } }];
+api.set(st);
+ok("leg press: al tetto reps sale di +10 kg (passo dedicato)", api.suggestion("legpress").targetW === 55);
+st.customExercises = { cx_crunchp: { name:"Crunch panca inclinata", muscle:"Addominali", type:"body", sets:3, reps:12, bodyPart:"core" } };
+st.sessions.push({ id:2, date:"2026-07-02", workoutId:"x", exercises:{
+  cx_crunchp:{ sets:[{w:0,r:12},{w:0,r:12}], quality:"clean" } } });
+api.mergeCustomExercises();
+var sgB = api.suggestion("cx_crunchp");
+ok("corpo libero: niente kg, progressione a ripetizioni", sgB.targetW === null && sgB.targetReps === 13);
 
 /* ---- 17) SMOKE: ogni vista renderizza senza eccezioni (dati demo realistici) ---- */
 function smoke(name, fn) {
