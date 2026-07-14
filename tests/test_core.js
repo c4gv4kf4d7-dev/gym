@@ -394,6 +394,21 @@ api.mergeCustomExercises();
 var sgB = api.suggestion("cx_crunchp");
 ok("corpo libero: niente kg, progressione a ripetizioni", sgB.targetW === null && sgB.targetReps === 13);
 
+/* ---- 16j) MIGRAZIONE corpo libero ---- */
+var stB = api.defaultState();
+stB.customExercises = {
+  a: { name: "Plank battito spalle", type: "machine", bodyPart: "core" },
+  b: { name: "Mountain climber", type: "machine", bodyPart: "core" },
+  c: { name: "Crunch sollevamento gambe", type: "machine", bodyPart: "core" },
+  d: { name: "Tricipiti ai cavi", type: "cable", bodyPart: "arms" },
+  e: { name: "Crunch ai cavi in piedi", type: "machine", bodyPart: "core" }
+};
+stB = api.applyMigrations(stB);
+ok("migrazione BW: plank/climber/crunch → corpo libero",
+   stB.customExercises.a.type === "body" && stB.customExercises.b.type === "body" && stB.customExercises.c.type === "body");
+ok("migrazione BW: chi cita un attrezzo NON viene toccato",
+   stB.customExercises.d.type === "cable" && stB.customExercises.e.type === "machine");
+
 /* ---- 17) SMOKE: ogni vista renderizza senza eccezioni (dati demo realistici) ---- */
 function smoke(name, fn) {
   try { fn(); ok("smoke: " + name, true); }

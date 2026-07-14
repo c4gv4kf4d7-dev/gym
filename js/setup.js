@@ -633,7 +633,7 @@ Regole: "gruppo" ∈ petto|schiena|gambe|spalle|braccia|core. "attrezzo" ∈ bil
             name: e.nome,
             muscle: e.gruppo ? (e.gruppo.charAt(0).toUpperCase() + e.gruppo.slice(1)) : "—",
             secondary: "—",
-            type: TOOL_MAP[e.attrezzo] || "machine",
+            type: TOOL_MAP[e.attrezzo] || (/corpo|libero|bodyweight/.test(e.attrezzo) ? "body" : "machine"),
             sets: parseInt(e.serie) || 3,
             reps: parseInt(e.ripetizioni) || 10,
             rest: (parseInt(e.riposo) || 60) + '"',

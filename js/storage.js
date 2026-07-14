@@ -51,6 +51,19 @@ function applyMigrations(s) {
     });
     s.migrations.push("pulldown-back");
   }
+  // Correzione dati: gli esercizi a corpo libero importati dal PT erano
+  // finiti come "macchina" (quindi chiedevano i kg). Riconosciuti dal nome,
+  // esclusi quelli che citano un attrezzo.
+  if (s.migrations.indexOf("bodyweight-fix") < 0) {
+    Object.values(s.customExercises || {}).forEach((ex) => {
+      if (!ex || ex.type === "body") return;
+      const n = ex.name || "";
+      const isBW = /plank|crunch|mountain|climber|burpee|circuito|jumping|sit.?up|affond/i.test(n);
+      const hasTool = /cav[oi]|manubri|bilanciere|macchina|panca piana|smith/i.test(n);
+      if (isBW && !hasTool) ex.type = "body";
+    });
+    s.migrations.push("bodyweight-fix");
+  }
   return s;
 }
 
