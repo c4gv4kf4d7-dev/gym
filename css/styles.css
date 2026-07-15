@@ -643,20 +643,16 @@ input::placeholder { color: var(--faint); }
 .coach-extra { display: inline-block; margin-top: 6px; color: rgba(245,240,255,.75); }
 
 /* Storico giorni pasti */
-.mh-row { display: flex; align-items: center; gap: 10px; padding: 8px 2px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.mh-row { display: grid; grid-template-columns: 1fr 92px 84px; align-items: center; gap: 8px; padding: 9px 2px; border-bottom: 1px solid var(--border); font-size: 13px; }
 .mh-row:last-of-type { border-bottom: none; }
-.mh-date { min-width: 96px; font-weight: 800; color: rgba(245,240,255,.7); font-size: 12px; }
-.mh-days { margin-left: 5px; font-size: 10px; color: rgba(245,240,255,.45); font-weight: 700; }
+.mh-date { font-weight: 800; color: rgba(245,240,255,.7); font-size: 12px; white-space: nowrap; }
 #meal-history .chart-select { margin-bottom: 8px; }
-.mh-val { flex: 1; }
+.mh-val { white-space: nowrap; }
 .mh-ok { color: #2BD576; }
 .mh-miss { color: rgba(245,240,255,.85); }
-.mh-flag { min-width: 26px; display: flex; justify-content: flex-end; }
-.mh-b { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; }
-.mh-green { background: rgba(43,213,118,.2); color: #2BD576; }
-.mh-yellow { background: rgba(245,158,11,.2); color: #F59E0B; }
-.mh-red { background: rgba(255,77,109,.2); color: #FF4D6D; }
-.mh-days { margin-left: 6px; font-size: 10px; color: rgba(245,240,255,.45); font-weight: 700; }
+.mh-cgreen { color: #2BD576; }
+.mh-cyellow { color: #F59E0B; }
+.mh-cred { color: #FF4D6D; }
 .crew-fire { width: 100%; margin-top: 12px; }
 .crew-hint { font-size: 11px; color: rgba(245,240,255,.5); margin-top: 10px; text-align: center; }
 .crew-code { font-size: 24px; font-weight: 900; letter-spacing: .08em; text-align: center; padding: 12px; margin: 10px 0; border: 1.5px dashed rgba(255,255,255,.3); border-radius: 12px; background: rgba(168,85,247,.10); }
