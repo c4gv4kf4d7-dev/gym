@@ -110,19 +110,55 @@ function renderMealHistory() {
     const kAvg = Math.round(ds.reduce((a, d) => a + dayTotals(d).kcal, 0) / ds.length);
     const pAvg = Math.round(ds.reduce((a, d) => a + dayTotals(d).protein, 0) / ds.length);
     const end = new Date(wk + "T00:00:00"); end.setDate(end.getDate() + 6);
-    // semaforo: verde = 7/7 giorni con ENTRAMBI gli obiettivi · rosso = almeno
-    // un giorno mancati entrambi · giallo = tutto il resto
-    const perDay = ds.map(d => { const t = dayTotals(d); return { k: t.kcal >= kT * 0.9, p: t.protein >= pT }; });
-    const col = perDay.some(x => !x.k && !x.p) ? "red"
-              : (ds.length === 7 && perDay.every(x => x.k && x.p)) ? "green"
-              : "yellow";
-    return `<div class="mh-row">
+    const col = mealWeekColor(ds.map(d => dayTotals(d)), kT, pT, wk === weekStart(t));
+    return `<div class="mh-row mh-tap" onclick="mealWeekDetail('${wk}')">
       <span class="mh-date">${fmtShort(wk)} – ${fmtShort(localDate(end))}</span>
       <span class="mh-val">🔥 <b class="mh-c${col}">${kAvg}</b></span>
       <span class="mh-val">💪 <b class="mh-c${col}">${pAvg} g</b></span>
     </div>`;
   }).join("");
   host.innerHTML = selHTML + rows;
+}
+
+/* Semaforo della settimana pasti (funzione pura):
+   🔴 almeno un giorno con ENTRAMBI gli obiettivi mancati
+   🟢 tutti i giorni tracciati centrano entrambi (per le settimane passate
+      servono 7/7; quella corrente è verde anche se non è finita)
+   🟡 tutto il resto */
+function mealWeekColor(totals, kT, pT, isCurrent) {
+  const perDay = totals.map(x => ({ k: x.kcal >= kT * 0.9, p: x.protein >= pT }));
+  if (perDay.some(x => !x.k && !x.p)) return "red";
+  const allBoth = perDay.length > 0 && perDay.every(x => x.k && x.p);
+  if (allBoth && (isCurrent || perDay.length === 7)) return "green";
+  return "yellow";
+}
+
+// Tocca una settimana → dettaglio giorno per giorno
+function mealWeekDetail(wk) {
+  const kT = kcalTarget(), pT = proteinTarget();
+  const end = new Date(wk + "T00:00:00"); end.setDate(end.getDate() + 6);
+  $("modal-title").textContent = `${fmtShort(wk)} – ${fmtShort(localDate(end))}`;
+  let rows = "";
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(wk + "T00:00:00"); d.setDate(d.getDate() + i);
+    const ds = localDate(d);
+    if (ds > todayStr()) break;
+    const tracked = (state.meals[ds] || []).length > 0;
+    if (!tracked) {
+      rows += `<div class="mh-row"><span class="mh-date">${fmtShort(ds)}</span><span class="mh-val mh-dim">— non tracciato</span><span class="mh-val"></span></div>`;
+      continue;
+    }
+    const tot = dayTotals(ds);
+    const kOk = tot.kcal >= kT * 0.9, pOk = tot.protein >= pT;
+    const col = kOk && pOk ? "green" : (kOk || pOk) ? "yellow" : "red";
+    rows += `<div class="mh-row">
+      <span class="mh-date">${fmtShort(ds)}</span>
+      <span class="mh-val">🔥 <b class="mh-c${col}">${tot.kcal}</b></span>
+      <span class="mh-val">💪 <b class="mh-c${col}">${tot.protein} g</b></span>
+    </div>`;
+  }
+  $("modal-body").innerHTML = rows || `<div class="empty-mini">Nessun giorno tracciato in questa settimana.</div>`;
+  $("modal").classList.add("show");
 }
 
 function renderMealSummary() {

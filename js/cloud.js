@@ -71,6 +71,7 @@
       localStorage.removeItem(PENDING_KEY);
       setSyncStatus("Sincronizzato ✓");
       if (window.crewOnSync) window.crewOnSync();   // aggiorna la vetrinetta crew
+      if (window.icsOnSync) window.icsOnSync();     // aggiorna il calendario in abbonamento
       // Cronologia versioni (assicurazione sui dati): best-effort, se la
       // tabella non esiste ancora l'errore viene ignorato.
       sb.from("state_history").insert({ user_id: currentUser.id, data: state })

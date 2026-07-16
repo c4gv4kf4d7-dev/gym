@@ -40,6 +40,7 @@ var api = new Function(
     chipOrder: chipOrder, ptNextIndex: ptNextIndex, selectWorkout: selectWorkout,
     nightCloseMessage: nightCloseMessage, computeCrewStats: computeCrewStats, icsContent: icsContent,
     manualSave: manualSave, commitSession: commitSession, mergeCustomExercises: mergeCustomExercises,
+    mealWeekColor: mealWeekColor,
     defaultState: defaultState, applyMigrations: applyMigrations,
     fatigueAnalysis: fatigueAnalysis, deloadActive: deloadActive,
     wrappedStats: wrappedStats, wrappedVerdict: wrappedVerdict, volumeComparison: volumeComparison,
@@ -408,6 +409,20 @@ ok("migrazione BW: plank/climber/crunch → corpo libero",
    stB.customExercises.a.type === "body" && stB.customExercises.b.type === "body" && stB.customExercises.c.type === "body");
 ok("migrazione BW: chi cita un attrezzo NON viene toccato",
    stB.customExercises.d.type === "cable" && stB.customExercises.e.type === "machine");
+
+/* ---- 16k) SEMAFORO SETTIMANA PASTI ---- */
+function mday(k, p) { return { kcal: k, protein: p }; }
+var K = 2000, P = 120;
+ok("pasti semaforo: 7/7 entrambi → verde",
+   api.mealWeekColor([mday(2000,130),mday(2100,125),mday(1900,121),mday(2000,120),mday(2050,140),mday(2000,120),mday(2200,150)], K, P, false) === "green");
+ok("pasti semaforo: settimana CORRENTE tutta ok (3 giorni) → verde",
+   api.mealWeekColor([mday(2000,130),mday(2100,125),mday(1900,121)], K, P, true) === "green");
+ok("pasti semaforo: settimana passata incompleta tutta ok → giallo",
+   api.mealWeekColor([mday(2000,130),mday(2100,125),mday(1900,121)], K, P, false) === "yellow");
+ok("pasti semaforo: un giorno con ENTRAMBI mancati → rosso",
+   api.mealWeekColor([mday(2000,130),mday(500,10)], K, P, true) === "red");
+ok("pasti semaforo: giorno con solo kcal → giallo",
+   api.mealWeekColor([mday(2000,130),mday(2000,50)], K, P, true) === "yellow");
 
 /* ---- 17) SMOKE: ogni vista renderizza senza eccezioni (dati demo realistici) ---- */
 function smoke(name, fn) {

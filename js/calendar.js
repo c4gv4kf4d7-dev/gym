@@ -102,11 +102,38 @@ function icsContent() {
   return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Allenamento//IT\r\nCALSCALE:GREGORIAN\r\nX-WR-CALNAME:Allenamento\r\n" + events + "\r\nEND:VCALENDAR";
 }
 
+/* Pubblica l'ICS su Supabase Storage (bucket pubblico "calendars"):
+   così il bottone può aprire un vero webcal:// e iOS si ABBONA al
+   calendario — niente file, e gli aggiornamenti arrivano da soli. */
+async function publishICS() {
+  const c = window.__cloud || {};
+  const user = c.user && c.user();
+  if (!c.sb || !user || window.DEMO_MODE) return false;
+  const ics = icsContent();
+  if (!ics) return false;
+  const { error } = await c.sb.storage.from("calendars")
+    .upload(user.id + ".ics", new Blob([ics], { type: "text/calendar" }),
+            { upsert: true, contentType: "text/calendar", cacheControl: "60" });
+  return !error;
+}
+window.icsOnSync = function () { publishICS().then(() => {}, () => {}); };
+
 async function exportICS() {
   const ics = icsContent();
   if (!ics) { toast("Nessun allenamento in programma da esportare"); return; }
-  // dall'app installata sulla Home il download classico e' inaffidabile:
-  // meglio il foglio di condivisione nativo (-> "Aggiungi a Calendario")
+  // 1) via maestra: abbonamento webcal:// (serve il login)
+  const c = window.__cloud || {};
+  const user = c.user && c.user();
+  if (user && !window.DEMO_MODE) {
+    toast("📅 Preparo il calendario…");
+    const ok = await publishICS();
+    if (ok) {
+      const host = String(SUPABASE_URL).replace(/^https?:\/\//, "");
+      window.location.href = `webcal://${host}/storage/v1/object/public/calendars/${user.id}.ics`;
+      return;
+    }
+  }
+  // 2) fallback (sloggati o storage non pronto): foglio di condivisione
   try {
     const file = new File([ics], "allenamenti.ics", { type: "text/calendar" });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {

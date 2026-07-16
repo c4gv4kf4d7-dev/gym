@@ -83,8 +83,7 @@ function computeCrewStats() {
 
 /* ---------- SYNC + UI (solo con Supabase e login) ---------- */
 (function () {
-  let mate = null;          // vetrinetta dell'amico (ultima letta)
-  let mateUserId = null;
+  let mates = [];           // vetrinette dei compagni di crew [{userId, nick, ...stats}]
   let myCrew = null;        // { id, code }
 
   const cloud = () => (window.__cloud || {});
@@ -111,9 +110,8 @@ function computeCrewStats() {
     if (!sb() || !me() || !myCrew) return;
     const { data } = await sb().from("crew_stats").select("user_id, nick, stats, updated_at")
       .eq("crew_id", myCrew.id);
-    const other = (data || []).find(r => r.user_id !== me().id);
-    mate = other ? Object.assign({ updated: other.updated_at }, other.stats) : null;
-    mateUserId = other ? other.user_id : null;
+    mates = (data || []).filter(r => r.user_id !== me().id)
+      .map(r => Object.assign({ userId: r.user_id, updated: r.updated_at }, r.stats));
     renderCrewCard(); renderCrewSetup();
     // punzecchi non letti → banner
     const { data: nudges } = await sb().from("crew_nudges")
@@ -131,17 +129,33 @@ function computeCrewStats() {
     const b = btn.closest(".weigh-banner"); if (b) b.remove();
   };
 
-  window.crewNudge = async function () {
-    if (!sb() || !me() || !mateUserId) return;
+  window.crewNudge = function () {
+    if (window.DEMO_MODE) { toast("👀 Nella demo il punzecchio è finto: accedi per punzecchiare davvero"); return; }
+    if (!sb() || !me()) { toast("Accedi prima"); return; }
+    if (!mates.length) { toast("Nessun compagno collegato alla crew"); return; }
+    if (mates.length === 1) { crewNudgeTo(mates[0].userId); return; }
+    // gruppo: scegli chi punzecchiare
+    $("modal-title").textContent = "Chi punzecchi? 🔥";
+    $("modal-body").innerHTML = `<div class="modal-opts">${mates.map(m => `
+      <button class="modal-opt" onclick="closeModal();crewNudgeTo('${m.userId}')">
+        <span class="modal-opt-emoji">🔥</span><span><b>${m.nick || "Atleta"}</b><br><small>${(m.weekDone || 0)} allenament${m.weekDone === 1 ? "o" : "i"} questa settimana</small></span>
+      </button>`).join("")}</div>`;
+    $("modal").classList.add("show");
+  };
+
+  window.crewNudgeTo = async function (uid) {
+    const m = mates.find(x => x.userId === uid);
+    if (!m) return;
     const my = computeCrewStats();
-    const spice = mate && mate.weekDone === 0
+    const spice = (m.weekDone || 0) === 0
       ? `🔥 ${my.nick} ti ha punzecchiato: ancora 0 allenamenti questa settimana. Il divano non conta come panca.`
-      : `🔥 ${my.nick} ti ha punzecchiato: lui è a ${my.weekDone}/${my.planned} questa settimana. Tocca a te.`;
-    await sb().from("crew_nudges").insert({
+      : `🔥 ${my.nick} ti ha punzecchiato: è a ${my.weekDone} allenament${my.weekDone === 1 ? "o" : "i"} questa settimana. Tocca a te.`;
+    const { error } = await sb().from("crew_nudges").insert({
       crew_id: myCrew.id, from_user: me().id, from_nick: my.nick,
-      to_user: mateUserId, txt: spice
-    }).then(() => {}, () => {});
-    toast("🔥 Punzecchio inviato!");
+      to_user: uid, txt: spice
+    });
+    if (error) toast("⚠️ Punzecchio non inviato: " + error.message);
+    else toast(`🔥 Punzecchio inviato a ${m.nick || "il tuo socio"}! Lo vedrà alla prossima apertura`);
   };
 
   window.crewCreate = async function () {
@@ -171,7 +185,7 @@ function computeCrewStats() {
 
   window.crewLeave = async function () {
     if (sb() && me()) await sb().from("crew_stats").delete().eq("user_id", me().id).then(() => {}, () => {});
-    myCrew = null; mate = null; mateUserId = null;
+    myCrew = null; mates = [];
     state.crew = null; saveState(state);
     renderCrewSetup(); renderCrewCard();
     toast("Crew lasciata");
@@ -189,7 +203,7 @@ function computeCrewStats() {
       el.innerHTML = `
         <div class="acct-intro">Codice della tua crew (mandalo al tuo socio):</div>
         <div class="crew-code">${myCrew.code}</div>
-        <div class="acct-intro">${mate ? `Socio collegato: <b>${mate.nick}</b> ✓` : "In attesa che il socio si unisca…"}</div>
+        <div class="acct-intro">${mates.length ? `Collegat${mates.length === 1 ? "o" : "i"}: <b>${mates.map(m => m.nick || "Atleta").join(", ")}</b> ✓` : "In attesa che qualcuno si unisca…"}</div>
         <button class="acct-exit" onclick="crewLeave()">Lascia la crew</button>`;
     } else {
       el.innerHTML = `
@@ -223,44 +237,57 @@ function computeCrewStats() {
     const el = document.getElementById("crew-card");
     if (!el) return;
     if (window.DEMO_MODE) {
-      // vetrina: mostra come sarebbe con un socio d'esempio
+      // vetrina: gruppo d'esempio a 3
       const my = computeCrewStats();
-      const luca = { nick: "Luca", days: [2, 0, 2, 0, 0, 1, 0], weekDone: 2, planned: 2,
-                     streak: 3, volWeek: 5400, monthDone: 5, prMonth: 1 };
+      const demo = [
+        { userId: "d1", nick: "Luca", days: [2, 0, 2, 0, 0, 1, 0], weekDone: 2, planned: 2, streak: 3, volWeek: 5400, monthDone: 5, prMonth: 1 },
+        { userId: "d2", nick: "Sara", days: [0, 2, 0, 2, 2, 0, 0], weekDone: 3, planned: 3, streak: 5, volWeek: 4100, monthDone: 7, prMonth: 2 }
+      ];
       el.style.display = "";
-      el.innerHTML = crewHTML(my, luca) +
-        '<div class="crew-hint">👀 Esempio: con un account puoi sfidare un amico vero.</div>';
+      el.innerHTML = crewHTML(my, demo) +
+        '<div class="crew-hint">👀 Esempio: con un account puoi sfidare gli amici veri.</div>';
       return;
     }
-    if (!myCrew || !mate) { el.style.display = "none"; el.innerHTML = ""; return; }
+    if (!myCrew || !mates.length) { el.style.display = "none"; el.innerHTML = ""; return; }
     const my = computeCrewStats();
     el.style.display = "";
-    el.innerHTML = crewHTML(my, mate) + `
-      <button class="btn-outline crew-fire" onclick="crewNudge()">🔥 Punzecchia ${mate.nick}</button>`;
+    el.innerHTML = crewHTML(my, mates) + `
+      <button class="btn-outline crew-fire" onclick="crewNudge()">🔥 Punzecchia${mates.length === 1 ? " " + (mates[0].nick || "il socio") : "…"}</button>`;
   };
 
-  // La gara del mese: CONTEGGIO SECCO degli allenamenti registrati.
-  // Niente % del piano (barabile pianificando poco): o ti alleni o no.
-  function crewHTML(my, other) {
+  // A due è un VS testa a testa; da tre in su diventa una classifica
+  // (stesse metriche, il design si adatta al gruppo).
+  function crewHTML(my, others) {
     const monthName = new Date().toLocaleDateString("it-IT", { month: "long" });
-    const a = my.monthDone || 0, b = other.monthDone || 0;
-    const max = Math.max(a, b, 1);
-    const lead = a > b ? `Guidi tu ${a}–${b}: non mollare adesso 💪` :
-                 a < b ? `${other.nick} è avanti ${b}–${a} — un allenamento e riapri la gara` :
-                 `Parità ${a}–${b}: la decide il prossimo che si allena`;
+    const members = [Object.assign({}, my, { nick: "Tu", me: true }), ...others]
+      .sort((a, b) => (b.monthDone || 0) - (a.monthDone || 0));
+    const max = Math.max(...members.map(m => m.monthDone || 0), 1);
+    const meIdx = members.findIndex(m => m.me);
+
+    let lead;
+    if (members.length === 2) {
+      const a = my.monthDone || 0, b = others[0].monthDone || 0;
+      lead = a > b ? `Guidi tu ${a}–${b}: non mollare adesso 💪` :
+             a < b ? `${others[0].nick} è avanti ${b}–${a} — un allenamento e riapri la gara` :
+             `Parità ${a}–${b}: la decide il prossimo che si allena`;
+    } else {
+      lead = meIdx === 0 ? `Sei in testa alla classifica 👑 — tienili dietro` :
+             `${members[0].nick} guida con ${members[0].monthDone || 0} — sei a ${(members[0].monthDone || 0) - (my.monthDone || 0)} allenament${(members[0].monthDone || 0) - (my.monthDone || 0) === 1 ? "o" : "i"} dalla vetta`;
+    }
+
+    const bars = members.map((m, i) => `
+      <div class="crew-duel">
+        <div class="crew-duel-name">${members.length > 2 ? ["🥇", "🥈", "🥉"][i] || (i + 1) + "°" : ""} ${m.me ? "Tu" : (m.nick || "Atleta")}</div>
+        <div class="crew-duel-bar"><div class="crew-duel-fill ${m.me ? "me" : ""}" style="width:${Math.round((m.monthDone || 0) / max * 100)}%"></div><span>${m.monthDone || 0}</span></div>
+      </div>`).join("");
+
+    const cols = members.map(m => col(m, !!m.me)).join("");
     return `
       <div class="chart-title">🤝 La sfida di ${monthName}</div>
       <div class="chart-sub">Chi si è allenato di più?</div>
-      <div class="crew-duel">
-        <div class="crew-duel-name">Tu</div>
-        <div class="crew-duel-bar"><div class="crew-duel-fill me" style="width:${Math.round(a / max * 100)}%"></div><span>${a}</span></div>
-      </div>
-      <div class="crew-duel">
-        <div class="crew-duel-name">${other.nick}</div>
-        <div class="crew-duel-bar"><div class="crew-duel-fill" style="width:${Math.round(b / max * 100)}%"></div><span>${b}</span></div>
-      </div>
+      ${bars}
       <div class="crew-lead">${lead}</div>
-      <div class="crew-grid">${col(my, true)}${col(other, false)}</div>`;
+      <div class="crew-grid ${members.length > 2 ? "crew-scroll" : ""}">${cols}</div>`;
   }
 
   /* --- aggancio al ciclo di vita del cloud --- */
@@ -273,7 +300,7 @@ function computeCrewStats() {
     renderCrewSetup(); renderCrewCard();
   };
   window.crewOnLogout = function () {
-    myCrew = null; mate = null; mateUserId = null;
+    myCrew = null; mates = [];
     renderCrewSetup(); renderCrewCard();
   };
 })();
