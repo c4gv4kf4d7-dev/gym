@@ -78,7 +78,7 @@ ok("linReg: 1 punto → null", api.linReg([7]) === null);
 /* ---- 4) Progressione (suggestion) ---- */
 var st = api.defaultState();
 st.sessions = [{ id:1, date:"2026-06-25", workoutId:"fullbody",
-  exercises:{ chestpress:{ sets:[{w:20,r:15},{w:20,r:15},{w:20,r:15}], quality:"clean" } } }];
+  exercises:{ chestpress:{ sets:[{w:20,r:15},{w:20,r:15},{w:20,r:15},{w:20,r:15}], quality:"clean" } } }];
 api.set(st);
 ok("suggestion: pulite al tetto reps → aumenta il peso", api.suggestion("chestpress").targetW === 22.5);
 st.sessions[0].exercises.chestpress.quality = "fail";
@@ -385,7 +385,7 @@ ok("prep: il calendario ora segna fatto", api.get().schedule[api.todayStr()].don
 /* ---- 16i) INCREMENTI E CORPO LIBERO ---- */
 st = api.defaultState();
 st.sessions = [{ id:1, date:"2026-07-01", workoutId:"fullbody", exercises:{
-  legpress:{ sets:[{w:45,r:15},{w:45,r:15},{w:45,r:15}], quality:"clean" } } }];
+  legpress:{ sets:[{w:45,r:15},{w:45,r:15},{w:45,r:15},{w:45,r:15}], quality:"clean" } } }];
 api.set(st);
 ok("leg press: al tetto reps sale di +10 kg (passo dedicato)", api.suggestion("legpress").targetW === 55);
 st.customExercises = { cx_crunchp: { name:"Crunch panca inclinata", muscle:"Addominali", type:"body", sets:3, reps:12, bodyPart:"core" } };
@@ -428,12 +428,12 @@ ok("pasti semaforo: giorno con solo kcal → giallo",
 st = api.defaultState();
 // chest press 10-12: a 12 pulite sale di peso e RIPARTE da 10
 st.sessions = [{ id:1, date:"2026-07-01", workoutId:"fullbody", exercises:{
-  chestpress:{ sets:[{w:30,r:12},{w:30,r:12},{w:30,r:12}], quality:"clean" } } }];
+  chestpress:{ sets:[{w:30,r:12},{w:30,r:12},{w:30,r:12},{w:30,r:12}], quality:"clean" } } }];
 api.set(st);
 var sgC = api.suggestion("chestpress");
 ok("range 10-12: al tetto 12 → +peso e riparti da 10", sgC.targetW === 32.5 && sgC.targetReps === 10);
 // dentro il range: 10 pulite → 11
-st.sessions[0].exercises.chestpress.sets = [{w:30,r:10},{w:30,r:10},{w:30,r:10}];
+st.sessions[0].exercises.chestpress.sets = [{w:30,r:10},{w:30,r:10},{w:30,r:10},{w:30,r:10}];
 ok("range 10-12: a 10 pulite → +1 rip", api.suggestion("chestpress").targetReps === 11 && api.suggestion("chestpress").targetW === 30);
 // curl 15 FISSO: a 15 pulite si sale solo di peso, si resta a 15
 st.sessions = [{ id:2, date:"2026-07-02", workoutId:"fullbody", exercises:{
