@@ -384,41 +384,50 @@ function ptCoachNote(lifts) {
 }
 
 function renderVolumeChart() {
-  const s = [...state.sessions].sort((a, b) => a.date.localeCompare(b.date));
+  // SOLO le schede attuali dell'utente (Seduta 1/2): le vecchie schede
+  // dismesse e il PT restano fuori. Asse X = settimane; per ogni settimana
+  // un istogramma per scheda (colore della scheda) + tendenza per scheda.
   const ctx = $("vol-chart").getContext("2d");
   if (charts.vol) charts.vol.destroy();
   const vv = $("vol-verdict");
+  const myIds = ALL_WORKOUTS().map(w => w.id);
+  const s = [...state.sessions]
+    .filter(x => myIds.includes(x.workoutId))
+    .sort((a, b) => a.date.localeCompare(b.date));
   if (!s.length) { if (vv) vv.textContent = ""; return; }
-  const vols = s.map(sessionVolume);
-  if (vv) vv.innerHTML = volumeVerdict(vols);
 
-  // Una serie (colore + tendenza) PER SCHEDA: i volumi di schede diverse
-  // non sono confrontabili tra loro, ognuna segue il suo trend.
-  // (Le sedute PT non sono sessioni: restano fuori dal grafico.)
-  const wids = [...new Set(s.map(x => x.workoutId))];
+  // volume settimanale per scheda
+  const weeks = [...new Set(s.map(x => weekStart(x.date)))].sort();
+  const byWeek = {};
+  s.forEach(x => {
+    const wk = weekStart(x.date);
+    (byWeek[wk] = byWeek[wk] || {})[x.workoutId] = (byWeek[wk][x.workoutId] || 0) + sessionVolume(x);
+  });
+
+  if (vv) vv.innerHTML = volumeVerdict(weeks.map(wk => Object.values(byWeek[wk]).reduce((a, b) => a + b, 0)));
+
   const datasets = [];
-  wids.forEach((wid, wi) => {
-    const w = getWorkout(wid);
-    const color = (w && w.color) || ["#FF2D95", "#5B8DEF", "#F59E0B", "#A855F7", "#10B981"][wi % 5];
-    const name = (w && w.name) || "Scheda";
-    const mine = s.map((x, i) => x.workoutId === wid ? vols[i] : null);
-    datasets.push({ type: "bar", label: name, data: mine, backgroundColor: color + "CC", borderRadius: 6, order: 2 });
-    // tendenza calcolata SOLO sulle sessioni di questa scheda
-    const idxs = s.map((x, i) => x.workoutId === wid ? i : -1).filter(i => i >= 0);
+  ALL_WORKOUTS().forEach((w, wi) => {
+    const vals = weeks.map(wk => byWeek[wk][w.id] != null ? Math.round(byWeek[wk][w.id]) : null);
+    if (!vals.some(v => v != null)) return;
+    const color = w.color || ["#FF2D95", "#5B8DEF", "#F59E0B"][wi % 3];
+    datasets.push({ type: "bar", label: w.name, data: vals, backgroundColor: color + "CC", borderRadius: 6, order: 2 });
+    // tendenza della scheda sulle SUE settimane
+    const idxs = weeks.map((wk, i) => vals[i] != null ? i : -1).filter(i => i >= 0);
     if (idxs.length >= 2) {
-      const tr = linReg(idxs.map(i => vols[i]));
-      const line = s.map(() => null);
-      idxs.forEach((si, j) => line[si] = tr[j]);
-      datasets.push({ type: "line", label: name + " (trend)", data: line, borderColor: color, borderWidth: 2, pointRadius: 0, spanGaps: true, fill: false, tension: 0, order: 1 });
+      const tr = linReg(idxs.map(i => vals[i]));
+      const line = weeks.map(() => null);
+      idxs.forEach((wi2, j) => line[wi2] = tr[j]);
+      datasets.push({ type: "line", label: w.name + " (trend)", data: line, borderColor: color, borderWidth: 2, pointRadius: 0, spanGaps: true, fill: false, tension: 0, order: 1 });
     }
   });
 
   charts.vol = new Chart(ctx, {
     type: "bar",
-    data: { labels: s.map(x => fmtShort(x.date)), datasets },
+    data: { labels: weeks.map(wk => fmtShort(wk)), datasets },
     options: {
-      plugins: { legend: { display: wids.length > 1, labels: { boxWidth: 12, font: { size: 10 }, filter: (it) => it.text.indexOf("(trend)") < 0 } } },
-      scales: { y: { beginAtZero: true, grid: { color: "rgba(255,255,255,.08)" }, stacked: false }, x: { stacked: true, grid: { display: false } } },
+      plugins: { legend: { display: true, labels: { boxWidth: 12, font: { size: 10 }, filter: (it) => it.text.indexOf("(trend)") < 0 } } },
+      scales: { y: { beginAtZero: true, grid: { color: "rgba(255,255,255,.08)" } }, x: { grid: { display: false } } },
       responsive: true
     }
   });
