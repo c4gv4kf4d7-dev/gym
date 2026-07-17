@@ -64,6 +64,27 @@ function applyMigrations(s) {
     });
     s.migrations.push("bodyweight-fix");
   }
+  // Range di ripetizioni della scheda del PT (base e tetto per la
+  // progressione), agganciati per nome. Serie e schede NON toccate.
+  if (s.migrations.indexOf("denis-reps") < 0) {
+    const RANGES = {
+      "alzate laterali manubri":    [15, 15],
+      "crunch panca inclinata":     [15, 15],
+      "lat pulldown inversa":       [10, 12],
+      "lento avanti manubri":       [12, 15],
+      "pulldown cavi corda":        [12, 15],
+      "crunch sollevamento gambe":  [12, 15],
+      "plank battito spalle":       [7, 7],
+      "mountain climber":           [7, 7],
+      "circuito metabolico":        [7, 7],
+      "affondi laterali":           [12, 12]
+    };
+    Object.values(s.customExercises || {}).forEach((ex) => {
+      const r = ex && RANGES[String(ex.name || "").toLowerCase().trim()];
+      if (r) { ex.reps = r[0]; ex.repsMax = r[1]; }
+    });
+    s.migrations.push("denis-reps");
+  }
   return s;
 }
 

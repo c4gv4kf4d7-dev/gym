@@ -113,8 +113,9 @@ function suggestionBase(exKey) {
   const meta = EXERCISES[exKey];
   const last = lastExercise(exKey);
   const inc = meta.inc || (meta.type === "dumbbell" ? 2 : 2.5);   // passo custom (es. leg press +10), poi +2 manubri, +2.5 macchine/cavi
-  const baseReps = meta.reps;        // base del contenitore (es. 12)
-  const capReps = baseReps + 3;      // tetto del contenitore (es. 15)
+  const baseReps = meta.reps;                     // base del range (es. 12)
+  const capReps = meta.repsMax || baseReps + 3;   // tetto: dal range di scheda (10-12, 12-15) o base+3
+  // range FISSO (es. 3x15, repsMax = reps): niente crescita a ripetizioni, si sale solo di peso
 
   if (!last) {
     return { last: null, todayHtml: isBodyweight(meta) ? `A corpo libero: conta le ripetizioni pulite` : `Scegli un peso che ti dia serie pulite`,
@@ -126,6 +127,9 @@ function suggestionBase(exKey) {
     const minR0 = Math.min(...last.sets.map(s => s.r));
     const day0 = new Date(last.date + "T00:00:00").toLocaleDateString("it-IT", { weekday: "long" });
     const b0 = { last, lastW: null, lastR: minR0, lastSets: last.sets.length, day: day0 };
+    const bwCap = meta.repsMax || meta.reps + 3;
+    if (last.quality === "clean" && minR0 + 1 > bwCap)
+      return { ...b0, todayHtml: `Range completo (${bwCap}): stessa quantità, esecuzione più lenta e controllata`, color: "green", targetW: null, targetReps: bwCap };
     if (last.quality === "clean") return { ...b0, todayHtml: `Aggiungi una ripetizione per serie 🎯`, color: "green", targetW: null, targetReps: minR0 + 1 };
     return { ...b0, todayHtml: `Stesse ripetizioni, più pulite`, color: "yellow", targetW: null, targetReps: minR0 };
   }

@@ -424,6 +424,35 @@ ok("pasti semaforo: un giorno con ENTRAMBI mancati → rosso",
 ok("pasti semaforo: giorno con solo kcal → giallo",
    api.mealWeekColor([mday(2000,130),mday(2000,50)], K, P, true) === "yellow");
 
+/* ---- 16l) RANGE DI DENIS ---- */
+st = api.defaultState();
+// chest press 10-12: a 12 pulite sale di peso e RIPARTE da 10
+st.sessions = [{ id:1, date:"2026-07-01", workoutId:"fullbody", exercises:{
+  chestpress:{ sets:[{w:30,r:12},{w:30,r:12},{w:30,r:12}], quality:"clean" } } }];
+api.set(st);
+var sgC = api.suggestion("chestpress");
+ok("range 10-12: al tetto 12 → +peso e riparti da 10", sgC.targetW === 32.5 && sgC.targetReps === 10);
+// dentro il range: 10 pulite → 11
+st.sessions[0].exercises.chestpress.sets = [{w:30,r:10},{w:30,r:10},{w:30,r:10}];
+ok("range 10-12: a 10 pulite → +1 rip", api.suggestion("chestpress").targetReps === 11 && api.suggestion("chestpress").targetW === 30);
+// curl 15 FISSO: a 15 pulite si sale solo di peso, si resta a 15
+st.sessions = [{ id:2, date:"2026-07-02", workoutId:"fullbody", exercises:{
+  curl:{ sets:[{w:20,r:15},{w:20,r:15},{w:20,r:15}], quality:"clean" } } }];
+ok("range fisso 15: pulite → +peso, sempre 15", api.suggestion("curl").targetW === 22.5 && api.suggestion("curl").targetReps === 15);
+// corpo libero 3x7 FISSO: a 7 pulite non cresce oltre
+st.customExercises = { cx_mc: { name: "Mountain climber", type: "body", sets: 3, reps: 7, repsMax: 7, bodyPart: "core" } };
+api.mergeCustomExercises();
+st.sessions.push({ id:3, date:"2026-07-03", workoutId:"x", exercises:{
+  cx_mc:{ sets:[{w:0,r:7},{w:0,r:7},{w:0,r:7}], quality:"clean" } } });
+ok("corpo libero 3x7 fisso: resta a 7", api.suggestion("cx_mc").targetReps === 7);
+// migrazione: i custom prendono i range di Denis per nome
+var stR = api.defaultState();
+stR.customExercises = { a: { name: "Lento avanti manubri", type: "dumbbell", reps: 10 },
+                        b: { name: "Plank battito spalle", type: "body", reps: 10 } };
+stR = api.applyMigrations(stR);
+ok("migrazione range: lento avanti → 12-15", stR.customExercises.a.reps === 12 && stR.customExercises.a.repsMax === 15);
+ok("migrazione range: plank battito → 7 fisso", stR.customExercises.b.reps === 7 && stR.customExercises.b.repsMax === 7);
+
 /* ---- 17) SMOKE: ogni vista renderizza senza eccezioni (dati demo realistici) ---- */
 function smoke(name, fn) {
   try { fn(); ok("smoke: " + name, true); }
