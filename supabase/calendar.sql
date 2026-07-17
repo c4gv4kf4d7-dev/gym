@@ -17,3 +17,6 @@ create policy cal_update on storage.objects for update to authenticated
 
 create policy cal_delete on storage.objects for delete to authenticated
   using (bucket_id = 'calendars' and name = auth.uid()::text || '.ics');
+
+-- se il bucket esisteva già privato, forzalo pubblico
+update storage.buckets set public = true where id = 'calendars';

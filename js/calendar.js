@@ -82,6 +82,8 @@ function icsContent() {
   if (!entries.length) return null;
   const baseIdx = ptNextIndex();
   let ptc = 0;
+  // DTSTAMP: obbligatorio da RFC 5545 — senza, iOS/Mail scartano il file
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
   const events = entries.map(([d, s]) => {
     const w = getWorkout(s.workoutId);
     const isPT = !!(s.pt || (w && w.pt));
@@ -92,14 +94,15 @@ function icsContent() {
     const nd = new Date(d + "T00:00:00"); nd.setDate(nd.getDate() + 1);
     return [
       "BEGIN:VEVENT",
-      "UID:gym-" + d + "@allenamento",
+      "UID:gym-" + d + "@allenamento.app",
+      "DTSTAMP:" + stamp,
       "DTSTART;VALUE=DATE:" + dt,
       "DTEND;VALUE=DATE:" + localDate(nd).replace(/-/g, ""),
       "SUMMARY:" + title.replace(/[,;]/g, " "),
       "END:VEVENT"
     ].join("\r\n");
   }).join("\r\n");
-  return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Allenamento//IT\r\nCALSCALE:GREGORIAN\r\nX-WR-CALNAME:Allenamento\r\n" + events + "\r\nEND:VCALENDAR";
+  return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Allenamento//IT\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\nX-WR-CALNAME:Allenamento\r\n" + events + "\r\nEND:VCALENDAR";
 }
 
 /* Pubblica l'ICS su Supabase Storage (bucket pubblico "calendars"):
@@ -114,7 +117,9 @@ async function publishICS() {
   const { error } = await c.sb.storage.from("calendars")
     .upload(user.id + ".ics", new Blob([ics], { type: "text/calendar" }),
             { upsert: true, contentType: "text/calendar", cacheControl: "60" });
-  return !error;
+  if (error) { window.__icsErr = error.message || String(error); return false; }
+  window.__icsErr = null;
+  return true;
 }
 window.icsOnSync = function () { publishICS().then(() => {}, () => {}); };
 
@@ -127,6 +132,7 @@ async function exportICS() {
   if (user && !window.DEMO_MODE) {
     toast("📅 Preparo il calendario…");
     const ok = await publishICS();
+    if (!ok && window.__icsErr) toast("⚠️ Pubblicazione calendario fallita: " + window.__icsErr);
     if (ok) {
       const host = String(SUPABASE_URL).replace(/^https?:\/\//, "");
       window.location.href = `webcal://${host}/storage/v1/object/public/calendars/${user.id}.ics`;
