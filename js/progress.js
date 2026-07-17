@@ -391,17 +391,36 @@ function renderVolumeChart() {
   if (!s.length) { if (vv) vv.textContent = ""; return; }
   const vols = s.map(sessionVolume);
   if (vv) vv.innerHTML = volumeVerdict(vols);
-  const trend = linReg(vols);
+
+  // Una serie (colore + tendenza) PER SCHEDA: i volumi di schede diverse
+  // non sono confrontabili tra loro, ognuna segue il suo trend.
+  // (Le sedute PT non sono sessioni: restano fuori dal grafico.)
+  const wids = [...new Set(s.map(x => x.workoutId))];
+  const datasets = [];
+  wids.forEach((wid, wi) => {
+    const w = getWorkout(wid);
+    const color = (w && w.color) || ["#FF2D95", "#5B8DEF", "#F59E0B", "#A855F7", "#10B981"][wi % 5];
+    const name = (w && w.name) || "Scheda";
+    const mine = s.map((x, i) => x.workoutId === wid ? vols[i] : null);
+    datasets.push({ type: "bar", label: name, data: mine, backgroundColor: color + "CC", borderRadius: 6, order: 2 });
+    // tendenza calcolata SOLO sulle sessioni di questa scheda
+    const idxs = s.map((x, i) => x.workoutId === wid ? i : -1).filter(i => i >= 0);
+    if (idxs.length >= 2) {
+      const tr = linReg(idxs.map(i => vols[i]));
+      const line = s.map(() => null);
+      idxs.forEach((si, j) => line[si] = tr[j]);
+      datasets.push({ type: "line", label: name + " (trend)", data: line, borderColor: color, borderWidth: 2, pointRadius: 0, spanGaps: true, fill: false, tension: 0, order: 1 });
+    }
+  });
+
   charts.vol = new Chart(ctx, {
     type: "bar",
-    data: {
-      labels: s.map(x => fmtShort(x.date)),
-      datasets: [
-        { type: "bar", data: vols, backgroundColor: "rgba(255,45,149,.8)", borderRadius: 6, order: 2 },
-        ...(trend ? [{ type: "line", label: "Tendenza", data: trend, borderColor: "#FF6B6B", borderWidth: 2, pointRadius: 3, pointBackgroundColor: "#FF6B6B", fill: false, tension: 0, order: 1 }] : [])
-      ]
-    },
-    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: "rgba(255,255,255,.08)" } }, x: { grid: { display: false } } }, responsive: true }
+    data: { labels: s.map(x => fmtShort(x.date)), datasets },
+    options: {
+      plugins: { legend: { display: wids.length > 1, labels: { boxWidth: 12, font: { size: 10 }, filter: (it) => it.text.indexOf("(trend)") < 0 } } },
+      scales: { y: { beginAtZero: true, grid: { color: "rgba(255,255,255,.08)" }, stacked: false }, x: { stacked: true, grid: { display: false } } },
+      responsive: true
+    }
   });
 }
 

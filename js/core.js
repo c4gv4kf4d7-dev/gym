@@ -288,7 +288,7 @@ function nutritionTargets() {
     else if (goal === "massa" && rate > 0.5) { adj -= 100; adaptNote = "stai salendo veloce (" + rate + " kg/sett) → surplus ridotto per una massa più pulita"; }
     else if (goal === "dimagrimento" && rate > -0.1) { adj -= 150; adaptNote = "il peso è fermo → deficit aumentato di 150 kcal"; }
     else if (goal === "dimagrimento" && rate < -1) { adj += 150; adaptNote = "stai scendendo troppo in fretta → deficit ammorbidito"; }
-    else if (goal === "massa") adaptNote = "ritmo attuale " + (rate > 0 ? "+" : "") + rate + " kg/settimana: sei nella zona giusta";
+    else if (goal === "massa" || goal === "dimagrimento") adaptNote = "ritmo attuale " + (rate > 0 ? "+" : "") + rate + " kg/settimana: sei nella zona giusta";
   }
 
   const kcal = Math.round((tdee + adj) / 10) * 10;
@@ -321,9 +321,13 @@ function prCount() {
   return [...keys].filter(k => bestPR(k) > 0).length;
 }
 // Kg guadagnati dall'inizio
+// Progresso peso NELLA DIREZIONE del proprio obiettivo:
+// massa = kg guadagnati, dimagrimento = kg persi
 function massGain() {
   const cur = currentBW(), start = state.goals.startWeight;
-  return (cur != null && start != null) ? cur - start : 0;
+  if (cur == null || start == null) return 0;
+  const goal = (state.profile && state.profile.goal) || "massa";
+  return goal === "dimagrimento" ? start - cur : cur - start;
 }
 // Sessioni nella settimana corrente
 function thisWeekCount() {
@@ -363,12 +367,12 @@ const BADGES = [
     desc: "Hai battuto il tuo massimo su 5 esercizi diversi. Stai diventando più forte." },
   { id: "vol10k",  icon: "🏋️", name: "Una tonnellata e più",  test: () => totalVolumeAll() >= 10000,
     desc: "Hai sollevato in totale oltre 10.000 kg (peso × ripetizioni). Letteralmente tonnellate." },
-  { id: "gain2",   icon: "🍽️", name: "+2 kg di massa",        test: () => massGain() >= 2,
-    desc: "+2 kg dal peso di partenza. Il surplus e gli allenamenti stanno pagando." },
-  { id: "halfway", icon: "🧗", name: "A metà strada",         test: () => { const t = state.goals.targetWeight, s = state.goals.startWeight; return t != null && s != null && t > s && massGain() >= (t - s) / 2; },
+  { id: "gain2",   icon: "🍽️", name: "2 kg verso l'obiettivo", test: () => massGain() >= 2,
+    desc: "2 kg di progresso verso il tuo peso obiettivo: il piano sta pagando." },
+  { id: "halfway", icon: "🧗", name: "A metà strada",         test: () => { const t = state.goals.targetWeight, s = state.goals.startWeight; return t != null && s != null && t !== s && massGain() >= Math.abs(t - s) / 2; },
     desc: "Sei a metà del percorso verso il tuo peso obiettivo. La vetta è vicina." },
-  { id: "gain5",   icon: "💥", name: "+5 kg di massa",        test: () => massGain() >= 5,
-    desc: "+5 kg di massa dall'inizio. Trasformazione in pieno corso." },
+  { id: "gain5",   icon: "💥", name: "5 kg verso l'obiettivo", test: () => massGain() >= 5,
+    desc: "5 kg di progresso verso il tuo peso obiettivo. Trasformazione in pieno corso." },
   { id: "allschede",icon: "🧭", name: "Esploratore",          test: () => distinctWorkouts() >= 3,
     desc: "Hai provato almeno 3 schede diverse. Allenamento completo, zero monotonia." },
   { id: "ptfirst", icon: "🧑‍🏫", name: "Battesimo del ferro",  test: () => (state.ptLifts || []).length >= 1,
@@ -378,7 +382,7 @@ const BADGES = [
   { id: "grinder", icon: "🦾", name: "Mai mollare",           test: () => hardCount() >= 5,
     desc: "5 esercizi portati a termine anche quando erano durissimi. Il carattere si vede lì." },
   { id: "meals7",  icon: "🍽️", name: "Settimana a tavola",    test: () => mealDayStreak() >= 7,
-    desc: "7 giorni di fila coi pasti registrati. La massa si costruisce in cucina." },
+    desc: "7 giorni di fila coi pasti registrati. I risultati si costruiscono in cucina." },
   { id: "builder", icon: "🧩", name: "Architetto",            test: () => (state.myWorkouts || []).length >= 1,
     desc: "Hai creato la tua prima scheda personalizzata. Questa app ora è davvero tua." },
   { id: "coldhead",icon: "🧊", name: "Testa fredda",         test: () => state.sessions.some(x => x.deload),
