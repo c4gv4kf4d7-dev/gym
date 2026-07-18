@@ -64,6 +64,7 @@ function renderGoals() {
   renderCompChart();
   renderNutrition();
   renderBadges();
+  if (typeof renderPhotos === "function") renderPhotos();
 }
 
 

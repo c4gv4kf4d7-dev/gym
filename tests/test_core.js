@@ -27,7 +27,7 @@ var winStub = { addEventListener:function(){} };
 var lsStub = { _d:{}, getItem:function(k){return this._d[k]||null}, setItem:function(k,v){this._d[k]=String(v)}, removeItem:function(k){delete this._d[k]} };
 function ChartStub(){ this.destroy=function(){}; } ChartStub.defaults={font:{}};
 
-var SRC = [read(ROOT + "/js/data.js"), read(ROOT + "/js/storage.js"), read(ROOT + "/js/core.js"), read(ROOT + "/js/deload.js"), read(ROOT + "/js/workout.js"), read(ROOT + "/js/guided.js"), read(ROOT + "/js/calendar.js"), read(ROOT + "/js/progress.js"), read(ROOT + "/js/profile.js"), read(ROOT + "/js/meals.js"), read(ROOT + "/js/init.js"), read(ROOT + "/js/wrapped.js"), read(ROOT + "/js/demo.js"), read(ROOT + "/js/crew.js")].join("\n;\n");
+var SRC = [read(ROOT + "/js/data.js"), read(ROOT + "/js/storage.js"), read(ROOT + "/js/core.js"), read(ROOT + "/js/deload.js"), read(ROOT + "/js/workout.js"), read(ROOT + "/js/guided.js"), read(ROOT + "/js/calendar.js"), read(ROOT + "/js/progress.js"), read(ROOT + "/js/profile.js"), read(ROOT + "/js/meals.js"), read(ROOT + "/js/init.js"), read(ROOT + "/js/wrapped.js"), read(ROOT + "/js/demo.js"), read(ROOT + "/js/crew.js"), read(ROOT + "/js/photos.js")].join("\n;\n");
 var TIMER_STUBS = "var setTimeout=function(){return 0};var clearTimeout=function(){};var setInterval=function(){return 0};var clearInterval=function(){};\n";
 var api = new Function(
   "document","window","localStorage","sessionStorage","navigator","EXERCISE_STEPS","EXERCISE_CUES","Chart",
@@ -40,7 +40,7 @@ var api = new Function(
     chipOrder: chipOrder, ptNextIndex: ptNextIndex, selectWorkout: selectWorkout,
     nightCloseMessage: nightCloseMessage, computeCrewStats: computeCrewStats, icsContent: icsContent,
     manualSave: manualSave, commitSession: commitSession, mergeCustomExercises: mergeCustomExercises,
-    mealWeekColor: mealWeekColor,
+    mealWeekColor: mealWeekColor, restAdvice: restAdvice, photoCheckDue: photoCheckDue, estimate1RM: estimate1RM,
     defaultState: defaultState, applyMigrations: applyMigrations,
     fatigueAnalysis: fatigueAnalysis, deloadActive: deloadActive,
     wrappedStats: wrappedStats, wrappedVerdict: wrappedVerdict, volumeComparison: volumeComparison,
@@ -452,6 +452,30 @@ stR.customExercises = { a: { name: "Lento avanti manubri", type: "dumbbell", rep
 stR = api.applyMigrations(stR);
 ok("migrazione range: lento avanti → 12-15", stR.customExercises.a.reps === 12 && stR.customExercises.a.repsMax === 15);
 ok("migrazione range: plank battito → 7 fisso", stR.customExercises.b.reps === 7 && stR.customExercises.b.repsMax === 7);
+
+/* ---- 16m) COACH INTELLIGENTE: rest day, 1RM, check foto ---- */
+st = api.defaultState();
+api.set(st);
+function dAgo(n){ var d=new Date(); d.setDate(d.getDate()-n); return api.localDate(d); }
+// oggi già allenato → messaggio recupero
+st.sessions = [{ id:1, date: api.todayStr(), workoutId:"fullbody", exercises:{} }];
+ok("rest: oggi fatto → si cresce riposando", api.restAdvice().txt.indexOf("cassaforte") >= 0);
+// 3 giorni di fila → suggerisci riposo
+st.sessions = [1,2,3].map(function(n){ return { id:n, date:dAgo(n), workoutId:"fullbody", exercises:{} }; });
+ok("rest: 3 giorni di fila → riposo", api.restAdvice().txt.indexOf("riposo") >= 0);
+// fresco e in programma → via libera
+st.sessions = [{ id:1, date:dAgo(3), workoutId:"fullbody", exercises:{} }];
+st.schedule = {}; st.schedule[api.todayStr()] = { workoutId:"fullbody", done:false };
+ok("rest: fresco e in programma → spingere", api.restAdvice().txt.indexOf("spingere") >= 0);
+// 1RM Epley
+ok("1RM Epley: 100x10 → 133.3", Math.abs(api.estimate1RM(100,10) - 133.33) < 0.1);
+// check foto quindicinale
+st.photos = [];
+ok("foto: senza foto il check è dovuto", api.photoCheckDue() === true);
+st.photos = [{ date: dAgo(5), angle: "front", path: "x" }];
+ok("foto: set di 5 giorni fa → non ancora dovuto", api.photoCheckDue() === false);
+st.photos = [{ date: dAgo(14), angle: "front", path: "x" }];
+ok("foto: 14 giorni → dovuto", api.photoCheckDue() === true);
 
 /* ---- 17) SMOKE: ogni vista renderizza senza eccezioni (dati demo realistici) ---- */
 function smoke(name, fn) {

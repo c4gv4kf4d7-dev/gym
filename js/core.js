@@ -159,6 +159,15 @@ function reminderItems() {
     const move = (typeof PT_SEQUENCE !== "undefined") ? PT_SHORT[PT_SEQUENCE[ptNextIndex()]] : "";
     items.push({ key: "denisReminder", val: tomStr, txt: `🧑‍🏫 Domani seduta col PT!${move ? ` Tocca a: <b>${move}</b>.` : ""} Dormi bene e carica le pile.` });
   }
+  // check quindicinale del corpo: foto + peso + misure (lunedì; se salta,
+  // il martedì l'app lo ricorda ancora)
+  if ((dow === 1 || dow === 2) && typeof photoCheckDue === "function" && photoCheckDue()
+      && localStorage.getItem("photoReminder") !== mondayKey()) {
+    items.push({ key: "photoReminder", val: mondayKey(),
+      txt: dow === 1
+        ? "📸 Check quindicinale: 3 foto (fronte/lato/schiena) + peso e misure. Due minuti per la tua timeline."
+        : "📸 Ieri è saltato il check quindicinale: recupera ora foto, peso e misure." });
+  }
   // dopocena (22:00–01:00): chiudi calorie e proteine prima di dormire
   const night = nightCloseMessage();
   if (night && localStorage.getItem("nightReminder") !== night.day) {
@@ -191,6 +200,41 @@ function nightCloseMessage(now) {
   if (kMiss) parts.push(`<b>${kMiss} kcal</b>`);
   if (pMiss) parts.push(`<b>${pMiss} g di proteine</b>`);
   return { day, txt: `🌙 Per chiudere la giornata mancano ${parts.join(" e ")}. Idea prima di dormire: ${idea}.` };
+}
+
+/* ---------- REST DAY INTELLIGENTE ----------
+   Suggerimento gentile allenarsi/riposare dai dati già raccolti:
+   giorni consecutivi, semaforo recente, sessione di oggi. Mai un
+   divieto: l'utente ha un PT umano e l'ultima parola. */
+function restAdvice() {
+  const t = todayStr();
+  const trained = (d) => state.sessions.some(s => s.date === d) || (state.ptLifts || []).some(l => l.date === d);
+  if (trained(t)) return { icon: "😌", txt: "Allenamento di oggi in cassaforte: da qui in poi si cresce riposando. Proteine e sonno." };
+  // giorni consecutivi di allenamento
+  let run = 0;
+  const d = new Date();
+  for (;;) { d.setDate(d.getDate() - 1); if (trained(localDate(d))) run++; else break; if (run > 10) break; }
+  if (run >= 3) return { icon: "🛌", txt: `${run} giorni di fila: oggi il riposo È l'allenamento. Se proprio vai, resta leggero.` };
+  // fatica degli ultimi 3 giorni (semaforo)
+  const cutoff = localDate(new Date(Date.now() - 3 * 864e5));
+  let evals = 0, bad = 0;
+  state.sessions.filter(x => x.date >= cutoff).forEach(x => Object.values(x.exercises || {}).forEach(e => {
+    if (e.quality) { evals++; if (e.quality !== "clean") bad++; }
+  }));
+  if (run >= 2 && evals >= 4 && bad / evals >= 0.5)
+    return { icon: "🧘", txt: "Due giorni di fila e le ultime sessioni sono state dure: un giorno di recupero oggi rende di più di uno spinto." };
+  // in programma oggi e fresco → via libera
+  const sched = (state.schedule || {})[t];
+  if (sched && !sched.done && run <= 1)
+    return { icon: "⚡️", txt: "Recupero a posto e allenamento in programma: giornata giusta per spingere." };
+  return null;   // niente da dire = niente rumore
+}
+
+function renderRestHint() {
+  const host = $("rest-hint");
+  if (!host) return;
+  const a = restAdvice();
+  host.innerHTML = a ? `<div class="rest-hint">${a.icon} ${a.txt}</div>` : "";
 }
 
 function renderWeighBanner() {

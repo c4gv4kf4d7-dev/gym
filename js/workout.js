@@ -117,6 +117,7 @@ function renderWorkout() {
   }
 
   $("toggle-all").textContent = "Espandi tutto";
+  if (typeof renderRestHint === "function") renderRestHint();
   renderGuidedResume();
   renderDeloadBanner();
   if (typeof renderWrappedBanner === "function") renderWrappedBanner();

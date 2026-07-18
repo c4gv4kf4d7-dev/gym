@@ -398,10 +398,11 @@ function renderVolumeChart() {
 
   // volume settimanale per scheda
   const weeks = [...new Set(s.map(x => weekStart(x.date)))].sort();
-  const byWeek = {};
+  const byWeek = {}, dlWeek = {};
   s.forEach(x => {
     const wk = weekStart(x.date);
     (byWeek[wk] = byWeek[wk] || {})[x.workoutId] = (byWeek[wk][x.workoutId] || 0) + sessionVolume(x);
+    if (x.deload) dlWeek[wk] = true;             // settimana di scarico: si vede ma non falsa i trend
   });
 
   if (vv) vv.innerHTML = volumeVerdict(weeks.map(wk => Object.values(byWeek[wk]).reduce((a, b) => a + b, 0)));
@@ -411,9 +412,10 @@ function renderVolumeChart() {
     const vals = weeks.map(wk => byWeek[wk][w.id] != null ? Math.round(byWeek[wk][w.id]) : null);
     if (!vals.some(v => v != null)) return;
     const color = w.color || ["#FF2D95", "#5B8DEF", "#F59E0B"][wi % 3];
-    datasets.push({ type: "bar", label: w.name, data: vals, backgroundColor: color + "CC", borderRadius: 6, order: 2 });
-    // tendenza della scheda sulle SUE settimane
-    const idxs = weeks.map((wk, i) => vals[i] != null ? i : -1).filter(i => i >= 0);
+    datasets.push({ type: "bar", label: w.name, data: vals,
+      backgroundColor: weeks.map((wk, i) => dlWeek[wk] ? "#7DD3FC66" : color + "CC"), borderRadius: 6, order: 2 });
+    // tendenza della scheda sulle SUE settimane — quelle di scarico ESCLUSE
+    const idxs = weeks.map((wk, i) => (vals[i] != null && !dlWeek[wk]) ? i : -1).filter(i => i >= 0);
     if (idxs.length >= 2) {
       const tr = linReg(idxs.map(i => vals[i]));
       const line = weeks.map(() => null);
@@ -504,14 +506,18 @@ function renderExChart() {
       const topSet = sets.find(x => x.w === maxW);
       const vol = sets.reduce((a, x) => a + (x.w || 0) * (x.r || 0), 0);
       const repsTot = sets.reduce((a, x) => a + (x.r || 0), 0);
-      return { d: fmtShort(s.date), v: vol > 0 ? vol : repsTot, maxW, sets: sets.length, reps: topSet ? topSet.r : null, q: s.exercises[k].quality };
+      // 1RM stimato (Epley) sul set migliore: forza pura anche se lo schema resta 3x12
+      const e1 = Math.max(...sets.map(x => (x.w || 0) > 0 ? estimate1RM(x.w, x.r || 1) : 0));
+      return { d: fmtShort(s.date), v: vol > 0 ? vol : repsTot, maxW, e1: +e1.toFixed(1),
+               deload: !!s.deload, sets: sets.length, reps: topSet ? topSet.r : null, q: s.exercises[k].quality };
     });
   if (!pts.length) { if (lbl) lbl.textContent = "—"; if (verd) verd.textContent = ""; return; }
   const vals = pts.map(p => p.v);
   const maxV = Math.max(...vals), minV = Math.min(...vals);
   const maxIdx = vals.lastIndexOf(maxV);
   const isBW = isBodyweight(EXERCISES[k]);
-  if (lbl) lbl.textContent = isBW ? `max ${maxV} rip. totali` : `max ${Math.max(...pts.map(p => p.maxW))} kg`;
+  const e1Now = Math.max(...pts.map(p => p.e1 || 0));
+  if (lbl) lbl.textContent = isBW ? `max ${maxV} rip. totali` : `1RM stimato ~${Math.round(e1Now)} kg`;
   if (verd) verd.innerHTML = exVerdict(pts) + exCoachExtra(pts, k);
   charts.ex = new Chart(ctx, {
     type: "line",
@@ -521,12 +527,18 @@ function renderExChart() {
         data: vals,
         borderColor: "rgba(255,255,255,.35)",
         borderWidth: 2,
-        pointRadius: pts.map((_, i) => i === maxIdx ? 7 : 5),
-        pointBackgroundColor: pts.map(p => QUAL_COLOR[p.q] || "#9CA3AF"),
+        pointRadius: pts.map((p, i) => p.deload ? 5 : (i === maxIdx ? 7 : 5)),
+        pointStyle: pts.map(p => p.deload ? "rectRot" : "circle"),
+        pointBackgroundColor: pts.map(p => p.deload ? "#7DD3FC" : (QUAL_COLOR[p.q] || "#9CA3AF")),
         pointBorderColor: "rgba(0,0,0,.4)",
         pointBorderWidth: 1,
         fill: false, tension: .3
-      }]
+      }, ...(isBW ? [] : [{
+        data: pts.map(p => p.deload ? null : p.e1),
+        borderColor: "rgba(255,255,255,.55)",
+        borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0,
+        spanGaps: true, fill: false, tension: .3, yAxisID: "y1", label: "1RM stimato"
+      }])]
     },
     options: {
       layout: { padding: { top: 18 } },
@@ -535,16 +547,20 @@ function renderExChart() {
         tooltip: {
           callbacks: {
             title: (items) => pts[items[0].dataIndex].d,
-            label: (item) => `Peso max: ${pts[item.dataIndex].v} kg`,
+            label: (item) => item.datasetIndex === 1
+              ? `1RM stimato: ~${pts[item.dataIndex].e1} kg`
+              : `Volume: ${pts[item.dataIndex].v} kg`,
             afterLabel: (item) => {
+              if (item.datasetIndex === 1) return "";
               const p = pts[item.dataIndex];
-              return `${QUAL_LABEL[p.q] || "— non valutato"}\nSerie: ${p.sets}${p.reps ? ` × ${p.reps} rip` : ""}`;
+              return `${p.deload ? "🧊 Sessione di scarico\n" : ""}${QUAL_LABEL[p.q] || "— non valutato"}\nSerie: ${p.sets}${p.reps ? ` × ${p.reps} rip` : ""}`;
             }
           }
         }
       },
       scales: {
         y: { beginAtZero: false, suggestedMin: Math.max(0, minV - 5), grid: { color: "rgba(255,255,255,.08)" } },
+        y1: { position: "right", grid: { display: false }, ticks: { callback: v => v + " kg", font: { size: 9 }, color: "rgba(255,255,255,.45)" } },
         x: { grid: { display: false } }
       },
       responsive: true
