@@ -117,7 +117,7 @@ function photoCheckDue() {
     const slots = PHOTO_ANGLES.map(([k, l]) => {
       const p = todaySet(k);
       return `<label class="ph-slot ${p ? "done" : ""}" id="ph-slot-${k}">
-        <input type="file" accept="image/*" capture="environment" style="display:none" onchange="photoUpload(this,'${k}')">
+        <input type="file" accept="image/*" style="display:none" onchange="photoUpload(this,'${k}')">
         <span class="ph-slot-ico">${p ? "✅" : "📷"}</span><span>${l}</span>
       </label>`;
     }).join("");
