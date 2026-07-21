@@ -31,6 +31,7 @@ const defaultState = () => ({
   crew: null,          // crew di appartenenza: { id, code } (i dati vivono su Supabase)
   prep: {},            // preparazione pre-allenamento per esercizio: { sets, reps, w }
   photos: [],          // indice foto progressi: { date, angle, path } (file nel bucket privato)
+  exNotes: {},         // appunti personali per esercizio: { exKey: "testo" } — persistenti
   customExercises: {}, // esercizi importati/creati dall'utente (stessa forma di EXERCISES)
   badges: [],          // id dei traguardi sbloccati
   migrations: [],      // id delle migrazioni già applicate

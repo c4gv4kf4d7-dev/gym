@@ -140,6 +140,16 @@ function renderGuidedResume() {
 
 function gStore(key) { if (!guided.data[key]) guided.data[key] = { sets: [], quality: null }; return guided.data[key]; }
 
+// Appunti personali per esercizio: restano tra le sessioni, visibili nella scheda
+function saveExNote(key) {
+  const el = $("g-note");
+  if (!el) return;
+  state.exNotes = state.exNotes || {};
+  const v = el.value.trim();
+  if (v) state.exNotes[key] = v; else delete state.exNotes[key];
+  saveState(state);
+}
+
 // Box "Occhio a" con i punti tecnici del PT
 // Cues/passi/tip con fallback per nome-slug: gli esercizi custom (schede PT)
 // hanno chiavi variabili, ma il nome è stabile.
@@ -289,6 +299,7 @@ function renderGuided() {
         </div>
         <button class="g-done" onclick="guidedCompleteSet()">✓ Serie completata</button>
         <button class="g-skip" onclick="skipCurrent()">⤼ Salta — macchina occupata</button>
+        <textarea class="g-note" id="g-note" placeholder="📝 I tuoi appunti su questo esercizio (foro sedile, presa, sensazioni…)" onchange="saveExNote('${key}')" oninput="saveExNote('${key}')">${(state.exNotes && state.exNotes[key]) || ""}</textarea>
       </div>`;
   }
   $("guided").innerHTML = top + body;

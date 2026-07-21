@@ -97,6 +97,7 @@ function renderWorkout() {
           <div class="tip-label">⚠️ Errore comune</div>
           <div class="tip-text">${tipFor(ex)}</div>
         </div>
+        ${(state.exNotes && state.exNotes[ex.key]) ? `<div class="ex-note"><span class="ex-note-lbl">📝 I tuoi appunti</span>${state.exNotes[ex.key].replace(/[<>]/g, "")}</div>` : ''}
         ${stepsFor(ex.key) ? `
         <details class="steps">
           <summary>📋 Come si esegue</summary>
