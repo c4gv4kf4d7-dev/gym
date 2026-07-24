@@ -151,6 +151,11 @@ const EXERCISE_CUES = {
     "Tecnica pulita anche da stanco: quando crolla, rallenta.",
     "Respira regolare: non trattenere il fiato negli sforzi."
   ],
+  affondi_laterali_con_manubri: [
+    "Spingi il bacino indietro sulla gamba che lavora: l'altra resta tesa.",
+    "Ginocchio in linea col piede, mai verso l'interno; busto alto.",
+    "12 per lato con controllo: spingi col tallone per risalire."
+  ],
   crunch_panca_inclinata: [
     "Mani leggere dietro la testa: non tirare il collo.",
     "Arrotola una vertebra alla volta ed espira in chiusura.",
@@ -170,5 +175,6 @@ const EXERCISE_TIPS_BYNAME = {
   crunch_sollevamento_gambe: "Lombare sempre a contatto col pavimento: se si stacca, riduci il range. Gambe su col controllo, non con lo slancio.",
   mountain_climber: "Spalle sopra i polsi e sedere basso: è un plank in movimento. Ritmo costante, niente rimbalzi.",
   circuito_metabolico: "Da stanco la tecnica crolla per prima: quando succede, rallenta il ritmo invece di sporcare le ripetizioni.",
+  affondi_laterali_con_manubri: "Il ginocchio non deve cedere verso l'interno: tienilo in linea col piede. Se il busto crolla in avanti, scala i manubri.",
   crunch_panca_inclinata: "Non tirare il collo con le mani: arrotola il busto con gli addominali ed espira in chiusura."
 };

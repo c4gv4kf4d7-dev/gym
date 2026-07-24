@@ -102,6 +102,41 @@ function applyMigrations(s) {
     }
     s.migrations.push("swap-chest-panca");
   }
+  // Nuovo esercizio della scheda: Affondi laterali con manubri in Seduta 2,
+  // subito dopo la Lat pulldown inversa. Peso di partenza 6 kg (preparazione).
+  if (s.migrations.indexOf("add-affondi-lat") < 0) {
+    const AFF = "cx_affondi_laterali_manubri";
+    const already = (s.myWorkouts || []).some(w => (w.exercises || []).indexOf(AFF) >= 0);
+    const pullKey = Object.keys(s.customExercises || {})
+      .find(k => /lat\s+pulldown\s+inversa/i.test((s.customExercises[k] || {}).name || ""));
+    if (pullKey && !already) {
+      const w = (s.myWorkouts || []).find(x => (x.exercises || []).indexOf(pullKey) >= 0);
+      if (w) {
+        s.customExercises[AFF] = {
+          name: "Affondi laterali con manubri",
+          muscle: "Quadricipiti, Glutei",
+          secondary: "Adduttori, Core",
+          type: "dumbbell",
+          sets: 3, reps: 12, repsMax: 12, rest: '60"',
+          bodyPart: "legs",
+          tip: "12 per lato: spingi il bacino indietro sulla gamba che lavora, l'altra resta tesa. Ginocchio in linea col piede, busto alto."
+        };
+        w.exercises.splice(w.exercises.indexOf(pullKey) + 1, 0, AFF);
+        s.prep = s.prep || {};
+        if (!s.prep[AFF]) s.prep[AFF] = { sets: 3, reps: 12, w: 6 };   // partenza consigliata
+      }
+    }
+    s.migrations.push("add-affondi-lat");
+  }
+  // Serie: la panca inclinata manubri (ora in Seduta 1) passa a 4 serie.
+  // Le ripetizioni restano quelle dell'import; il peso lo decide sempre il
+  // motore di progressione dal semaforo dell'ultima volta.
+  if (s.migrations.indexOf("panca-4-serie") < 0) {
+    Object.values(s.customExercises || {}).forEach((ex) => {
+      if (ex && /panca\s+inclinata\s+manubri/i.test(ex.name || "")) ex.sets = 4;
+    });
+    s.migrations.push("panca-4-serie");
+  }
   return s;
 }
 

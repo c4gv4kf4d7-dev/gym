@@ -40,6 +40,7 @@ var api = new Function(
     chipOrder: chipOrder, ptNextIndex: ptNextIndex, selectWorkout: selectWorkout,
     nightCloseMessage: nightCloseMessage, computeCrewStats: computeCrewStats, icsContent: icsContent,
     manualSave: manualSave, commitSession: commitSession, mergeCustomExercises: mergeCustomExercises,
+    EXERCISES_SETS_CHESTPRESS: EXERCISES.chestpress.sets,
     mealWeekColor: mealWeekColor, restAdvice: restAdvice, photoCheckDue: photoCheckDue, estimate1RM: estimate1RM,
     defaultState: defaultState, applyMigrations: applyMigrations,
     fatigueAnalysis: fatigueAnalysis, deloadActive: deloadActive,
@@ -493,6 +494,31 @@ ok("swap: eseguito una sola volta", stS.migrations.indexOf("swap-chest-panca") >
 var again = api.applyMigrations(stS);
 ok("swap: idempotente (non torna indietro)",
    JSON.stringify(again.myWorkouts[0].exercises) === '["legpress","cx_pi","latmachine"]');
+
+/* ---- 16o) AGGIUNTA Affondi laterali con manubri in Seduta 2 ---- */
+var stA = api.defaultState();
+stA.customExercises = { cx_lpi: { name: "Lat pulldown inversa", type: "cable", bodyPart: "back" } };
+stA.myWorkouts = [
+  { id: "s1", name: "Seduta 1", exercises: ["legpress"] },
+  { id: "s2", name: "Seduta 2", exercises: ["legext", "cx_lpi", "curl"] }
+];
+stA = api.applyMigrations(stA);
+ok("affondi: inseriti subito dopo la lat pulldown inversa",
+   JSON.stringify(stA.myWorkouts[1].exercises) === '["legext","cx_lpi","cx_affondi_laterali_manubri","curl"]');
+var aff = stA.customExercises.cx_affondi_laterali_manubri;
+ok("affondi: 3x12 con manubri", aff && aff.sets === 3 && aff.reps === 12 && aff.repsMax === 12 && aff.type === "dumbbell");
+ok("affondi: peso di partenza 6 kg preparato", stA.prep.cx_affondi_laterali_manubri.w === 6);
+var stA2 = api.applyMigrations(stA);
+ok("affondi: non duplicati alla seconda migrazione",
+   stA2.myWorkouts[1].exercises.filter(function(k){ return k === "cx_affondi_laterali_manubri"; }).length === 1);
+
+/* ---- 16p) SERIE: chest press 3, panca inclinata 4 ---- */
+var stX = api.defaultState();
+api.set(stX);
+ok("chest press: 3 serie", api.EXERCISES_SETS_CHESTPRESS === 3);
+stX.customExercises = { cx_pi2: { name: "Panca inclinata manubri", type: "dumbbell", sets: 3, reps: 12 } };
+stX = api.applyMigrations(stX);
+ok("panca inclinata manubri: 4 serie", stX.customExercises.cx_pi2.sets === 4);
 
 /* ---- 17) SMOKE: ogni vista renderizza senza eccezioni (dati demo realistici) ---- */
 function smoke(name, fn) {
