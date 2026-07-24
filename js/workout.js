@@ -21,6 +21,33 @@ function selectWorkout(id) {
   renderWorkout();
 }
 
+/* Statistiche REALI della scheda (prima erano numeri fissi):
+   serie totali, ripetizioni medie e stima durata.
+   Modello durata: ~3 s per ripetizione (tempo controllato 2-1),
+   recupero dichiarato dall'esercizio tra le serie, ~75 s di
+   transizione tra un esercizio e l'altro (spostamento + setup). */
+function workoutStats(w) {
+  const keys = (w.exercises || []).filter(k => EXERCISES[k]);
+  let sets = 0, repsW = 0, repsN = 0, sec = 0;
+  keys.forEach((k, i) => {
+    const m = EXERCISES[k];
+    const nSets = (((state.prep || {})[k] || {}).sets) || m.sets || 3;
+    const reps = m.time ? null : ((((state.prep || {})[k] || {}).reps) || m.reps || 12);
+    const workPerSet = m.time ? (parseInt(m.time) || 30) : reps * 3;
+    const rest = parseInt(m.rest) || 60;
+    sets += nSets;
+    if (reps) { repsW += reps * nSets; repsN += nSets; }
+    sec += nSets * workPerSet + (nSets - 1) * rest;
+    if (i < keys.length - 1) sec += 75;
+  });
+  return {
+    exercises: keys.length,
+    sets,
+    avgReps: repsN ? Math.round(repsW / repsN) : 0,
+    minutes: Math.max(5, Math.round(sec / 60 / 5) * 5)
+  };
+}
+
 function renderWorkout() {
   const w = getWorkout(currentWorkoutId);
 
@@ -32,6 +59,7 @@ function renderWorkout() {
 
   const exList = w.exercises.map(k => Object.assign({ key: k }, EXERCISES[k]));
   const sess = todaySession(w.id);
+  const ws = workoutStats(w);
 
   // HERO
   $("workout-hero").style.background = `linear-gradient(150deg, ${w.color} 0%, #2A1B4A 95%)`;
@@ -40,10 +68,10 @@ function renderWorkout() {
     <div class="hero-label">${heroWhen(w)}</div>
     <div class="hero-title">${w.name} ${w.emoji}</div>
     <div class="hero-stats">
-      <div class="hero-stat"><div class="hero-stat-num">${exList.length}</div><div class="hero-stat-lbl">Esercizi</div></div>
-      <div class="hero-stat"><div class="hero-stat-num">3</div><div class="hero-stat-lbl">Serie</div></div>
-      <div class="hero-stat"><div class="hero-stat-num">12</div><div class="hero-stat-lbl">Rip. medi</div></div>
-      <div class="hero-stat"><div class="hero-stat-num">~50'</div><div class="hero-stat-lbl">Durata</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">${ws.exercises}</div><div class="hero-stat-lbl">Esercizi</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">${ws.sets}</div><div class="hero-stat-lbl">Serie totali</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">${ws.avgReps || "—"}</div><div class="hero-stat-lbl">Rip. medie</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">~${ws.minutes}'</div><div class="hero-stat-lbl">Durata</div></div>
     </div>`;
 
   // CARDS

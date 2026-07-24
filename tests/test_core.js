@@ -39,7 +39,7 @@ var api = new Function(
     ALL_WORKOUTS: ALL_WORKOUTS, getWorkout: getWorkout, SCHEDULABLE: SCHEDULABLE,
     chipOrder: chipOrder, ptNextIndex: ptNextIndex, selectWorkout: selectWorkout,
     nightCloseMessage: nightCloseMessage, computeCrewStats: computeCrewStats, icsContent: icsContent,
-    manualSave: manualSave, commitSession: commitSession, mergeCustomExercises: mergeCustomExercises,
+    manualSave: manualSave, commitSession: commitSession, workoutStats: workoutStats, mergeCustomExercises: mergeCustomExercises,
     EXERCISES_SETS_CHESTPRESS: EXERCISES.chestpress.sets,
     mealWeekColor: mealWeekColor, restAdvice: restAdvice, photoCheckDue: photoCheckDue, estimate1RM: estimate1RM,
     defaultState: defaultState, applyMigrations: applyMigrations,
@@ -519,6 +519,17 @@ ok("chest press: 3 serie", api.EXERCISES_SETS_CHESTPRESS === 3);
 stX.customExercises = { cx_pi2: { name: "Panca inclinata manubri", type: "dumbbell", sets: 3, reps: 12 } };
 stX = api.applyMigrations(stX);
 ok("panca inclinata manubri: 4 serie", stX.customExercises.cx_pi2.sets === 4);
+
+/* ---- 16q) STATISTICHE REALI DELLA SCHEDA (erano hardcoded) ---- */
+st = api.defaultState();
+api.set(st);
+var wsT = api.workoutStats({ exercises: ["chestpress", "curl"] });   // 3x10-12 + 3x15
+ok("stats: serie totali reali (3+3)", wsT.sets === 6);
+ok("stats: ripetizioni medie reali (10 e 15 → 13)", wsT.avgReps === 13);
+ok("stats: durata stimata plausibile", wsT.minutes >= 10 && wsT.minutes <= 25);
+var wsBig = api.workoutStats({ exercises: ["legpress", "chestpress", "latmachine", "curl", "tricipiti"] });
+ok("stats: scheda più lunga → più minuti", wsBig.minutes > wsT.minutes);
+ok("stats: esercizi inesistenti ignorati", api.workoutStats({ exercises: ["boh", "curl"] }).exercises === 1);
 
 /* ---- 17) SMOKE: ogni vista renderizza senza eccezioni (dati demo realistici) ---- */
 function smoke(name, fn) {
