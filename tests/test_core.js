@@ -477,6 +477,23 @@ ok("foto: set di 5 giorni fa → non ancora dovuto", api.photoCheckDue() === fal
 st.photos = [{ date: dAgo(14), angle: "front", path: "x" }];
 ok("foto: 14 giorni → dovuto", api.photoCheckDue() === true);
 
+/* ---- 16n) SWAP Chest Press <-> Panca inclinata manubri ---- */
+var stS = api.defaultState();
+stS.customExercises = { cx_pi: { name: "Panca inclinata manubri", type: "dumbbell", bodyPart: "chest" } };
+stS.myWorkouts = [
+  { id: "s1", name: "Seduta 1", exercises: ["legpress", "chestpress", "latmachine"] },
+  { id: "s2", name: "Seduta 2", exercises: ["legext", "cx_pi", "curl"] }
+];
+stS = api.applyMigrations(stS);
+ok("swap: Seduta 1 ha la panca inclinata nella stessa posizione",
+   JSON.stringify(stS.myWorkouts[0].exercises) === '["legpress","cx_pi","latmachine"]');
+ok("swap: Seduta 2 ha il chest press nella stessa posizione",
+   JSON.stringify(stS.myWorkouts[1].exercises) === '["legext","chestpress","curl"]');
+ok("swap: eseguito una sola volta", stS.migrations.indexOf("swap-chest-panca") >= 0);
+var again = api.applyMigrations(stS);
+ok("swap: idempotente (non torna indietro)",
+   JSON.stringify(again.myWorkouts[0].exercises) === '["legpress","cx_pi","latmachine"]');
+
 /* ---- 17) SMOKE: ogni vista renderizza senza eccezioni (dati demo realistici) ---- */
 function smoke(name, fn) {
   try { fn(); ok("smoke: " + name, true); }

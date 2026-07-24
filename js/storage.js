@@ -87,6 +87,21 @@ function applyMigrations(s) {
     });
     s.migrations.push("denis-reps");
   }
+  // Scambio schede: Chest Press ↔ Panca inclinata manubri (stessa posizione).
+  // Le chiavi degli esercizi non cambiano: storico e progressione restano.
+  if (s.migrations.indexOf("swap-chest-panca") < 0) {
+    const inclKey = Object.keys(s.customExercises || {})
+      .find(k => /panca\s+inclinata\s+manubri/i.test((s.customExercises[k] || {}).name || ""));
+    if (inclKey) {
+      const wChest = (s.myWorkouts || []).find(w => (w.exercises || []).indexOf("chestpress") >= 0);
+      const wIncl = (s.myWorkouts || []).find(w => (w.exercises || []).indexOf(inclKey) >= 0);
+      if (wChest && wIncl && wChest !== wIncl) {
+        wChest.exercises[wChest.exercises.indexOf("chestpress")] = inclKey;
+        wIncl.exercises[wIncl.exercises.indexOf(inclKey)] = "chestpress";
+      }
+    }
+    s.migrations.push("swap-chest-panca");
+  }
   return s;
 }
 
